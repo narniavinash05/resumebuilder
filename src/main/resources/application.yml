@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: resume-builder
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    service: DEBUG
