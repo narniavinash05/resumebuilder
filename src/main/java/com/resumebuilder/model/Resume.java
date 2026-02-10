@@ -8,11 +8,9 @@ import java.util.List;
 public class Resume {
 
     private String fullName;
-    private ContactInfo contactInfo;
     private String professionalSummary;
-
+    private ContactInfo contactInfo;
     private List<Experience> experiences;
     private List<Education> education;
-    private List<String> skills;
-    private List<Certification> certifications;
+    private List<SkillCategory> skillCategories;
 }

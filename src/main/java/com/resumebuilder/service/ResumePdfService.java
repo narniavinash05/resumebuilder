@@ -1,16 +1,17 @@
 package com.resumebuilder.service;
 
+import com.lowagie.text.Font;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.*;
-import com.lowagie.text.pdf.*;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.draw.LineSeparator;
-import com.resumebuilder.model.ContactInfo;
-import com.resumebuilder.model.Education;
-import com.resumebuilder.model.Experience;
-import com.resumebuilder.model.Resume;
-
+import com.resumebuilder.model.*;
 import org.springframework.stereotype.Service;
 
-import java.awt.Color;
+import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.net.URL;
 import java.util.List;
@@ -18,22 +19,24 @@ import java.util.List;
 @Service
 public class ResumePdfService {
 
+    private static final float BASE_FONT_SIZE = 10f;
+    private static final float LINE_LEADING = 12f;
+
     public byte[] generateResume(Resume resume) throws Exception {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.LETTER);
 
+        Document document = new Document(PageSize.LETTER, 18, 18, 18, 18);
         PdfWriter.getInstance(document, baos);
         document.open();
-        document.setMargins(18f, 18f, 18f, 18f);
 
         BaseFont latoRegular = loadFont("/fonts/Lato-Regular.ttf");
         BaseFont latoBold = loadFont("/fonts/Lato-Bold.ttf");
 
         Font titleFont = new Font(latoBold, 18, Font.BOLD);
-        Font normalFont = new Font(latoRegular, 10);
-        Font boldFont = new Font(latoBold, 10);
-        Font sectionFont = new Font(latoBold, 14, Font.BOLD, new Color(0, 0, 128));
+        Font normalFont = new Font(latoRegular, BASE_FONT_SIZE);
+        Font boldFont = new Font(latoBold, BASE_FONT_SIZE);
+        Font sectionFont = new Font(latoBold, 13, Font.BOLD, new Color(0, 0, 128));
 
         addHeader(document, resume, titleFont, normalFont);
 
@@ -45,9 +48,14 @@ public class ResumePdfService {
             addExperience(document, resume.getExperiences(), normalFont, boldFont);
         }
 
-        if (resume.getSkills() != null && !resume.getSkills().isEmpty()) {
+        if (resume.getSkillCategories() != null
+                && !resume.getSkillCategories().isEmpty()) {
+
             addSection(document, "Skills", sectionFont);
-            addSkills(document, resume.getSkills(), normalFont, boldFont);
+            addSkillCategories(document,
+                    resume.getSkillCategories(),
+                    normalFont,
+                    boldFont);
         }
 
         if (resume.getEducation() != null && !resume.getEducation().isEmpty()) {
@@ -59,65 +67,67 @@ public class ResumePdfService {
         return baos.toByteArray();
     }
 
-    // ----------------------------
-    // Header
-    // ----------------------------
+    // ----------------------------------------------------
+    // HEADER
+    // ----------------------------------------------------
     private void addHeader(Document document, Resume resume,
                            Font titleFont, Font normalFont) throws Exception {
 
         Paragraph name = new Paragraph(safe(resume.getFullName()), titleFont);
         name.setAlignment(Element.ALIGN_CENTER);
+        name.setLeading(20f);
+        name.setSpacingAfter(2f);
         document.add(name);
 
-        document.add(Chunk.NEWLINE);
-
         ContactInfo c = resume.getContactInfo();
-
         if (c != null) {
-            String contactLine = String.join(" | ",
-                    safe(c.getLocation()),
-                    safe(c.getPhone()),
-                    safe(c.getEmail())
+            Paragraph contact = new Paragraph(
+                    safe(c.getLocation()) + "  |  " +
+                            safe(c.getPhone()) + "  |  " +
+                            safe(c.getEmail()),
+                    normalFont
             );
-
-            Paragraph contact = new Paragraph(contactLine, normalFont);
             contact.setAlignment(Element.ALIGN_CENTER);
+            contact.setLeading(LINE_LEADING);
+            contact.setSpacingAfter(4f);
             document.add(contact);
         }
 
-        document.add(Chunk.NEWLINE);
-        document.add(new LineSeparator());
-        document.add(Chunk.NEWLINE);
+        LineSeparator line = new LineSeparator();
+        line.setLineWidth(0.5f);
+        document.add(line);
     }
 
-    // ----------------------------
-    // Section Title
-    // ----------------------------
+    // ----------------------------------------------------
+    // SECTION TITLE
+    // ----------------------------------------------------
     private void addSection(Document document, String title, Font sectionFont)
             throws Exception {
 
         Paragraph section = new Paragraph(title, sectionFont);
-        section.setSpacingBefore(6f);
+        section.setSpacingBefore(8f);
         section.setSpacingAfter(4f);
+        section.setLeading(14f);
         document.add(section);
     }
 
-    // ----------------------------
-    // Summary
-    // ----------------------------
+    // ----------------------------------------------------
+    // SUMMARY
+    // ----------------------------------------------------
     private void addSummary(Document document, String summary, Font normal)
             throws Exception {
 
         if (summary == null || summary.isBlank()) return;
 
         Paragraph paragraph = new Paragraph(summary, normal);
-        paragraph.setSpacingAfter(8f);
+        paragraph.setLeading(LINE_LEADING);
+        paragraph.setSpacingAfter(6f);
         document.add(paragraph);
     }
 
-    // ----------------------------
-    // Experience
-    // ----------------------------
+    // ----------------------------------------------------
+    // EXPERIENCE
+    // ----------------------------------------------------
     private void addExperience(Document document,
                                List<Experience> experiences,
                                Font normal,
@@ -127,6 +137,8 @@ public class ResumePdfService {
 
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
+            table.setSpacingBefore(2f);
+            table.setSpacingAfter(2f);
             table.setWidths(new float[]{70, 30});
 
             addCell(table, safe(exp.getCompany()), bold);
@@ -138,39 +150,68 @@ public class ResumePdfService {
             addCell(table, safe(exp.getLocation()), normal);
 
             document.add(table);
-            document.add(Chunk.NEWLINE);
 
             if (exp.getResponsibilities() != null) {
+
                 com.lowagie.text.List bulletList =
-                        new com.lowagie.text.List(com.lowagie.text.List.UNORDERED);
+                        new com.lowagie.text.List(false, 10f);
+
+                bulletList.setIndentationLeft(15f);
+                bulletList.setSymbolIndent(8f);
 
                 for (String bullet : exp.getResponsibilities()) {
-                    bulletList.add(new ListItem(safe(bullet), normal));
+                    ListItem item = new ListItem(safe(bullet), normal);
+                    item.setLeading(LINE_LEADING);
+                    bulletList.add(item);
                 }
 
                 document.add(bulletList);
-                document.add(Chunk.NEWLINE);
             }
         }
     }
 
-    // ----------------------------
-    // Skills
-    // ----------------------------
-    private void addSkills(Document document,
-                           List<String> skills,
-                           Font normal,
-                           Font bold) throws Exception {
+    // ----------------------------------------------------
+    // SKILL CATEGORIES (UPDATED)
+    // ----------------------------------------------------
+    private void addSkillCategories(Document document,
+                                    List<SkillCategory> categories,
+                                    Font normal,
+                                    Font bold) throws Exception {
 
-        Paragraph p = new Paragraph();
-        p.add(new Chunk("Skills: ", bold));
-        p.add(new Chunk(String.join(", ", skills), normal));
-        document.add(p);
+        if (categories == null || categories.isEmpty()) {
+            return;
+        }
+
+        for (SkillCategory category : categories) {
+
+            if (category == null
+                    || category.getSkills() == null
+                    || category.getSkills().isEmpty()) {
+                continue;
+            }
+
+            Paragraph paragraph = new Paragraph();
+            paragraph.setLeading(LINE_LEADING);
+            paragraph.setSpacingAfter(4f);
+
+            paragraph.add(new Chunk(
+                    safe(category.getCategoryName()) + ": ",
+                    bold
+            ));
+
+            paragraph.add(new Chunk(
+                    String.join(", ", category.getSkills()),
+                    normal
+            ));
+
+            document.add(paragraph);
+        }
     }
 
-    // ----------------------------
-    // Education
-    // ----------------------------
+
+    // ----------------------------------------------------
+    // EDUCATION
+    // ----------------------------------------------------
     private void addEducation(Document document,
                               List<Education> educationList,
                               Font normal,
@@ -180,6 +221,8 @@ public class ResumePdfService {
 
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
+            table.setSpacingBefore(2f);
+            table.setSpacingAfter(4f);
             table.setWidths(new float[]{70, 30});
 
             addCell(table, safe(edu.getInstitution()), bold);
@@ -193,13 +236,13 @@ public class ResumePdfService {
             addCell(table, safe(edu.getLocation()), normal);
 
             document.add(table);
-            document.add(Chunk.NEWLINE);
         }
     }
 
     private void addCell(PdfPTable table, String text, Font font) {
-        PdfPCell cell = new PdfPCell(new Phrase(safe(text), font));
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(0f);
         table.addCell(cell);
     }
 
@@ -207,9 +250,9 @@ public class ResumePdfService {
         return value == null ? "" : value;
     }
 
-    // ----------------------------
-    // Font Loader (FIXED)
-    // ----------------------------
+    // ----------------------------------------------------
+    // FONT LOADER
+    // ----------------------------------------------------
     private BaseFont loadFont(String path) throws Exception {
 
         URL fontUrl = getClass().getResource(path);
