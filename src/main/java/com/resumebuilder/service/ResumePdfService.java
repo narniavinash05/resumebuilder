@@ -63,6 +63,11 @@ public class ResumePdfService {
             addEducation(document, resume.getEducation(), normalFont, boldFont);
         }
 
+        if (resume.getCertifications() != null && !resume.getCertifications().isEmpty()) {
+            addSection(document, "Certifications", sectionFont);
+            addCertifications(document, resume.getCertifications(), normalFont, boldFont);
+        }
+
         document.close();
         return baos.toByteArray();
     }
@@ -256,6 +261,68 @@ public class ResumePdfService {
             document.add(table);
         }
     }
+
+    // ----------------------------------------------------
+// CERTIFICATIONS
+// ----------------------------------------------------
+    private void addCertifications(Document document,
+                                   List<Certification> certifications,
+                                   Font normal,
+                                   Font bold) throws Exception {
+
+        if (certifications == null || certifications.isEmpty()) {
+            return;
+        }
+
+        int columns = 2; // number of certifications per row
+        PdfPTable table = new PdfPTable(columns);
+        table.setWidthPercentage(100);
+        table.setSpacingBefore(2f);
+        table.setSpacingAfter(2f);
+
+        for (Certification cert : certifications) {
+
+            Phrase phrase = new Phrase();
+
+            // Bullet
+            phrase.add(new Chunk("\u2022 ", normal));
+
+            // Name
+            phrase.add(new Chunk(safe(cert.getName()), bold));
+
+            // Space
+            phrase.add(new Chunk("  ", normal));
+
+            // Hyperlink
+            if (cert.getCertificateUrl() != null &&
+                    !cert.getCertificateUrl().isBlank()) {
+
+                Font linkFont = new Font(normal);
+                linkFont.setColor(new Color(0, 0, 128));
+
+                Anchor link = new Anchor("Certificate", linkFont);
+                link.setReference(cert.getCertificateUrl());
+                phrase.add(link);
+            }
+
+            PdfPCell cell = new PdfPCell(phrase);
+            cell.setBorder(Rectangle.NO_BORDER);
+            cell.setPadding(2f);
+
+            table.addCell(cell);
+        }
+
+        // If odd number, fill last cell
+        if (certifications.size() % columns != 0) {
+            PdfPCell empty = new PdfPCell(new Phrase(""));
+            empty.setBorder(Rectangle.NO_BORDER);
+            table.addCell(empty);
+        }
+
+        document.add(table);
+    }
+
+
 
     private void addCell(PdfPTable table, String text, Font font) {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));

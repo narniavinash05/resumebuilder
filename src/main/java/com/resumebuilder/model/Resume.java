@@ -13,4 +13,6 @@ public class Resume {
     private List<Experience> experiences;
     private List<Education> education;
     private List<SkillCategory> skillCategories;
+    private List<Certification> certifications;
+
 }
