@@ -67,9 +67,6 @@ public class ResumePdfService {
         return baos.toByteArray();
     }
 
-    // ----------------------------------------------------
-    // HEADER
-    // ----------------------------------------------------
     private void addHeader(Document document, Resume resume,
                            Font titleFont, Font normalFont) throws Exception {
 
@@ -81,15 +78,34 @@ public class ResumePdfService {
 
         ContactInfo c = resume.getContactInfo();
         if (c != null) {
-            Paragraph contact = new Paragraph(
-                    safe(c.getLocation()) + "  |  " +
-                            safe(c.getPhone()) + "  |  " +
-                            safe(c.getEmail()),
-                    normalFont
-            );
+
+            Paragraph contact = new Paragraph();
             contact.setAlignment(Element.ALIGN_CENTER);
             contact.setLeading(LINE_LEADING);
             contact.setSpacingAfter(4f);
+
+            contact.add(new Chunk(safe(c.getLocation()) + "  |  ", normalFont));
+            contact.add(new Chunk(safe(c.getPhone()) + "  |  ", normalFont));
+
+            Anchor email = new Anchor(safe(c.getEmail()), normalFont);
+            email.setReference("mailto:" + safe(c.getEmail()));
+            contact.add(email);
+            contact.add(new Chunk("  |  ", normalFont));
+
+            // Navy blue underlined hyperlink font
+            Font linkFont = new Font(normalFont);
+            linkFont.setColor(new Color(0, 0, 128));
+//            linkFont.setStyle(Font.UNDERLINE);
+
+            Anchor linkedin = new Anchor("LinkedIn", linkFont);
+            linkedin.setReference("https://" + safe(c.getLinkedin()));
+            contact.add(linkedin);
+            contact.add(new Chunk("  |  ", normalFont));
+
+            Anchor portfolio = new Anchor("Portfolio", linkFont);
+            portfolio.setReference("https://" + safe(c.getPortfolio()));
+            contact.add(portfolio);
+
             document.add(contact);
         }
 
@@ -97,6 +113,8 @@ public class ResumePdfService {
         line.setLineWidth(0.5f);
         document.add(line);
     }
+
+
 
     // ----------------------------------------------------
     // SECTION TITLE
