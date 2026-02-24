@@ -1,11 +1,11 @@
 package com.resumebuilder.llm;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 @Service
 public class PromptBuilder {
@@ -13,14 +13,29 @@ public class PromptBuilder {
     private static final String PROMPT_PATH =
             "prompts/resume-tailor-prompt.txt";
 
+    private final ObjectMapper objectMapper;
+
+    public PromptBuilder(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
     public String buildPrompt(Object resumeMetaData,
                               String jobDescription) {
 
         String template = loadPromptTemplate();
 
-        return template
-                .replace("{{resumeData}}", resumeMetaData.toString())
-                .replace("{{jobDescription}}", jobDescription);
+        try {
+            String resumeJson =
+                    objectMapper.writerWithDefaultPrettyPrinter()
+                            .writeValueAsString(resumeMetaData);
+
+            return template
+                    .replace("{{resumeData}}", resumeJson)
+                    .replace("{{jobDescription}}", jobDescription);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize resume metadata", e);
+        }
     }
 
     private String loadPromptTemplate() {
