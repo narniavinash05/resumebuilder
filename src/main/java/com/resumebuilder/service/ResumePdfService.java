@@ -164,13 +164,14 @@ public class ResumePdfService {
             table.setSpacingAfter(2f);
             table.setWidths(new float[]{70, 30});
 
-            addCell(table, safe(exp.getCompany()), bold);
+            addCell(table, safe(exp.getCompany()), bold, Element.ALIGN_LEFT);
             addCell(table,
                     safe(exp.getStartDate()) + " - " + safe(exp.getEndDate()),
-                    bold);
+                    bold,
+                    Element.ALIGN_RIGHT);
 
-            addCell(table, safe(exp.getRole()), normal);
-            addCell(table, safe(exp.getLocation()), normal);
+            addCell(table, safe(exp.getRole()), normal, Element.ALIGN_LEFT);
+            addCell(table, safe(exp.getLocation()), normal, Element.ALIGN_RIGHT);
 
             document.add(table);
 
@@ -248,15 +249,16 @@ public class ResumePdfService {
             table.setSpacingAfter(4f);
             table.setWidths(new float[]{70, 30});
 
-            addCell(table, safe(edu.getInstitution()), bold);
-            addCell(table, safe(edu.getDuration()), bold);
+            addCell(table, safe(edu.getInstitution()), bold, Element.ALIGN_LEFT);
+            addCell(table, safe(edu.getDuration()), bold, Element.ALIGN_RIGHT);
 
             addCell(table,
                     safe(edu.getDegree()) +
                             (edu.getGpa() != null ? " (GPA: " + edu.getGpa() + ")" : ""),
-                    normal);
+                    normal,
+                    Element.ALIGN_LEFT);
 
-            addCell(table, safe(edu.getLocation()), normal);
+            addCell(table, safe(edu.getLocation()), normal, Element.ALIGN_RIGHT);
 
             document.add(table);
         }
@@ -324,10 +326,11 @@ public class ResumePdfService {
 
 
 
-    private void addCell(PdfPTable table, String text, Font font) {
+    private void addCell(PdfPTable table, String text, Font font, int alignment) {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setBorder(Rectangle.NO_BORDER);
         cell.setPadding(0f);
+        cell.setHorizontalAlignment(alignment);
         table.addCell(cell);
     }
 
