@@ -35,15 +35,33 @@ public class ResumeController {
                 .body(pdf);
     }
 
-    @PostMapping("/tailor")
-    public ResponseEntity<?> tailor(@RequestBody TailorRequest request) {
+//    @PostMapping("/tailor")
+//    public ResponseEntity<?> tailor(@RequestBody TailorRequest request) {
+//
+//        String result = tailoringService.tailorResume(
+//                request.getResumeMetaData(),
+//                request.getJobDescription()
+//        );
+//
+//        return ResponseEntity.ok(result);
+//    }
 
-        String result = tailoringService.tailorResume(
+    @PostMapping("/tailor-and-generate")
+    public ResponseEntity<byte[]> tailorAndGenerate(
+            @RequestBody TailorRequest request) throws Exception {
+
+        Resume tailoredResume = tailoringService.tailorResume(
                 request.getResumeMetaData(),
                 request.getJobDescription()
         );
 
-        return ResponseEntity.ok(result);
+        byte[] pdf = resumePdfService.generateResume(tailoredResume);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=tailored_resume.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
 }

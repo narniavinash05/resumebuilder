@@ -4,11 +4,15 @@ import com.resumebuilder.llm.LlmClient;
 import com.resumebuilder.llm.PromptBuilder;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.resumebuilder.model.Resume;
+
 @Service
 public class ResumeTailoringService {
 
     private final LlmClient llmClient;
     private final PromptBuilder promptBuilder;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ResumeTailoringService(LlmClient llmClient,
                                   PromptBuilder promptBuilder) {
@@ -16,14 +20,16 @@ public class ResumeTailoringService {
         this.promptBuilder = promptBuilder;
     }
 
-    public String tailorResume(Object resumeMetaData,
-                               String jobDescription) {
+    public Resume tailorResume(Object resumeMetaData,
+                               String jobDescription) throws Exception {
 
         String prompt = promptBuilder.buildPrompt(
                 resumeMetaData,
                 jobDescription
         );
 
-        return llmClient.callLLM(prompt);
+        String llmResponse = llmClient.callLLM(prompt);
+
+        return objectMapper.readValue(llmResponse, Resume.class);
     }
 }
