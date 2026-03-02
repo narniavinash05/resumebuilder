@@ -1,135 +1,197 @@
-# ATS Resume Refactor Engine 🚀
+# 🚀 AI Resume Builder -- ATS Optimization Engine
 
-A **Spring Boot–based resume optimization engine** that automatically refactors candidate resumes based on Job Description (JD) metadata to generate a **single-page, ATS-optimized, well-aligned resume**.
+An enterprise-grade **Spring Boot AI Resume Optimization Engine** that
+automatically generates **JD-aligned, ATS-optimized, single-page
+professional resumes** using structured metadata and LLM-based
+tailoring.
 
----
+------------------------------------------------------------------------
 
-## 📌 Problem Statement
+# 📌 Problem
 
-Tailoring resumes for every job application is:
+Manually tailoring resumes for every job application is:
 
-* Time-consuming
-* Repetitive
-* Error-prone
-* Often poorly optimized for ATS systems
+-   Time-consuming\
+-   Repetitive\
+-   Prone to keyword mismatch\
+-   Inefficient for ATS systems
 
-This project eliminates manual effort by automatically generating JD-aligned, keyword-optimized resumes.
+Modern Applicant Tracking Systems rely heavily on **literal keyword
+matching**, not semantic similarity.
 
----
+------------------------------------------------------------------------
 
-## 💡 Solution Overview
+# 💡 Solution
 
-The application:
+This engine:
 
-* Accepts **Candidate Metadata**
-* Accepts **Job Description Metadata**
-* Refactors experience bullet points dynamically
-* Optimizes keyword density for ATS
-* Produces a **clean, single-page formatted resume**
-* Ensures structured, professional alignment
+✔ Accepts structured **candidate metadata (JSON)**\
+✔ Accepts full **Job Description (JD)**\
+✔ Extracts JD keywords\
+✔ Rewrites experience bullets intelligently\
+✔ Optimizes keyword placement for ATS\
+✔ Normalizes cloud/database terminology\
+✔ Validates and parses LLM JSON safely\
+✔ Generates a clean, professional **PDF resume**
 
----
+Result:\
+**Interview-ready, ATS-optimized resume in seconds.**
 
-## ⚙️ Tech Stack
+------------------------------------------------------------------------
 
-* **Java 17+**
-* **Spring Boot**
-* REST APIs
-* JSON-based metadata input
-* Modular architecture (scalable for LLM integration)
+# 🏗 System Architecture
 
----
+Client (Resume + JD JSON)\
+↓\
+Prompt Builder (Template Engine)\
+↓\
+LLM Integration Layer\
+↓\
+JSON Validation & Recovery\
+↓\
+Resume Model Mapping\
+↓\
+PDF Rendering Engine\
+↓\
+ATS-Optimized Resume Output
 
-## 🏗 Architecture
+------------------------------------------------------------------------
 
-```
-Client (JSON Metadata)
-        ↓
-Resume Refactor Engine
-        ↓
-Keyword Optimization Layer
-        ↓
-Formatting Engine
-        ↓
-ATS-Optimized Single Page Resume Output
-```
+# ⚙️ Tech Stack
 
----
+-   Java 17+\
+-   Spring Boot\
+-   WebClient (Reactive HTTP)\
+-   Jackson (JSON serialization)\
+-   iText (PDF generation)\
+-   External Prompt Templates\
+-   OpenAI-compatible LLM API
 
-## 🔌 API Usage
+------------------------------------------------------------------------
 
-### Endpoint
+# 🧠 Core Engine Features
 
-```
-POST /api/refactor-resume
-```
+## Universal ATS Optimization
 
-### Request Body (Sample)
+-   Extracts all technical keywords from JD\
+-   Forces distribution across Summary, Experience, and Skills\
+-   Emphasizes architecture decisions, scalability, API design\
+-   Normalizes terminology (RDBMS, NoSQL, Cloud technologies, CI/CD
+    pipelines)
 
-```json
-{
-  "candidateMetaData": {
-    "name": "John Doe",
-    "experience": [...],
-    "skills": [...],
-    "education": [...]
-  },
-  "jobDescriptionMetaData": {
-    "role": "Senior Java Developer",
-    "requiredSkills": ["Spring Boot", "Microservices", "REST APIs"]
-  }
-}
-```
+Target ATS Match: **90--95% (realistic range)**
 
-### Response
+------------------------------------------------------------------------
 
-* Fully refactored
-* JD-aligned
-* ATS-optimized
-* Single-page structured resume
+## Safe LLM Parsing & Recovery
 
----
+Handles:
 
-## 🚀 How To Run
+-   Wrapped JSON\
+-   Malformed output\
+-   Missing fields\
+-   Empty responses
 
-```bash
-git clone https://github.com/narniavinash05/resumebuilder
-cd ats-resume-engine
+Includes JSON extraction fallback and validation layer.
+
+------------------------------------------------------------------------
+
+## Clean PDF Layout Engine
+
+-   Proper right-aligned dates & locations\
+-   Professional typography\
+-   Sectioned layout\
+-   Single-page formatting
+
+------------------------------------------------------------------------
+
+## Prompt Template Externalization
+
+Prompt stored in:
+
+src/main/resources/prompts/resume-tailor-prompt.txt
+
+Benefits:
+
+-   Easy tuning\
+-   Versioning support\
+-   Domain-agnostic design\
+-   Enterprise-level flexibility
+
+------------------------------------------------------------------------
+
+# 🔌 API Endpoints
+
+## Tailor Resume
+
+POST /api/resume/tailor
+
+### Request Body
+
+{ "resumeMetaData": { ... }, "jobDescription": "Full job description
+text here..." }
+
+------------------------------------------------------------------------
+
+## Generate PDF
+
+POST /api/resume/pdf
+
+Returns a professionally formatted PDF resume.
+
+------------------------------------------------------------------------
+
+# 🚀 Running the Application
+
+Clone Repository:
+
+git clone https://github.com/narniavinash05/resumebuilder\
+cd resumebuilder
+
+Build:
+
 mvn clean install
+
+Run:
+
 mvn spring-boot:run
-```
 
 Application runs at:
 
-```
 http://localhost:8080
-```
 
----
+------------------------------------------------------------------------
 
-## 🔮 Roadmap
+# 🔐 Environment Variables
 
-* [ ] LLM Native Integration
-* [ ] Resume Scoring Engine
-* [ ] Frontend UI Dashboard
-* [ ] Multi-format Export (PDF / DOCX)
-* [ ] Resume Analytics
+Add to application.properties:
 
----
+openai.api-key=YOUR_API_KEY\
+openai.url=https://api.openai.com/v1/chat/completions\
+openai.model=gpt-4o-mini
 
-## 🎯 Key Benefits
+------------------------------------------------------------------------
 
-* Saves hours of manual tailoring
-* Improves ATS shortlisting probability
-* Enables bulk job applications efficiently
-* Reduces resume fatigue
+# 📈 Future Enhancements
 
----
+-   Automated ATS scoring engine\
+-   Keyword-gap detection + re-prompt loop\
+-   Multi-pass LLM optimization\
+-   Resume analytics dashboard\
+-   Multi-format export (DOCX)\
+-   SaaS deployment architecture
 
-## 📢 Future Enhancements
+------------------------------------------------------------------------
 
-LLM-powered contextual rewriting and adaptive formatting intelligence are planned for the next phase.
+# 🎯 Why This Project Matters
 
-Stay tuned.
+This is not just a resume formatter.
 
----
+It is an AI-driven resume alignment engine engineered for ATS dominance.
+
+------------------------------------------------------------------------
+
+# 👤 Author
+
+Avinash Narni\
+Dallas, TX
