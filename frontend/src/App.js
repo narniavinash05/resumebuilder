@@ -7,6 +7,7 @@ const getToken = () => localStorage.getItem("ats_token");
 
 const apiFetch = async (path, options = {}) => {
   const token = getToken();
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -16,7 +17,16 @@ const apiFetch = async (path, options = {}) => {
     },
   });
 
-  // For binary responses (PDF)
+  // 🔹 Handle JWT expiration
+  if (res.status === 401) {
+    localStorage.removeItem("ats_token");
+    localStorage.removeItem("ats_user");
+
+    // Redirect to login page cleanly
+    window.location.href = "/";
+    return;
+  }
+
   if (options.binary) {
     if (!res.ok) throw new Error("Failed to generate PDF");
     return res.blob();
@@ -29,38 +39,119 @@ const apiFetch = async (path, options = {}) => {
 
 const api = {
   signup: (fullName, email, password) =>
-    apiFetch("/api/auth/signup", {
-      method: "POST",
-      body: JSON.stringify({ fullName, email, password }),
-    }),
-
+    apiFetch("/api/auth/signup", { method: "POST", body: JSON.stringify({ fullName, email, password }) }),
   login: (email, password) =>
-    apiFetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
-
+    apiFetch("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
   getProfile: () => apiFetch("/api/auth/profile"),
-
   saveProfile: (profileJson) =>
-    apiFetch("/api/auth/profile", {
-      method: "POST",
-      body: JSON.stringify({ profileJson }),
-    }),
-
+    apiFetch("/api/auth/profile", { method: "POST", body: JSON.stringify({ profileJson }) }),
   getAtsScore: (jobDescription) =>
-    apiFetch("/api/auth/ats-score", {
-      method: "POST",
-      body: JSON.stringify({ jobDescription }),
-    }),
-
+    apiFetch("/api/auth/ats-score", { method: "POST", body: JSON.stringify({ jobDescription }) }),
   generateResume: (resumeMetaData, jobDescription) =>
     apiFetch("/api/resume/tailor-and-generate", {
-      method: "POST",
-      binary: true,
+      method: "POST", binary: true,
       body: JSON.stringify({ resumeMetaData, jobDescription }),
     }),
 };
+
+// ─── Month/Year Dropdown Helpers ───────────────────────────────────────────
+const MONTHS = [
+  { value: "01", label: "January" },  { value: "02", label: "February" },
+  { value: "03", label: "March" },    { value: "04", label: "April" },
+  { value: "05", label: "May" },      { value: "06", label: "June" },
+  { value: "07", label: "July" },     { value: "08", label: "August" },
+  { value: "09", label: "September" },{ value: "10", label: "October" },
+  { value: "11", label: "November" }, { value: "12", label: "December" },
+];
+
+const YEARS = (() => {
+  const current = new Date().getFullYear();
+  const arr = [];
+  for (let y = current; y >= 1980; y--) arr.push(String(y));
+  return arr;
+})();
+
+// Stores value as "YYYY-MM" — same shape as the old type="month" input
+function MonthYearPicker({ value, onChange, disabled }) {
+  const [year, setYear] = useState("");
+  const [month, setMonth] = useState("");
+
+  // Sync with parent value
+  useEffect(() => {
+    if (value && value.includes("-")) {
+      const [y, m] = value.split("-");
+      setYear(y || "");
+      setMonth(m || "");
+    } else {
+      setYear("");
+      setMonth("");
+    }
+  }, [value]);
+
+  const handleYearChange = (newYear) => {
+    setYear(newYear);
+    if (newYear && month) {
+      onChange(`${newYear}-${month}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  const handleMonthChange = (newMonth) => {
+    setMonth(newMonth);
+    if (year && newMonth) {
+      onChange(`${year}-${newMonth}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  const selectStyle = {
+    width: "100%",
+    padding: "14px 12px",
+    background: disabled ? "rgba(255,255,255,0.03)" : "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius)",
+    color: disabled ? "var(--muted)" : "var(--text)",
+    fontFamily: "var(--font-body)",
+    fontSize: 14,
+    outline: "none",
+    opacity: disabled ? 0.5 : 1,
+    cursor: disabled ? "not-allowed" : "pointer",
+  };
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <select
+        value={month}
+        onChange={(e) => handleMonthChange(e.target.value)}
+        disabled={disabled}
+        style={selectStyle}
+      >
+        <option value="">Month</option>
+        {MONTHS.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.label}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={year}
+        onChange={(e) => handleYearChange(e.target.value)}
+        disabled={disabled}
+        style={selectStyle}
+      >
+        <option value="">Year</option>
+        {YEARS.map((y) => (
+          <option key={y} value={y}>
+            {y}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 const css = `
@@ -75,7 +166,6 @@ const css = `
   body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
   .app { min-height: 100vh; display: flex; flex-direction: column; }
 
-  /* Auth */
   .auth-page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
   .auth-brand {
     background: var(--surface); display: flex; flex-direction: column;
@@ -104,7 +194,6 @@ const css = `
   .auth-title { font-family: var(--font-display); font-size: 32px; font-weight: 700; margin-bottom: 8px; }
   .auth-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
 
-  /* Form */
   .field { margin-bottom: 20px; }
   .field label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
   .field input, .field textarea, .field select {
@@ -117,8 +206,8 @@ const css = `
     border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,197,71,0.1);
   }
   .field textarea { resize: vertical; min-height: 100px; }
+  select option { background: #1a1a26; color: var(--text); }
 
-  /* Buttons */
   .btn { padding: 14px 24px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font-body); font-size: 15px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
   .btn-primary { background: var(--accent); color: #0a0a0f; width: 100%; justify-content: center; }
   .btn-primary:hover { background: #f0d055; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,197,71,0.3); }
@@ -137,7 +226,6 @@ const css = `
   .alert-success { background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.3); color: var(--accent2); }
   .alert-info { background: rgba(232,197,71,0.1); border: 1px solid rgba(232,197,71,0.3); color: var(--accent); }
 
-  /* Dashboard */
   .dashboard { display: flex; min-height: 100vh; }
   .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; position: fixed; height: 100vh; z-index: 10; }
   .sidebar-logo { padding: 0 24px 24px; border-bottom: 1px solid var(--border); }
@@ -158,7 +246,6 @@ const css = `
   .page-title { font-family: var(--font-display); font-size: 28px; font-weight: 700; }
   .page-sub { color: var(--muted); font-size: 15px; margin-top: 6px; }
 
-  /* Stepper */
   .stepper { display: flex; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 4px; }
   .step { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 16px; border-radius: 24px; transition: all 0.2s; }
   .step.active { background: rgba(232,197,71,0.12); }
@@ -169,24 +256,23 @@ const css = `
   .step.active .step-label { color: var(--text); }
   .step-divider { flex: 1; height: 1px; background: var(--border); min-width: 16px; max-width: 32px; }
 
-  /* Cards */
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
   .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
   .card-title span { font-size: 18px; }
 
-  /* Skills */
   .skills-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
   .skill-chip { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; transition: all 0.15s; user-select: none; background: var(--surface2); }
   .skill-chip:hover { border-color: var(--accent); }
   .skill-chip.selected { background: rgba(232,197,71,0.15); border-color: var(--accent); color: var(--accent); }
   .skill-chip.teal.selected { background: rgba(78,205,196,0.15); border-color: var(--accent2); color: var(--accent2); }
 
-  /* Company rows */
   .add-row-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px dashed var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 13px; transition: all 0.15s; margin-top: 8px; }
   .add-row-btn:hover { border-color: var(--accent); color: var(--accent); }
   .cert-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 12px; }
 
-  /* ATS */
+  .date-label { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: block; }
+  .present-pill { display: flex; align-items: center; gap: 8px; padding: 14px 16px; background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.25); border-radius: var(--radius); color: var(--accent2); font-size: 14px; }
+
   .score-display { display: flex; align-items: center; gap: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
   .score-ring { width: 100px; height: 100px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
   .score-ring::before { content: ''; position: absolute; width: 76px; height: 76px; border-radius: 50%; background: var(--surface); }
@@ -198,7 +284,6 @@ const css = `
   .match-chip.hit { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
   .match-chip.miss { background: var(--surface2); color: var(--muted); }
 
-  /* Generating */
   .generating { display: flex; flex-direction: column; align-items: center; padding: 60px; gap: 20px; }
   .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -214,7 +299,6 @@ const css = `
   .download-btn { display: flex; align-items: center; gap: 10px; padding: 16px 32px; background: linear-gradient(135deg, var(--accent), #d4aa30); color: #0a0a0f; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
   .download-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(232,197,71,0.4); }
 
-  /* Profile overview */
   .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .info-row { display: flex; flex-direction: column; gap: 4px; }
   .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
@@ -247,16 +331,15 @@ const SKILL_CATEGORIES = {
   "Soft Skills": ["Leadership","Communication","Problem Solving","Team Collaboration","Agile","Scrum","Project Management","Mentoring"],
 };
 
-// ─── Shared UI Components ──────────────────────────────────────────────────
+// ─── Shared UI ─────────────────────────────────────────────────────────────
 function Alert({ type = "error", children }) {
   return <div className={`alert alert-${type}`}>{children}</div>;
 }
-
 function Spinner({ small }) {
   return <span className="spinner" style={small ? { width: 20, height: 20, borderWidth: 2 } : {}} />;
 }
 
-// ─── Auth Brand Panel ──────────────────────────────────────────────────────
+// ─── Auth Brand ─────────────────────────────────────────────────────────────
 function AuthBrand() {
   return (
     <div className="auth-brand">
@@ -271,7 +354,7 @@ function AuthBrand() {
   );
 }
 
-// ─── Login Page ────────────────────────────────────────────────────────────
+// ─── Login ──────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -310,7 +393,7 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
   );
 }
 
-// ─── Signup Page ───────────────────────────────────────────────────────────
+// ─── Signup ─────────────────────────────────────────────────────────────────
 function SignupPage({ onSwitch }) {
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirm: "" });
   const [loading, setLoading] = useState(false);
@@ -369,7 +452,7 @@ function SignupPage({ onSwitch }) {
   );
 }
 
-// ─── Profile Builder Steps ─────────────────────────────────────────────────
+// ─── Stepper ────────────────────────────────────────────────────────────────
 const STEPS = [
   { id: "personal", label: "Personal", icon: "👤" },
   { id: "experience", label: "Experience", icon: "🏢" },
@@ -397,6 +480,7 @@ function StepperBar({ currentStep, completedSteps, onNavigate }) {
   );
 }
 
+// ─── Personal Step ──────────────────────────────────────────────────────────
 function PersonalStep({ data, onChange, onNext }) {
   const set = k => e => onChange({ ...data, [k]: e.target.value });
   return (
@@ -420,39 +504,123 @@ function PersonalStep({ data, onChange, onNext }) {
   );
 }
 
+// ─── Experience Step  (UPDATED: location + month/year dropdowns) ────────────
 function ExperienceStep({ data, onChange, onNext, onBack }) {
-  const companies = data.companies || [{ company: "", role: "", startDate: "", endDate: "", current: false, description: "" }];
-  const update = (i, field, val) => onChange({ ...data, companies: companies.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add = () => onChange({ ...data, companies: [...companies, { company: "", role: "", startDate: "", endDate: "", current: false, description: "" }] });
-  const remove = i => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
+  const empty = () => ({
+    company: "", role: "", location: "",
+    startDate: "", endDate: "", current: false, description: "",
+  });
+
+  const companies = data.companies?.length ? data.companies : [empty()];
+
+  const update = (i, field, val) =>
+    onChange({ ...data, companies: companies.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
+
+  const add    = () => onChange({ ...data, companies: [...companies, empty()] });
+  const remove = i  => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
+
+  // Helper: format "YYYY-MM" → "Jan 2021" for display in overview
+  const fmt = (val) => {
+    if (!val) return "";
+    const [y, m] = val.split("-");
+    const month = MONTHS.find(mo => mo.value === m);
+    return [month?.label?.slice(0, 3), y].filter(Boolean).join(" ");
+  };
 
   return (
     <div>
       <div className="card">
         <div className="card-title"><span>🏢</span> Work Experience</div>
+
         {companies.map((c, i) => (
-          <div key={i} style={{ borderBottom: i < companies.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: 20, marginBottom: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>Position {i + 1}</span>
-              {companies.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
+          <div
+            key={i}
+            style={{
+              borderBottom: i < companies.length - 1 ? "1px solid var(--border)" : "none",
+              paddingBottom: 28, marginBottom: 28,
+            }}
+          >
+            {/* ── Header ── */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+                Position {i + 1}
+              </span>
+              {companies.length > 1 && (
+                <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>
+              )}
             </div>
+
+            {/* ── Row 1: Company + Job Title ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
-              <div className="field"><label>Company *</label><input value={c.company} onChange={e => update(i, "company", e.target.value)} placeholder="Acme Corp" /></div>
-              <div className="field"><label>Job Title *</label><input value={c.role} onChange={e => update(i, "role", e.target.value)} placeholder="Software Engineer" /></div>
-              <div className="field"><label>Start Date</label><input type="month" value={c.startDate} onChange={e => update(i, "startDate", e.target.value)} /></div>
               <div className="field">
-                <label>End Date</label>
-                {c.current ? <input disabled placeholder="Present" style={{ opacity: 0.5 }} /> : <input type="month" value={c.endDate} onChange={e => update(i, "endDate", e.target.value)} />}
-                <label style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12 }}>
-                  <input type="checkbox" checked={c.current} onChange={e => update(i, "current", e.target.checked)} /> Currently working here
+                <label>Company *</label>
+                <input value={c.company} onChange={e => update(i, "company", e.target.value)} placeholder="Acme Corp" />
+              </div>
+              <div className="field">
+                <label>Job Title *</label>
+                <input value={c.role} onChange={e => update(i, "role", e.target.value)} placeholder="Software Engineer" />
+              </div>
+            </div>
+
+            {/* ── Row 2: Location (full width) ── */}
+            <div className="field">
+              <label>Location</label>
+              <input
+                value={c.location || ""}
+                onChange={e => update(i, "location", e.target.value)}
+                placeholder="Dallas, TX  /  Remote  /  New York, NY (Hybrid)"
+              />
+            </div>
+
+            {/* ── Row 3: Start Date + End Date ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", marginBottom: 8 }}>
+              {/* Start */}
+              <div>
+                <span className="date-label">Start Date</span>
+                <MonthYearPicker
+                  value={c.startDate || ""}
+                  onChange={val => update(i, "startDate", val)}
+                />
+              </div>
+
+              {/* End */}
+              <div>
+                <span className="date-label">End Date</span>
+                {c.current
+                  ? <div className="present-pill">📌 Currently working here</div>
+                  : <MonthYearPicker
+                      value={c.endDate || ""}
+                      onChange={val => update(i, "endDate", val)}
+                    />
+                }
+                <label style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>
+                  <input
+                    type="checkbox"
+                    checked={!!c.current}
+                    onChange={e => update(i, "current", e.target.checked)}
+                    style={{ width: 14, height: 14 }}
+                  />
+                  I currently work here
                 </label>
               </div>
             </div>
-            <div className="field"><label>Key Achievements & Responsibilities</label><textarea value={c.description} onChange={e => update(i, "description", e.target.value)} placeholder="• Led team of 5 engineers...&#10;• Built system that improved..." rows={4} /></div>
+
+            {/* ── Achievements ── */}
+            <div className="field" style={{ marginTop: 8 }}>
+              <label>Key Achievements & Responsibilities</label>
+              <textarea
+                value={c.description}
+                onChange={e => update(i, "description", e.target.value)}
+                placeholder={"• Led team of 5 engineers...\n• Built system that improved performance by 40%...\n• Deployed microservices on AWS EKS..."}
+                rows={5}
+              />
+            </div>
           </div>
         ))}
+
         <button className="add-row-btn" onClick={add}>+ Add Another Position</button>
       </div>
+
       <div style={{ display: "flex", gap: 12 }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-primary" style={{ width: "auto" }} onClick={onNext}>Continue to Education →</button>
@@ -461,47 +629,178 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
   );
 }
 
+// ─── Education Step ─────────────────────────────────────────────────────────
 function EducationStep({ data, onChange, onNext, onBack }) {
-  const edu = data.education || [{ institution: "", degree: "", field: "", year: "" }];
-  const update = (i, field, val) => onChange({ ...data, education: edu.map((e, idx) => idx === i ? { ...e, [field]: val } : e) });
-  const add = () => onChange({ ...data, education: [...edu, { institution: "", degree: "", field: "", year: "" }] });
-  const remove = i => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
+  const edu =
+    data.education || [
+      { institution: "", degree: "", field: "", year: "", gpa: "" },
+    ];
+
+  const update = (i, field, val) =>
+    onChange({
+      ...data,
+      education: edu.map((e, idx) =>
+        idx === i ? { ...e, [field]: val } : e
+      ),
+    });
+
+  const add = () =>
+    onChange({
+      ...data,
+      education: [
+        ...edu,
+        { institution: "", degree: "", field: "", year: "", gpa: "" },
+      ],
+    });
+
+  const remove = (i) =>
+    onChange({
+      ...data,
+      education: edu.filter((_, idx) => idx !== i),
+    });
 
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>🎓</span> Education</div>
+        <div className="card-title">
+          <span>🎓</span> Education
+        </div>
+
         {edu.map((e, i) => (
-          <div key={i} style={{ borderBottom: i < edu.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: 20, marginBottom: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>Degree {i + 1}</span>
-              {edu.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
+          <div
+            key={i}
+            style={{
+              borderBottom:
+                i < edu.length - 1
+                  ? "1px solid var(--border)"
+                  : "none",
+              paddingBottom: 20,
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: 12,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--muted)",
+                }}
+              >
+                Degree {i + 1}
+              </span>
+              {edu.length > 1 && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => remove(i)}
+                >
+                  ✕ Remove
+                </button>
+              )}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
-              <div className="field"><label>Institution *</label><input value={e.institution} onChange={ev => update(i, "institution", ev.target.value)} placeholder="MIT" /></div>
-              <div className="field"><label>Degree</label>
-                <select value={e.degree} onChange={ev => update(i, "degree", ev.target.value)}>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "0 20px",
+              }}
+            >
+              <div className="field">
+                <label>Institution *</label>
+                <input
+                  value={e.institution}
+                  onChange={(ev) =>
+                    update(i, "institution", ev.target.value)
+                  }
+                  placeholder="MIT"
+                />
+              </div>
+
+              <div className="field">
+                <label>Degree</label>
+                <select
+                  value={e.degree}
+                  onChange={(ev) =>
+                    update(i, "degree", ev.target.value)
+                  }
+                >
                   <option value="">Select degree</option>
-                  <option>Bachelor of Science</option><option>Bachelor of Arts</option>
-                  <option>Master of Science</option><option>Master of Arts</option>
-                  <option>MBA</option><option>PhD</option><option>Associate Degree</option><option>Diploma</option>
+                  <option>Bachelor of Science</option>
+                  <option>Bachelor of Arts</option>
+                  <option>Master of Science</option>
+                  <option>Master of Arts</option>
+                  <option>MBA</option>
+                  <option>PhD</option>
+                  <option>Associate Degree</option>
+                  <option>Diploma</option>
                 </select>
               </div>
-              <div className="field"><label>Field of Study</label><input value={e.field} onChange={ev => update(i, "field", ev.target.value)} placeholder="Computer Science" /></div>
-              <div className="field"><label>Graduation Year</label><input type="number" value={e.year} onChange={ev => update(i, "year", ev.target.value)} placeholder="2020" /></div>
+
+              <div className="field">
+                <label>Field of Study</label>
+                <input
+                  value={e.field}
+                  onChange={(ev) =>
+                    update(i, "field", ev.target.value)
+                  }
+                  placeholder="Computer Science"
+                />
+              </div>
+
+              <div className="field">
+                <label>Graduation Year</label>
+                <input
+                  type="number"
+                  value={e.year}
+                  onChange={(ev) =>
+                    update(i, "year", ev.target.value)
+                  }
+                  placeholder="2020"
+                />
+              </div>
+
+              <div className="field">
+                <label>GPA (Optional)</label>
+                <input
+                  value={e.gpa || ""}
+                  onChange={(ev) =>
+                    update(i, "gpa", ev.target.value)
+                  }
+                  placeholder="3.8 / 4.0"
+                />
+              </div>
             </div>
           </div>
         ))}
-        <button className="add-row-btn" onClick={add}>+ Add Another Degree</button>
+
+        <button className="add-row-btn" onClick={add}>
+          + Add Another Degree
+        </button>
       </div>
+
       <div style={{ display: "flex", gap: 12 }}>
-        <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-        <button className="btn btn-primary" style={{ width: "auto" }} onClick={onNext}>Continue to Skills →</button>
+        <button className="btn btn-ghost" onClick={onBack}>
+          ← Back
+        </button>
+        <button
+          className="btn btn-primary"
+          style={{ width: "auto" }}
+          onClick={onNext}
+        >
+          Continue to Skills →
+        </button>
       </div>
     </div>
   );
 }
 
+// ─── Skills Step ─────────────────────────────────────────────────────────────
 function SkillsStep({ data, onChange, onNext, onBack }) {
   const selected = data.skills || [];
   const [activeTab, setActiveTab] = useState(Object.keys(SKILL_CATEGORIES)[0]);
@@ -543,6 +842,7 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
   );
 }
 
+// ─── Certifications Step ────────────────────────────────────────────────────
 function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
   const certs = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
   const update = (i, field, val) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
@@ -575,27 +875,56 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
   );
 }
 
-function ProfileBuilder({ session, onComplete }) {
+// ─── Profile Builder ────────────────────────────────────────────────────────
+function ProfileBuilder({ session, initialProfile, onComplete }) {
   const [currentStep, setCurrentStep] = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
   const [profile, setProfile] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // 🔹 Sync profile when editing existing data
+  useEffect(() => {
+    if (initialProfile) {
+      setProfile(initialProfile);
+
+      // Mark steps as completed based on available data
+      const completed = [];
+
+      if (initialProfile.name) completed.push("personal");
+      if (initialProfile.companies?.length) completed.push("experience");
+      if (initialProfile.education?.length) completed.push("education");
+      if (initialProfile.skills?.length) completed.push("skills");
+      if (initialProfile.certifications?.length) completed.push("certifications");
+
+      setCompletedSteps(completed);
+    }
+  }, [initialProfile]);
+
   const stepIndex = STEPS.findIndex(s => s.id === currentStep);
+
   const goNext = () => {
     const next = STEPS[stepIndex + 1];
-    if (next) { setCompletedSteps(prev => [...new Set([...prev, currentStep])]); setCurrentStep(next.id); }
+    if (next) {
+      setCompletedSteps(prev => [...new Set([...prev, currentStep])]);
+      setCurrentStep(next.id);
+    }
   };
-  const goBack = () => { const prev = STEPS[stepIndex - 1]; if (prev) setCurrentStep(prev.id); };
+
+  const goBack = () => {
+    const prev = STEPS[stepIndex - 1];
+    if (prev) setCurrentStep(prev.id);
+  };
 
   const saveProfile = async () => {
-    setSaving(true); setError("");
+    setSaving(true);
+    setError("");
     try {
-      const profileJson = JSON.stringify(profile);
-      await api.saveProfile(profileJson);
+      await api.saveProfile(JSON.stringify(profile));
       onComplete(profile);
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      setError(e.message);
+    }
     setSaving(false);
   };
 
@@ -603,15 +932,63 @@ function ProfileBuilder({ session, onComplete }) {
     <div className="main-content" style={{ marginLeft: 0 }}>
       <div className="page-header">
         <h1 className="page-title">Build Your Profile</h1>
-        <p className="page-sub">Complete your profile to unlock AI-powered resume generation</p>
+        <p className="page-sub">
+          Complete your profile to unlock AI-powered resume generation
+        </p>
       </div>
+
       {error && <Alert>{error}</Alert>}
-      <StepperBar currentStep={currentStep} completedSteps={completedSteps} onNavigate={setCurrentStep} />
-      {currentStep === "personal" && <PersonalStep data={profile} onChange={setProfile} onNext={goNext} />}
-      {currentStep === "experience" && <ExperienceStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "education" && <EducationStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "skills" && <SkillsStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "certifications" && <CertificationsStep data={profile} onChange={setProfile} onSave={saveProfile} onBack={goBack} saving={saving} />}
+
+      <StepperBar
+        currentStep={currentStep}
+        completedSteps={completedSteps}
+        onNavigate={setCurrentStep}
+      />
+
+      {currentStep === "personal" && (
+        <PersonalStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+        />
+      )}
+
+      {currentStep === "experience" && (
+        <ExperienceStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+          onBack={goBack}
+        />
+      )}
+
+      {currentStep === "education" && (
+        <EducationStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+          onBack={goBack}
+        />
+      )}
+
+      {currentStep === "skills" && (
+        <SkillsStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+          onBack={goBack}
+        />
+      )}
+
+      {currentStep === "certifications" && (
+        <CertificationsStep
+          data={profile}
+          onChange={setProfile}
+          onSave={saveProfile}
+          onBack={goBack}
+          saving={saving}
+        />
+      )}
     </div>
   );
 }
@@ -636,28 +1013,20 @@ function ResumeGenerator({ profile }) {
   const generate = async () => {
     if (!jd.trim()) return;
     setStatus("generating"); setGenStep(0); setError(""); setAtsResult(null);
-
     try {
-      // Animate progress steps while waiting
       const stepInterval = setInterval(() => {
         setGenStep(prev => prev < GEN_STEPS_LIST.length - 1 ? prev + 1 : prev);
       }, 1800);
-
-      // Run ATS score + PDF generation in parallel
       const [scoreResult, pdfResult] = await Promise.all([
         api.getAtsScore(jd),
         api.generateResume(profile, jd),
       ]);
-
       clearInterval(stepInterval);
       setGenStep(GEN_STEPS_LIST.length);
       setAtsResult(scoreResult);
       setPdfBlob(pdfResult);
       setStatus("done");
-    } catch (e) {
-      setError(e.message);
-      setStatus("idle");
-    }
+    } catch (e) { setError(e.message); setStatus("idle"); }
   };
 
   const downloadPdf = () => {
@@ -679,8 +1048,7 @@ function ResumeGenerator({ profile }) {
         <div className="prog-steps">
           {GEN_STEPS_LIST.map((s, i) => (
             <div key={i} className={`prog-step ${i < genStep ? "done" : i === genStep ? "active" : ""}`}>
-              <div className="prog-dot" />
-              {i < genStep ? `✓ ${s}` : s}
+              <div className="prog-dot" />{i < genStep ? `✓ ${s}` : s}
             </div>
           ))}
         </div>
@@ -691,11 +1059,10 @@ function ResumeGenerator({ profile }) {
 
   if (status === "done" && atsResult) {
     const scoreColor = atsResult.atsScore >= 85 ? "var(--success)" : atsResult.atsScore >= 70 ? "var(--accent)" : "var(--danger)";
-    const pct = `${atsResult.atsScore * 3.6}deg`;
     return (
       <div>
         <div className="score-display">
-          <div className="score-ring" style={{ background: `conic-gradient(${scoreColor} ${pct}, var(--surface2) 0)` }}>
+          <div className="score-ring" style={{ background: `conic-gradient(${scoreColor} ${atsResult.atsScore * 3.6}deg, var(--surface2) 0)` }}>
             <span className="score-num" style={{ color: scoreColor }}>{atsResult.atsScore}</span>
           </div>
           <div className="score-info">
@@ -706,7 +1073,6 @@ function ResumeGenerator({ profile }) {
             </p>
           </div>
         </div>
-
         {atsResult.matchedKeywords?.length > 0 && (
           <div className="card">
             <div className="card-title"><span>🎯</span> Keyword Match Analysis</div>
@@ -720,7 +1086,6 @@ function ResumeGenerator({ profile }) {
             </div>
           </div>
         )}
-
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="download-btn" onClick={downloadPdf}>⬇ Download ATS-Optimized PDF</button>
           <button className="btn btn-ghost" onClick={reset}>Generate Another</button>
@@ -740,16 +1105,18 @@ function ResumeGenerator({ profile }) {
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here..." rows={14} />
         </div>
       </div>
-
       <div className="card">
         <div className="card-title"><span>👤</span> Profile Summary</div>
         <div className="profile-grid">
-          {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location], ["Skills", `${(profile.skills || []).length} selected`], ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`], ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]].map(([k, v]) => (
+          {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
+            ["Skills", `${(profile.skills || []).length} selected`],
+            ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
+            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
+          ].map(([k, v]) => (
             <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
           ))}
         </div>
       </div>
-
       <button className="btn btn-primary" style={{ width: "auto", padding: "16px 40px", fontSize: 16 }} disabled={!jd.trim()} onClick={generate}>
         🤖 Generate ATS-Optimized Resume
       </button>
@@ -758,8 +1125,15 @@ function ResumeGenerator({ profile }) {
   );
 }
 
-// ─── Profile Overview ──────────────────────────────────────────────────────
+// ─── Profile Overview ───────────────────────────────────────────────────────
 function ProfileOverview({ profile, onEdit }) {
+  const fmtDate = (val) => {
+    if (!val) return "";
+    const [y, m] = val.split("-");
+    const month = MONTHS.find(mo => mo.value === m);
+    return [month?.label?.slice(0, 3), y].filter(Boolean).join(" ");
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -771,25 +1145,33 @@ function ProfileOverview({ profile, onEdit }) {
           <div className="card">
             <div className="card-title"><span>👤</span> Personal</div>
             <div className="profile-grid">
-              {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone], ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]].map(([k, v]) => (
+              {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
+                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
+              ].map(([k, v]) => (
                 <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
               ))}
             </div>
             {profile.summary && <div style={{ marginTop: 16, padding: "12px 16px", background: "var(--surface2)", borderRadius: 8, fontSize: 14, lineHeight: 1.7, color: "var(--muted)" }}>{profile.summary}</div>}
           </div>
+
           <div className="card">
             <div className="card-title"><span>🏢</span> Experience ({(profile.companies || []).filter(c => c.company).length} positions)</div>
             {(profile.companies || []).filter(c => c.company).map((c, i) => (
               <div key={i} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 12, marginBottom: 12 }}>
                 <div style={{ fontWeight: 600 }}>{c.role} @ {c.company}</div>
-                <div style={{ fontSize: 13, color: "var(--muted)" }}>{c.startDate} – {c.current ? "Present" : c.endDate}</div>
+                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
+                  {c.location && <span style={{ marginRight: 8 }}>📍 {c.location}</span>}
+                  {fmtDate(c.startDate)} – {c.current ? "Present" : fmtDate(c.endDate)}
+                </div>
               </div>
             ))}
           </div>
+
           <div className="card">
             <div className="card-title"><span>⚡</span> Skills ({(profile.skills || []).length})</div>
             <div className="skills-grid">{(profile.skills || []).map(s => <span key={s} className="skill-chip selected">{s}</span>)}</div>
           </div>
+
           {(profile.certifications || []).filter(c => c.name).length > 0 && (
             <div className="card">
               <div className="card-title"><span>🏅</span> Certifications</div>
@@ -814,7 +1196,7 @@ function ProfileOverview({ profile, onEdit }) {
   );
 }
 
-// ─── Dashboard ─────────────────────────────────────────────────────────────
+// ─── Dashboard ──────────────────────────────────────────────────────────────
 function Dashboard({ session, profile, onLogout, onEditProfile }) {
   const [activePage, setActivePage] = useState(profile ? "generate" : "profile");
 
@@ -837,7 +1219,6 @@ function Dashboard({ session, profile, onLogout, onEditProfile }) {
           <button className="btn btn-ghost btn-sm" style={{ marginTop: 12, width: "100%" }} onClick={onLogout}>Sign Out</button>
         </div>
       </div>
-
       <div className="main-content">
         {activePage === "generate" && (
           <>
@@ -869,7 +1250,7 @@ function Dashboard({ session, profile, onLogout, onEditProfile }) {
   );
 }
 
-// ─── Root App ──────────────────────────────────────────────────────────────
+// ─── Root App ───────────────────────────────────────────────────────────────
 export default function App() {
   const [authView, setAuthView] = useState("login");
   const [session, setSession] = useState(() => {
@@ -882,7 +1263,6 @@ export default function App() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [verifiedMsg, setVerifiedMsg] = useState(false);
 
-  // Check for ?verified=true in URL (redirect from email verify)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "true") {
@@ -891,7 +1271,6 @@ export default function App() {
     }
   }, []);
 
-  // Load profile from backend after login
   useEffect(() => {
     if (session) {
       setLoadingProfile(true);
@@ -909,21 +1288,12 @@ export default function App() {
     }
   }, [session]);
 
-  const handleLogin = data => {
-    setSession({ email: data.email, fullName: data.fullName });
-  };
+  const handleLogin = data => setSession({ email: data.email, fullName: data.fullName });
 
   const handleLogout = () => {
     localStorage.removeItem("ats_token");
     localStorage.removeItem("ats_user");
-    setSession(null);
-    setProfile(null);
-    setBuildingProfile(false);
-  };
-
-  const handleProfileComplete = p => {
-    setProfile(p);
-    setBuildingProfile(false);
+    setSession(null); setProfile(null); setBuildingProfile(false);
   };
 
   return (
@@ -937,13 +1307,19 @@ export default function App() {
         )}
         {session && loadingProfile && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
-            <div className="spinner" />
-            <p style={{ color: "var(--muted)" }}>Loading your profile…</p>
+            <div className="spinner" /><p style={{ color: "var(--muted)" }}>Loading your profile…</p>
           </div>
         )}
         {session && !loadingProfile && buildingProfile && (
-          <ProfileBuilder session={session} onComplete={handleProfileComplete} />
-        )}
+  <ProfileBuilder
+    session={session}
+    initialProfile={profile}
+    onComplete={p => {
+      setProfile(p);
+      setBuildingProfile(false);
+    }}
+  />
+)}
         {session && !loadingProfile && !buildingProfile && (
           <Dashboard session={session} profile={profile} onLogout={handleLogout} onEditProfile={() => setBuildingProfile(true)} />
         )}
