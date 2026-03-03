@@ -1,93 +1,89 @@
 package com.resumebuilder.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resumebuilder.dto.AuthDtos.AtsScoreResponse;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * ATS Scoring Service — fully dynamic, zero hardcoded keywords.
+ *
+ * All keyword intelligence lives in the LLM prompt (resume-tailor-prompt.txt).
+ * The LLM extracts JD keywords and self-audits which ones it placed in the resume.
+ * This service only does the math on those two lists.
+ *
+ * Input:
+ *   extractedJdKeywords — every keyword the LLM identified from the job description
+ *   detectedInResume    — subset the LLM confirmed it placed in the generated resume
+ *
+ * Output:
+ *   atsScore            — integer 0–100 (true match percentage)
+ *   scoreLabel          — "Excellent" / "Good" / "Needs Improvement"
+ *   matchedKeywords     — keywords present in both lists (hits)
+ *   missingKeywords     — keywords in JD but NOT placed in resume (gaps)
+ */
 @Service
 public class AtsScoreService {
 
-    private final ObjectMapper objectMapper;
+    /**
+     * Primary scoring path — called after AI resume generation.
+     * Uses the two lists returned directly by the LLM.
+     */
+    public AtsScoreResponse scoreFromLlmOutput(
+            List<String> extractedJdKeywords,
+            List<String> detectedInResume) {
 
-    public AtsScoreService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    public AtsScoreResponse calculateScore(String profileJson, String jobDescription) {
         AtsScoreResponse response = new AtsScoreResponse();
 
-        try {
-            List<String> skills = extractSkillsFromProfile(profileJson);
-            List<String> jdKeywords = extractKeywordsFromJD(jobDescription);
+        if (extractedJdKeywords == null) extractedJdKeywords = new ArrayList<>();
+        if (detectedInResume == null)    detectedInResume    = new ArrayList<>();
 
-            List<String> matched = skills.stream()
-                    .filter(skill -> jdKeywords.stream()
-                            .anyMatch(kw -> kw.toLowerCase().contains(skill.toLowerCase())
-                                    || skill.toLowerCase().contains(kw.toLowerCase())))
-                    .collect(Collectors.toList());
+        // Normalise to lowercase for dedup — display values kept as-is from LLM
+        final List<String> detectedLower = detectedInResume.stream()
+                .map(String::toLowerCase)
+                .collect(Collectors.toList());
 
-            List<String> missing = jdKeywords.stream()
-                    .filter(kw -> skills.stream()
-                            .noneMatch(skill -> skill.toLowerCase().contains(kw.toLowerCase())
-                                    || kw.toLowerCase().contains(skill.toLowerCase())))
-                    .limit(10)
-                    .collect(Collectors.toList());
+        // matched = intersection (keywords the LLM placed in resume)
+        List<String> matched = extractedJdKeywords.stream()
+                .filter(kw -> detectedLower.contains(kw.toLowerCase()))
+                .distinct()
+                .collect(Collectors.toList());
 
-            int totalJdKeywords = Math.max(jdKeywords.size(), 1);
-            int score = (int) Math.min(95, Math.max(40,
-                    60 + ((double) matched.size() / totalJdKeywords) * 35));
+        // missing = JD keywords NOT placed in resume
+        List<String> missing = extractedJdKeywords.stream()
+                .filter(kw -> !detectedLower.contains(kw.toLowerCase()))
+                .distinct()
+                .collect(Collectors.toList());
 
-            response.setAtsScore(score);
-            response.setMatchedSkills(matched.size());
-            response.setTotalSkills(skills.size());
-            response.setMatchedKeywords(matched);
-            response.setMissingKeywords(missing);
-            response.setScoreLabel(score >= 85 ? "Excellent" : score >= 70 ? "Good" : "Needs Improvement");
+        int total      = extractedJdKeywords.size();
+        int matchCount = matched.size();
 
-        } catch (Exception e) {
-            response.setAtsScore(72);
-            response.setScoreLabel("Good");
-            response.setMatchedKeywords(new ArrayList<>());
-            response.setMissingKeywords(new ArrayList<>());
-        }
+        // True percentage — no artificial floor/ceiling
+        int score = total == 0 ? 0 : (int) Math.round((double) matchCount / total * 100);
+
+        response.setAtsScore(score);
+        response.setMatchedSkills(matchCount);
+        response.setTotalSkills(total);
+        response.setMatchedKeywords(matched);
+        response.setMissingKeywords(missing);
+        response.setScoreLabel(
+                score >= 85 ? "Excellent" :
+                        score >= 70 ? "Good"      : "Needs Improvement");
 
         return response;
     }
 
-    private List<String> extractSkillsFromProfile(String profileJson) throws Exception {
-        JsonNode root = objectMapper.readTree(profileJson);
-        List<String> skills = new ArrayList<>();
+    /**
+     * Fallback — used by the legacy /ats-score endpoint (profile preview before generation).
+     * Delegates to the primary scorer using whatever partial lists are available.
+     */
+    public AtsScoreResponse calculateScore(
+            List<String> profileSkills,
+            List<String> jdKeywords) {
 
-        if (root.has("skills")) {
-            root.get("skills").forEach(s -> skills.add(s.asText()));
-        }
-
-        // Also extract from skillCategories if present
-        if (root.has("skillCategories")) {
-            root.get("skillCategories").forEach(cat -> {
-                if (cat.has("skills")) {
-                    cat.get("skills").forEach(s -> skills.add(s.asText()));
-                }
-            });
-        }
-
-        return skills;
-    }
-
-    private List<String> extractKeywordsFromJD(String jd) {
-        // Extract meaningful technical keywords (words > 2 chars, skip common words)
-        Set<String> stopWords = Set.of("the", "and", "for", "with", "that", "this",
-                "have", "will", "are", "our", "you", "your", "from", "they",
-                "been", "has", "who", "can", "its", "also", "more", "than");
-
-        return Arrays.stream(jd.toLowerCase().split("[\\s,\\.\\(\\)\\-/]+"))
-                .filter(w -> w.length() > 2 && !stopWords.contains(w))
-                .distinct()
-                .limit(50)
-                .collect(Collectors.toList());
+        // Treat profile skills as "detectedInResume" for a rough preview score
+        return scoreFromLlmOutput(jdKeywords, profileSkills);
     }
 }
