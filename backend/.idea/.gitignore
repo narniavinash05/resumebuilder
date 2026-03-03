@@ -4,4 +4,6 @@
 .env
 *.env
 application-local.properties
-target/
+# Maven build output
+backend/target/
+**/target/
