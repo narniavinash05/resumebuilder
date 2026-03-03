@@ -1,197 +1,197 @@
-# 🚀 AI Resume Builder -- ATS Optimization Engine
+# 🤖 RésuméAI — ATS Resume Optimization Engine
 
-An enterprise-grade **Spring Boot AI Resume Optimization Engine** that
-automatically generates **JD-aligned, ATS-optimized, single-page
-professional resumes** using structured metadata and LLM-based
-tailoring.
+A full-stack **AI-powered resume builder** that generates JD-aligned, ATS-optimized resumes using Spring Boot, React, and OpenAI.
 
-------------------------------------------------------------------------
+---
 
-# 📌 Problem
+## 🧱 Tech Stack
 
-Manually tailoring resumes for every job application is:
+| Layer | Technology |
+|---|---|
+| Backend | Java 17, Spring Boot 3.2 |
+| AI / LLM | OpenAI GPT-4o-mini |
+| PDF Generation | OpenPDF (LibrePDF) |
+| Authentication | Spring Security + JWT |
+| Database | H2 (file-based, persists across restarts) |
+| Email | Spring Mail (Gmail SMTP) |
+| HTTP Client | WebClient (Reactive) |
+| Frontend | React 18, CRA |
 
--   Time-consuming\
--   Repetitive\
--   Prone to keyword mismatch\
--   Inefficient for ATS systems
+---
 
-Modern Applicant Tracking Systems rely heavily on **literal keyword
-matching**, not semantic similarity.
+## 🏗 Architecture
 
-------------------------------------------------------------------------
+```
+React Frontend (localhost:3000)
+        ↓  JWT Bearer Token
+Spring Boot Backend (localhost:8080)
+        ↓
+   ┌────────────────────────────────┐
+   │  Auth Layer (JWT + H2 DB)      │
+   │  User → Profile → Resume       │
+   └────────────────────────────────┘
+        ↓
+   Prompt Builder (resume-tailor-prompt.txt)
+        ↓
+   OpenAI GPT-4o-mini
+        ↓
+   JSON Validator + Resume Model Mapper
+        ↓
+   OpenPDF Rendering Engine
+        ↓
+   ATS-Optimized PDF Resume
+```
 
-# 💡 Solution
+---
 
-This engine:
+## 🔌 API Endpoints
 
-✔ Accepts structured **candidate metadata (JSON)**\
-✔ Accepts full **Job Description (JD)**\
-✔ Extracts JD keywords\
-✔ Rewrites experience bullets intelligently\
-✔ Optimizes keyword placement for ATS\
-✔ Normalizes cloud/database terminology\
-✔ Validates and parses LLM JSON safely\
-✔ Generates a clean, professional **PDF resume**
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/signup` | ❌ | Register new user |
+| GET | `/api/auth/verify` | ❌ | Verify email via token |
+| POST | `/api/auth/login` | ❌ | Login, returns JWT |
+| GET | `/api/auth/profile` | ✅ | Fetch saved profile |
+| POST | `/api/auth/profile` | ✅ | Save profile JSON |
+| POST | `/api/auth/ats-score` | ✅ | Calculate ATS keyword score |
+| POST | `/api/resume/tailor-and-generate` | ✅ | AI tailor + download PDF |
+| POST | `/api/resume/generate` | ✅ | Generate PDF (no AI) |
 
-Result:\
-**Interview-ready, ATS-optimized resume in seconds.**
+---
 
-------------------------------------------------------------------------
+## 🧠 Core Features
 
-# 🏗 System Architecture
+**AI Resume Tailoring**
+- Extracts all technical keywords from job description
+- Forces keyword distribution across Summary, Experience, and Skills
+- Rewrites experience bullets with measurable impact
+- Normalizes terminology: RDBMS, NoSQL, Cloud technologies, CI/CD pipelines
+- Target ATS match: 90–95%
 
-Client (Resume + JD JSON)\
-↓\
-Prompt Builder (Template Engine)\
-↓\
-LLM Integration Layer\
-↓\
-JSON Validation & Recovery\
-↓\
-Resume Model Mapping\
-↓\
-PDF Rendering Engine\
-↓\
-ATS-Optimized Resume Output
+**ATS Scoring Engine**
+- Matches candidate skills against JD keywords
+- Returns score, matched keywords, and missing keyword suggestions
+- Color-coded result: Excellent / Good / Needs Improvement
 
-------------------------------------------------------------------------
+**Auth & User Management**
+- JWT-based stateless authentication
+- Email verification on signup (Gmail SMTP)
+- Per-user profile storage in H2 database
+- Profile builder with 5-step breadcrumb flow
 
-# ⚙️ Tech Stack
+**PDF Generation**
+- Professional layout with right-aligned dates
+- Lato font typography
+- Sections: Summary, Experience, Skills, Education, Certifications
+- Clickable hyperlinks for LinkedIn, Portfolio, Certificates
 
--   Java 17+\
--   Spring Boot\
--   WebClient (Reactive HTTP)\
--   Jackson (JSON serialization)\
--   iText (PDF generation)\
--   External Prompt Templates\
--   OpenAI-compatible LLM API
+---
 
-------------------------------------------------------------------------
+## 🚀 Running Locally
 
-# 🧠 Core Engine Features
+### Prerequisites
+- Java 17+
+- Maven 3.8+
+- Node.js 16+
 
-## Universal ATS Optimization
+### Backend
 
--   Extracts all technical keywords from JD\
--   Forces distribution across Summary, Experience, and Skills\
--   Emphasizes architecture decisions, scalability, API design\
--   Normalizes terminology (RDBMS, NoSQL, Cloud technologies, CI/CD
-    pipelines)
-
-Target ATS Match: **90--95% (realistic range)**
-
-------------------------------------------------------------------------
-
-## Safe LLM Parsing & Recovery
-
-Handles:
-
--   Wrapped JSON\
--   Malformed output\
--   Missing fields\
--   Empty responses
-
-Includes JSON extraction fallback and validation layer.
-
-------------------------------------------------------------------------
-
-## Clean PDF Layout Engine
-
--   Proper right-aligned dates & locations\
--   Professional typography\
--   Sectioned layout\
--   Single-page formatting
-
-------------------------------------------------------------------------
-
-## Prompt Template Externalization
-
-Prompt stored in:
-
-src/main/resources/prompts/resume-tailor-prompt.txt
-
-Benefits:
-
--   Easy tuning\
--   Versioning support\
--   Domain-agnostic design\
--   Enterprise-level flexibility
-
-------------------------------------------------------------------------
-
-# 🔌 API Endpoints
-
-## Tailor Resume
-
-POST /api/resume/tailor
-
-### Request Body
-
-{ "resumeMetaData": { ... }, "jobDescription": "Full job description
-text here..." }
-
-------------------------------------------------------------------------
-
-## Generate PDF
-
-POST /api/resume/pdf
-
-Returns a professionally formatted PDF resume.
-
-------------------------------------------------------------------------
-
-# 🚀 Running the Application
-
-Clone Repository:
-
-git clone https://github.com/narniavinash05/resumebuilder\
-cd resumebuilder
-
-Build:
-
+```bash
+cd backend
 mvn clean install
-
-Run:
-
 mvn spring-boot:run
+# Runs at http://localhost:8080
+```
 
-Application runs at:
+### Frontend
 
-http://localhost:8080
+```bash
+cd frontend
+npm install
+npm start
+# Runs at http://localhost:3000
+```
 
-------------------------------------------------------------------------
+---
 
-# 🔐 Environment Variables
+## ⚙️ Configuration
 
-Add to application.properties:
+Create `src/main/resources/application.properties` (not committed — see `.gitignore`):
 
-openai.api-key=YOUR_API_KEY\
-openai.url=https://api.openai.com/v1/chat/completions\
+```properties
+spring.application.name=resumebuilder
+spring.main.allow-circular-references=true
+server.port=8080
+
+# H2 File Database (persists across restarts)
+spring.datasource.url=jdbc:h2:file:./data/resumedb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=update
+spring.h2.console.enabled=true
+
+# JWT
+jwt.secret=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+jwt.expiration=86400000
+
+# OpenAI
+openai.api-key=YOUR_OPENAI_API_KEY
+openai.url=https://api.openai.com/v1/chat/completions
 openai.model=gpt-4o-mini
 
-------------------------------------------------------------------------
+# Gmail SMTP
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=YOUR_GMAIL
+spring.mail.password=YOUR_GMAIL_APP_PASSWORD
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
 
-# 📈 Future Enhancements
+# App URLs
+app.base-url=http://localhost:3000
+app.backend-url=http://localhost:8080
+```
 
--   Automated ATS scoring engine\
--   Keyword-gap detection + re-prompt loop\
--   Multi-pass LLM optimization\
--   Resume analytics dashboard\
--   Multi-format export (DOCX)\
--   SaaS deployment architecture
+> 💡 If Gmail isn't configured, the verification token prints to the IntelliJ console automatically.
 
-------------------------------------------------------------------------
+---
 
-# 🎯 Why This Project Matters
+## 📁 Project Structure
 
-This is not just a resume formatter.
+```
+resumebuilder/
+├── backend/
+│   └── src/main/java/com/resumebuilder/
+│       ├── config/          → SecurityConfig, JacksonConfig
+│       ├── controller/      → AuthController, ResumeController
+│       ├── dto/             → AuthDtos (request/response objects)
+│       ├── llm/             → LlmClient, LlmConfig, PromptBuilder
+│       ├── model/           → User, UserProfile, Resume, Experience...
+│       ├── repository/      → UserRepository, UserProfileRepository
+│       ├── security/        → JwtUtil, JwtAuthFilter
+│       └── service/         → AuthService, EmailService, AtsScoreService,
+│                              ResumeTailoringService, ResumePdfService
+│   └── src/main/resources/
+│       ├── prompts/resume-tailor-prompt.txt
+│       └── fonts/Lato-Regular.ttf, Lato-Bold.ttf
+│
+└── frontend/
+    └── src/
+        └── App.js           → Complete React SPA (auth + profile + generator)
+```
 
-It is an AI-driven resume alignment engine engineered for ATS dominance.
+---
 
-------------------------------------------------------------------------
+## 🔐 Security Notes
 
-# 👤 Author
+- `application.properties` is excluded from git via `.gitignore`
+- Never commit API keys — use IntelliJ **Run Configurations → Environment Variables**
+- JWT tokens expire after 24 hours
 
-Avinash Narni\
-Dallas, TX
+---
+
+## 👤 Author
+
+Avinash Narni — Dallas, TX
