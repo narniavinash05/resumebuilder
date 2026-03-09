@@ -89,9 +89,9 @@ A. PROFESSIONAL SUMMARY (2–3 sentences, no "I"):
    - Reference key methodologies/practices (CI/CD, Agile, full SDLC, etc.) if relevant
 
 B. EXPERIENCE SECTION:
-   Recent/current role  → 6–9 bullets, 1000–1400 chars
-   Mid-level role       → 4–6 bullets,  700–900  chars
-   Older / early role   → 3–4 bullets,  500–750  chars
+   Recent/current role  → 10-15 bullets, 1200–1400 chars
+   Mid-level role       → 5-6 bullets,  700–900  chars
+   Older / early role   → 5-6 bullets,  700–750  chars
 
    Every bullet must:
    - Start with a strong action verb (Built, Designed, Led, Optimized, Implemented, Reduced...)
