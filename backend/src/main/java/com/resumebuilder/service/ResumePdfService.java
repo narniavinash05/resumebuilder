@@ -1,26 +1,61 @@
 package com.resumebuilder.service;
 
-import com.lowagie.text.Font;
-import com.lowagie.text.Rectangle;
 import com.lowagie.text.*;
-import com.lowagie.text.pdf.BaseFont;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.*;
 import com.lowagie.text.pdf.draw.LineSeparator;
 import com.resumebuilder.model.*;
 import org.springframework.stereotype.Service;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.net.URL;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class ResumePdfService {
 
     private static final float BASE_FONT_SIZE = 10f;
-    private static final float LINE_LEADING = 12f;
+    private static final float LINE_LEADING    = 12f;
+
+    // ── Date format helpers ───────────────────────────────────────────────────
+    // Input from LLM: "YYYY-MM"  e.g. "2022-01"
+    // Output on PDF : "Jan, 2022"
+    private static final DateTimeFormatter INPUT_FMT  = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final DateTimeFormatter OUTPUT_FMT = DateTimeFormatter.ofPattern("MMM, yyyy", Locale.ENGLISH);
+
+    /**
+     * Formats a "YYYY-MM" string to "Jan, 2022".
+     * Returns the original value unchanged if it cannot be parsed
+     * (handles cases where LLM returns a full date, plain year, or "Present").
+     */
+    private String formatDate(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String trimmed = raw.trim();
+        // Already human-readable (e.g. "Present", "Jan 2022", "2022") — pass through
+        if (!trimmed.matches("\\d{4}-\\d{2}")) return trimmed;
+        try {
+            YearMonth ym = YearMonth.parse(trimmed, INPUT_FMT);
+            return ym.format(OUTPUT_FMT);   // → "Jan, 2022"
+        } catch (Exception e) {
+            return trimmed;
+        }
+    }
+
+    /**
+     * Builds the date range string shown on the right side of each experience row.
+     * e.g.  "Jan, 2021 - Present"   or   "Mar, 2019 - Dec, 2022"
+     */
+    private String formatDateRange(String startDate, String endDate) {
+        String start = formatDate(startDate);
+        String end   = (endDate == null || endDate.isBlank()) ? "Present" : formatDate(endDate);
+        if (start.isBlank()) return end;
+        return start + " - " + end;
+    }
+
+    // ── Main entry point ─────────────────────────────────────────────────────
 
     public byte[] generateResume(Resume resume) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -29,12 +64,12 @@ public class ResumePdfService {
         document.open();
 
         BaseFont latoRegular = loadFont("/fonts/Lato-Regular.ttf");
-        BaseFont latoBold = loadFont("/fonts/Lato-Bold.ttf");
+        BaseFont latoBold    = loadFont("/fonts/Lato-Bold.ttf");
 
-        Font titleFont = new Font(latoBold, 18, Font.BOLD);
-        Font normalFont = new Font(latoRegular, BASE_FONT_SIZE);
-        Font boldFont = new Font(latoBold, BASE_FONT_SIZE);
-        Font sectionFont = new Font(latoBold, 13, Font.BOLD, new Color(0, 0, 128));
+        Font titleFont   = new Font(latoBold,    18, Font.BOLD);
+        Font normalFont  = new Font(latoRegular, BASE_FONT_SIZE);
+        Font boldFont    = new Font(latoBold,    BASE_FONT_SIZE);
+        Font sectionFont = new Font(latoBold,    13, Font.BOLD, new Color(0, 0, 128));
 
         addHeader(document, resume, titleFont, normalFont);
         addSection(document, "Professional Summary", sectionFont);
@@ -64,6 +99,8 @@ public class ResumePdfService {
         return baos.toByteArray();
     }
 
+    // ── Section renderers ─────────────────────────────────────────────────────
+
     private void addHeader(Document document, Resume resume, Font titleFont, Font normalFont) throws Exception {
         Paragraph name = new Paragraph(safe(resume.getFullName()), titleFont);
         name.setAlignment(Element.ALIGN_CENTER);
@@ -79,7 +116,7 @@ public class ResumePdfService {
             contact.setSpacingAfter(4f);
 
             contact.add(new Chunk(safe(c.getLocation()) + "  |  ", normalFont));
-            contact.add(new Chunk(safe(c.getPhone()) + "  |  ", normalFont));
+            contact.add(new Chunk(safe(c.getPhone())    + "  |  ", normalFont));
 
             Anchor email = new Anchor(safe(c.getEmail()), normalFont);
             email.setReference("mailto:" + safe(c.getEmail()));
@@ -122,7 +159,8 @@ public class ResumePdfService {
         document.add(paragraph);
     }
 
-    private void addExperience(Document document, List<Experience> experiences, Font normal, Font bold) throws Exception {
+    private void addExperience(Document document, List<Experience> experiences,
+                               Font normal, Font bold) throws Exception {
         for (Experience exp : experiences) {
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
@@ -130,9 +168,12 @@ public class ResumePdfService {
             table.setSpacingAfter(2f);
             table.setWidths(new float[]{70, 30});
 
-            addCell(table, safe(exp.getCompany()), bold, Element.ALIGN_LEFT);
-            addCell(table, safe(exp.getStartDate()) + " - " + safe(exp.getEndDate()), bold, Element.ALIGN_RIGHT);
-            addCell(table, safe(exp.getRole()), normal, Element.ALIGN_LEFT);
+            // ── Right column: "Jan, 2021 - Present" ──────────────────────────
+            String dateRange = formatDateRange(exp.getStartDate(), exp.getEndDate());
+
+            addCell(table, safe(exp.getCompany()), bold,   Element.ALIGN_LEFT);
+            addCell(table, dateRange,               bold,   Element.ALIGN_RIGHT);
+            addCell(table, safe(exp.getRole()),     normal, Element.ALIGN_LEFT);
             addCell(table, safe(exp.getLocation()), normal, Element.ALIGN_RIGHT);
             document.add(table);
 
@@ -150,7 +191,8 @@ public class ResumePdfService {
         }
     }
 
-    private void addSkillCategories(Document document, List<SkillCategory> categories, Font normal, Font bold) throws Exception {
+    private void addSkillCategories(Document document, List<SkillCategory> categories,
+                                    Font normal, Font bold) throws Exception {
         if (categories == null || categories.isEmpty()) return;
         for (SkillCategory category : categories) {
             if (category == null || category.getSkills() == null || category.getSkills().isEmpty()) continue;
@@ -163,7 +205,8 @@ public class ResumePdfService {
         }
     }
 
-    private void addEducation(Document document, List<Education> educationList, Font normal, Font bold) throws Exception {
+    private void addEducation(Document document, List<Education> educationList,
+                              Font normal, Font bold) throws Exception {
         for (Education edu : educationList) {
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);
@@ -171,8 +214,8 @@ public class ResumePdfService {
             table.setSpacingAfter(4f);
             table.setWidths(new float[]{70, 30});
 
-            addCell(table, safe(edu.getInstitution()), bold, Element.ALIGN_LEFT);
-            addCell(table, safe(edu.getDuration()), bold, Element.ALIGN_RIGHT);
+            addCell(table, safe(edu.getInstitution()), bold,   Element.ALIGN_LEFT);
+            addCell(table, safe(edu.getDuration()),    bold,   Element.ALIGN_RIGHT);
             addCell(table,
                     safe(edu.getDegree()) + (edu.getGpa() != null ? " (GPA: " + edu.getGpa() + ")" : ""),
                     normal, Element.ALIGN_LEFT);
@@ -181,7 +224,8 @@ public class ResumePdfService {
         }
     }
 
-    private void addCertifications(Document document, List<Certification> certifications, Font normal, Font bold) throws Exception {
+    private void addCertifications(Document document, List<Certification> certifications,
+                                   Font normal, Font bold) throws Exception {
         if (certifications == null || certifications.isEmpty()) return;
         int columns = 2;
         PdfPTable table = new PdfPTable(columns);
@@ -214,6 +258,8 @@ public class ResumePdfService {
         }
         document.add(table);
     }
+
+    // ── Utility ───────────────────────────────────────────────────────────────
 
     private void addCell(PdfPTable table, String text, Font font, int alignment) {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));

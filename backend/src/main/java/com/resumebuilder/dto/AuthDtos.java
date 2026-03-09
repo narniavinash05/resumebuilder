@@ -4,31 +4,22 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import java.util.List;
 
 public class AuthDtos {
 
     @Data
     public static class SignupRequest {
-        @NotBlank
-        private String fullName;
-
-        @Email
-        @NotBlank
-        private String email;
-
-        @NotBlank
-        @Size(min = 6, message = "Password must be at least 6 characters")
+        @NotBlank private String fullName;
+        @Email @NotBlank private String email;
+        @NotBlank @Size(min = 6, message = "Password must be at least 6 characters")
         private String password;
     }
 
     @Data
     public static class LoginRequest {
-        @Email
-        @NotBlank
-        private String email;
-
-        @NotBlank
-        private String password;
+        @Email @NotBlank private String email;
+        @NotBlank private String password;
     }
 
     @Data
@@ -68,7 +59,17 @@ public class AuthDtos {
         private String scoreLabel;
         private int matchedSkills;
         private int totalSkills;
-        private java.util.List<String> matchedKeywords;
-        private java.util.List<String> missingKeywords;
+        private List<String> matchedKeywords;
+        private List<String> missingKeywords;
+        private ScoringBreakdown scoringBreakdown;
+
+        @Data
+        public static class ScoringBreakdown {
+            private int keywordMatch;       // weighted 40%
+            private int candidateFit;       // weighted 25%
+            private int resumeCompleteness; // weighted 20%
+            private int keywordDensity;     // weighted 15%
+            private String notes;
+        }
     }
 }

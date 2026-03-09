@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-// ─── API Layer ────────────────────────────────────────────────────────────────
+// ─── API Layer ─────────────────────────────────────────────────────────────
 const BASE_URL = "http://localhost:8080";
 
 const getToken = () => localStorage.getItem("ats_token");
@@ -17,12 +17,19 @@ const apiFetch = async (path, options = {}) => {
     },
   });
 
-  // Handle JWT expiration
+  // 🔹 Handle JWT expiration
   if (res.status === 401) {
     localStorage.removeItem("ats_token");
     localStorage.removeItem("ats_user");
+
+    // Redirect to login page cleanly
     window.location.href = "/";
     return;
+  }
+
+  if (options.binary) {
+    if (!res.ok) throw new Error("Failed to generate PDF");
+    return res.blob();
   }
 
   const data = await res.json();
@@ -38,10 +45,6 @@ const api = {
   getProfile: () => apiFetch("/api/auth/profile"),
   saveProfile: (profileJson) =>
     apiFetch("/api/auth/profile", { method: "POST", body: JSON.stringify({ profileJson }) }),
-
-  // ── Single unified call: AI extracts JD keywords, builds resume,
-  //    self-audits keyword coverage, and returns ATS score + PDF together.
-  //    No separate getAtsScore call needed anymore.
   generateResumeWithScore: (resumeMetaData, jobDescription) =>
     apiFetch("/api/resume/tailor-generate-score", {
       method: "POST",
@@ -49,7 +52,7 @@ const api = {
     }),
 };
 
-// ─── Month/Year Dropdown Helpers ──────────────────────────────────────────────
+// ─── Month/Year Dropdown Helpers ───────────────────────────────────────────
 const MONTHS = [
   { value: "01", label: "January" },  { value: "02", label: "February" },
   { value: "03", label: "March" },    { value: "04", label: "April" },
@@ -66,25 +69,12 @@ const YEARS = (() => {
   return arr;
 })();
 
-function formatMonthYear(value) {
-  if (!value) return "";
-
-  const [year, month] = value.split("-");
-
-  const map = {
-    "01":"Jan","02":"Feb","03":"Mar","04":"Apr",
-    "05":"May","06":"Jun","07":"Jul","08":"Aug",
-    "09":"Sep","10":"Oct","11":"Nov","12":"Dec"
-  };
-
-  return `${map[month]}, ${year}`;
-}
-
-// Stores value as "YYYY-MM"
+// Stores value as "YYYY-MM" — same shape as the old type="month" input
 function MonthYearPicker({ value, onChange, disabled }) {
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
 
+  // Sync with parent value
   useEffect(() => {
     if (value && value.includes("-")) {
       const [y, m] = value.split("-");
@@ -98,12 +88,20 @@ function MonthYearPicker({ value, onChange, disabled }) {
 
   const handleYearChange = (newYear) => {
     setYear(newYear);
-    onChange(newYear && month ? `${newYear}-${month}` : "");
+    if (newYear && month) {
+      onChange(`${newYear}-${month}`);
+    } else {
+      onChange("");
+    }
   };
 
   const handleMonthChange = (newMonth) => {
     setMonth(newMonth);
-    onChange(year && newMonth ? `${year}-${newMonth}` : "");
+    if (year && newMonth) {
+      onChange(`${year}-${newMonth}`);
+    } else {
+      onChange("");
+    }
   };
 
   const selectStyle = {
@@ -122,19 +120,38 @@ function MonthYearPicker({ value, onChange, disabled }) {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-      <select value={month} onChange={(e) => handleMonthChange(e.target.value)} disabled={disabled} style={selectStyle}>
+      <select
+        value={month}
+        onChange={(e) => handleMonthChange(e.target.value)}
+        disabled={disabled}
+        style={selectStyle}
+      >
         <option value="">Month</option>
-        {MONTHS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+        {MONTHS.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.label}
+          </option>
+        ))}
       </select>
-      <select value={year} onChange={(e) => handleYearChange(e.target.value)} disabled={disabled} style={selectStyle}>
+
+      <select
+        value={year}
+        onChange={(e) => handleYearChange(e.target.value)}
+        disabled={disabled}
+        style={selectStyle}
+      >
         <option value="">Year</option>
-        {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+        {YEARS.map((y) => (
+          <option key={y} value={y}>
+            {y}
+          </option>
+        ))}
       </select>
     </div>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles ────────────────────────────────────────────────────────────────
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -264,8 +281,13 @@ const css = `
   .match-chip { padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; }
   .match-chip.hit { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
   .match-chip.miss { background: rgba(255,107,107,0.1); color: #ff9999; border: 1px solid rgba(255,107,107,0.2); }
-
-  .keyword-section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 16px 0 10px; }
+  .kw-section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 16px 0 10px; }
+  .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
+  .breakdown-item { background: var(--surface2); border-radius: 10px; padding: 14px 16px; }
+  .breakdown-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px; }
+  .breakdown-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .breakdown-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .breakdown-score-val { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
 
   .generating { display: flex; flex-direction: column; align-items: center; padding: 60px; gap: 20px; }
   .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -303,7 +325,7 @@ const css = `
   }
 `;
 
-// ─── Skill Options ────────────────────────────────────────────────────────────
+// ─── Skill Options ─────────────────────────────────────────────────────────
 const SKILL_CATEGORIES = {
   "Programming Languages": ["JavaScript","TypeScript","Python","Java","C++","C#","Go","Rust","Swift","Kotlin","PHP","Ruby","Scala","R"],
   "Frontend": ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
@@ -314,7 +336,7 @@ const SKILL_CATEGORIES = {
   "Soft Skills": ["Leadership","Communication","Problem Solving","Team Collaboration","Agile","Scrum","Project Management","Mentoring"],
 };
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
+// ─── Shared UI ─────────────────────────────────────────────────────────────
 function Alert({ type = "error", children }) {
   return <div className={`alert alert-${type}`}>{children}</div>;
 }
@@ -322,7 +344,7 @@ function Spinner({ small }) {
   return <span className="spinner" style={small ? { width: 20, height: 20, borderWidth: 2 } : {}} />;
 }
 
-// ─── Auth Brand ───────────────────────────────────────────────────────────────
+// ─── Auth Brand ─────────────────────────────────────────────────────────────
 function AuthBrand() {
   return (
     <div className="auth-brand">
@@ -337,7 +359,7 @@ function AuthBrand() {
   );
 }
 
-// ─── Login ────────────────────────────────────────────────────────────────────
+// ─── Login ──────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -376,7 +398,7 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
   );
 }
 
-// ─── Signup ───────────────────────────────────────────────────────────────────
+// ─── Signup ─────────────────────────────────────────────────────────────────
 function SignupPage({ onSwitch }) {
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirm: "" });
   const [loading, setLoading] = useState(false);
@@ -435,12 +457,12 @@ function SignupPage({ onSwitch }) {
   );
 }
 
-// ─── Stepper ──────────────────────────────────────────────────────────────────
+// ─── Stepper ────────────────────────────────────────────────────────────────
 const STEPS = [
-  { id: "personal",       label: "Personal",       icon: "👤" },
-  { id: "experience",     label: "Experience",     icon: "🏢" },
-  { id: "education",      label: "Education",      icon: "🎓" },
-  { id: "skills",         label: "Skills",         icon: "⚡" },
+  { id: "personal", label: "Personal", icon: "👤" },
+  { id: "experience", label: "Experience", icon: "🏢" },
+  { id: "education", label: "Education", icon: "🎓" },
+  { id: "skills", label: "Skills", icon: "⚡" },
   { id: "certifications", label: "Certifications", icon: "🏅" },
 ];
 
@@ -463,7 +485,7 @@ function StepperBar({ currentStep, completedSteps, onNavigate }) {
   );
 }
 
-// ─── Personal Step ────────────────────────────────────────────────────────────
+// ─── Personal Step ──────────────────────────────────────────────────────────
 function PersonalStep({ data, onChange, onNext }) {
   const set = k => e => onChange({ ...data, [k]: e.target.value });
   return (
@@ -487,7 +509,7 @@ function PersonalStep({ data, onChange, onNext }) {
   );
 }
 
-// ─── Experience Step ──────────────────────────────────────────────────────────
+// ─── Experience Step  (UPDATED: location + month/year dropdowns) ────────────
 function ExperienceStep({ data, onChange, onNext, onBack }) {
   const empty = () => ({
     company: "", role: "", location: "",
@@ -515,6 +537,7 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               paddingBottom: 28, marginBottom: 28,
             }}
           >
+            {/* ── Header ── */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
                 Position {i + 1}
@@ -524,6 +547,7 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               )}
             </div>
 
+            {/* ── Row 1: Company + Job Title ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
               <div className="field">
                 <label>Company *</label>
@@ -535,6 +559,7 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               </div>
             </div>
 
+            {/* ── Row 2: Location (full width) ── */}
             <div className="field">
               <label>Location</label>
               <input
@@ -544,16 +569,26 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               />
             </div>
 
+            {/* ── Row 3: Start Date + End Date ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", marginBottom: 8 }}>
+              {/* Start */}
               <div>
                 <span className="date-label">Start Date</span>
-                <MonthYearPicker value={c.startDate || ""} onChange={val => update(i, "startDate", val)} />
+                <MonthYearPicker
+                  value={c.startDate || ""}
+                  onChange={val => update(i, "startDate", val)}
+                />
               </div>
+
+              {/* End */}
               <div>
                 <span className="date-label">End Date</span>
                 {c.current
                   ? <div className="present-pill">📌 Currently working here</div>
-                  : <MonthYearPicker value={c.endDate || ""} onChange={val => update(i, "endDate", val)} />
+                  : <MonthYearPicker
+                      value={c.endDate || ""}
+                      onChange={val => update(i, "endDate", val)}
+                    />
                 }
                 <label style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>
                   <input
@@ -567,6 +602,7 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               </div>
             </div>
 
+            {/* ── Achievements ── */}
             <div className="field" style={{ marginTop: 8 }}>
               <label>Key Achievements & Responsibilities</label>
               <textarea
@@ -590,68 +626,107 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
   );
 }
 
-// ─── Education Step ───────────────────────────────────────────────────────────
+// ─── Education Step ─────────────────────────────────────────────────────────
 function EducationStep({ data, onChange, onNext, onBack }) {
-  const edu = data.education || [{
-  institution: "",
-  location: "",
-  degree: "",
-  field: "",
-  year: "",
-  gpa: ""
-}];
+  const edu =
+    data.education || [
+      { institution: "", degree: "", field: "", year: "", gpa: "" },
+    ];
 
   const update = (i, field, val) =>
-    onChange({ ...data, education: edu.map((e, idx) => idx === i ? { ...e, [field]: val } : e) });
+    onChange({
+      ...data,
+      education: edu.map((e, idx) =>
+        idx === i ? { ...e, [field]: val } : e
+      ),
+    });
 
-  const add = () => onChange({
-  ...data,
-  education: [...edu, {
-    institution: "",
-    location: "",
-    degree: "",
-    field: "",
-    year: "",
-    gpa: ""
-  }]
-});
-  const remove = (i) => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
+  const add = () =>
+    onChange({
+      ...data,
+      education: [
+        ...edu,
+        { institution: "", degree: "", field: "", year: "", gpa: "" },
+      ],
+    });
+
+  const remove = (i) =>
+    onChange({
+      ...data,
+      education: edu.filter((_, idx) => idx !== i),
+    });
 
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>🎓</span> Education</div>
+        <div className="card-title">
+          <span>🎓</span> Education
+        </div>
 
         {edu.map((e, i) => (
           <div
             key={i}
             style={{
-              borderBottom: i < edu.length - 1 ? "1px solid var(--border)" : "none",
-              paddingBottom: 20, marginBottom: 20,
+              borderBottom:
+                i < edu.length - 1
+                  ? "1px solid var(--border)"
+                  : "none",
+              paddingBottom: 20,
+              marginBottom: 20,
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>Degree {i + 1}</span>
-              {edu.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: 12,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--muted)",
+                }}
+              >
+                Degree {i + 1}
+              </span>
+              {edu.length > 1 && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => remove(i)}
+                >
+                  ✕ Remove
+                </button>
+              )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "0 20px",
+              }}
+            >
               <div className="field">
                 <label>Institution *</label>
-                <input value={e.institution} onChange={ev => update(i, "institution", ev.target.value)} placeholder="MIT" />
-              </div>
-              <div className="field">
-                <label>University Location</label>
                 <input
-                  value={e.location || ""}
-                  onChange={ev => update(i, "location", ev.target.value)}
-                  placeholder="Cambridge, MA"
+                  value={e.institution}
+                  onChange={(ev) =>
+                    update(i, "institution", ev.target.value)
+                  }
+                  placeholder="MIT"
                 />
               </div>
-              
+
               <div className="field">
                 <label>Degree</label>
-                <select value={e.degree} onChange={ev => update(i, "degree", ev.target.value)}>
+                <select
+                  value={e.degree}
+                  onChange={(ev) =>
+                    update(i, "degree", ev.target.value)
+                  }
+                >
                   <option value="">Select degree</option>
                   <option>Bachelor of Science</option>
                   <option>Bachelor of Arts</option>
@@ -663,45 +738,72 @@ function EducationStep({ data, onChange, onNext, onBack }) {
                   <option>Diploma</option>
                 </select>
               </div>
+
               <div className="field">
                 <label>Field of Study</label>
-                <input value={e.field} onChange={ev => update(i, "field", ev.target.value)} placeholder="Computer Science" />
+                <input
+                  value={e.field}
+                  onChange={(ev) =>
+                    update(i, "field", ev.target.value)
+                  }
+                  placeholder="Computer Science"
+                />
               </div>
+
               <div className="field">
                 <label>Graduation Year</label>
-                <input type="number" value={e.year} onChange={ev => update(i, "year", ev.target.value)} placeholder="2020" />
+                <input
+                  type="number"
+                  value={e.year}
+                  onChange={(ev) =>
+                    update(i, "year", ev.target.value)
+                  }
+                  placeholder="2020"
+                />
               </div>
+
               <div className="field">
                 <label>GPA (Optional)</label>
-                <input value={e.gpa || ""} onChange={ev => update(i, "gpa", ev.target.value)} placeholder="3.8 / 4.0" />
+                <input
+                  value={e.gpa || ""}
+                  onChange={(ev) =>
+                    update(i, "gpa", ev.target.value)
+                  }
+                  placeholder="3.8 / 4.0"
+                />
               </div>
             </div>
           </div>
         ))}
 
-        <button className="add-row-btn" onClick={add}>+ Add Another Degree</button>
+        <button className="add-row-btn" onClick={add}>
+          + Add Another Degree
+        </button>
       </div>
 
       <div style={{ display: "flex", gap: 12 }}>
-        <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-        <button className="btn btn-primary" style={{ width: "auto" }} onClick={onNext}>Continue to Skills →</button>
+        <button className="btn btn-ghost" onClick={onBack}>
+          ← Back
+        </button>
+        <button
+          className="btn btn-primary"
+          style={{ width: "auto" }}
+          onClick={onNext}
+        >
+          Continue to Skills →
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── Skills Step ──────────────────────────────────────────────────────────────
+// ─── Skills Step ─────────────────────────────────────────────────────────────
 function SkillsStep({ data, onChange, onNext, onBack }) {
   const selected = data.skills || [];
   const [activeTab, setActiveTab] = useState(Object.keys(SKILL_CATEGORIES)[0]);
   const [custom, setCustom] = useState("");
   const toggle = skill => onChange({ ...data, skills: selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill] });
-  const addCustom = () => {
-    if (custom.trim() && !selected.includes(custom.trim())) {
-      onChange({ ...data, skills: [...selected, custom.trim()] });
-      setCustom("");
-    }
-  };
+  const addCustom = () => { if (custom.trim() && !selected.includes(custom.trim())) { onChange({ ...data, skills: [...selected, custom.trim()] }); setCustom(""); } };
 
   return (
     <div>
@@ -719,9 +821,7 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
           ))}
         </div>
         <div style={{ marginTop: 20, display: "flex", gap: 10, alignItems: "center" }}>
-          <div className="field" style={{ flex: 1, margin: 0 }}>
-            <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Add custom skill..." onKeyDown={e => e.key === "Enter" && addCustom()} />
-          </div>
+          <div className="field" style={{ flex: 1, margin: 0 }}><input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Add custom skill..." onKeyDown={e => e.key === "Enter" && addCustom()} /></div>
           <button className="btn btn-ghost btn-sm" onClick={addCustom}>+ Add</button>
         </div>
         {selected.length > 0 && (
@@ -739,12 +839,12 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
   );
 }
 
-// ─── Certifications Step ──────────────────────────────────────────────────────
+// ─── Certifications Step ────────────────────────────────────────────────────
 function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
   const certs = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
   const update = (i, field, val) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add    = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
-  const remove = i  => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
+  const add = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
+  const remove = i => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -772,7 +872,7 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
   );
 }
 
-// ─── Profile Builder ──────────────────────────────────────────────────────────
+// ─── Profile Builder ────────────────────────────────────────────────────────
 function ProfileBuilder({ session, initialProfile, onComplete }) {
   const [currentStep, setCurrentStep] = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
@@ -780,15 +880,20 @@ function ProfileBuilder({ session, initialProfile, onComplete }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // 🔹 Sync profile when editing existing data
   useEffect(() => {
     if (initialProfile) {
       setProfile(initialProfile);
+
+      // Mark steps as completed based on available data
       const completed = [];
+
       if (initialProfile.name) completed.push("personal");
       if (initialProfile.companies?.length) completed.push("experience");
       if (initialProfile.education?.length) completed.push("education");
       if (initialProfile.skills?.length) completed.push("skills");
       if (initialProfile.certifications?.length) completed.push("certifications");
+
       setCompletedSteps(completed);
     }
   }, [initialProfile]);
@@ -809,21 +914,14 @@ function ProfileBuilder({ session, initialProfile, onComplete }) {
   };
 
   const saveProfile = async () => {
-    setSaving(true); setError("");
+    setSaving(true);
+    setError("");
     try {
-      const formattedProfile = {
-        ...profile,
-        companies: (profile.companies || []).map(c => ({
-          ...c,
-          startDate: formatMonthYear(c.startDate),
-          endDate: c.current ? "Present" : formatMonthYear(c.endDate)
-        }))
-      };
-
-      await api.saveProfile(JSON.stringify(formattedProfile));
-
+      await api.saveProfile(JSON.stringify(profile));
       onComplete(profile);
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      setError(e.message);
+    }
     setSaving(false);
   };
 
@@ -831,27 +929,122 @@ function ProfileBuilder({ session, initialProfile, onComplete }) {
     <div className="main-content" style={{ marginLeft: 0 }}>
       <div className="page-header">
         <h1 className="page-title">Build Your Profile</h1>
-        <p className="page-sub">Complete your profile to unlock AI-powered resume generation</p>
+        <p className="page-sub">
+          Complete your profile to unlock AI-powered resume generation
+        </p>
       </div>
+
       {error && <Alert>{error}</Alert>}
-      <StepperBar currentStep={currentStep} completedSteps={completedSteps} onNavigate={setCurrentStep} />
-      {currentStep === "personal" && <PersonalStep data={profile} onChange={setProfile} onNext={goNext} />}
-      {currentStep === "experience" && <ExperienceStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "education" && <EducationStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "skills" && <SkillsStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "certifications" && <CertificationsStep data={profile} onChange={setProfile} onSave={saveProfile} onBack={goBack} saving={saving} />}
+
+      <StepperBar
+        currentStep={currentStep}
+        completedSteps={completedSteps}
+        onNavigate={setCurrentStep}
+      />
+
+      {currentStep === "personal" && (
+        <PersonalStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+        />
+      )}
+
+      {currentStep === "experience" && (
+        <ExperienceStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+          onBack={goBack}
+        />
+      )}
+
+      {currentStep === "education" && (
+        <EducationStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+          onBack={goBack}
+        />
+      )}
+
+      {currentStep === "skills" && (
+        <SkillsStep
+          data={profile}
+          onChange={setProfile}
+          onNext={goNext}
+          onBack={goBack}
+        />
+      )}
+
+      {currentStep === "certifications" && (
+        <CertificationsStep
+          data={profile}
+          onChange={setProfile}
+          onSave={saveProfile}
+          onBack={goBack}
+          saving={saving}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Resume Generator ─────────────────────────────────────────────────────────
+// ─── Score color helpers (4 bands) ──────────────────────────────────────────────────────
+const scoreColor = (s) =>
+  s >= 90 ? "var(--success)" :
+  s >= 75 ? "var(--accent)"  :
+  s >= 55 ? "#f0a830"        : "var(--danger)";
+
+const scoreBg = (s) =>
+  s >= 90 ? "rgba(78,205,196,0.08)"  :
+  s >= 75 ? "rgba(232,197,71,0.08)"  :
+  s >= 55 ? "rgba(240,168,48,0.08)"  : "rgba(255,107,107,0.08)";
+
+// ─── Scoring Breakdown Card ─────────────────────────────────────────────────────────────────
+function ScoringBreakdown({ breakdown }) {
+  if (!breakdown) return null;
+  const dims = [
+    { label: "Keyword Match",       key: "keywordMatch",       weight: "40%" },
+    { label: "Candidate Fit",       key: "candidateFit",       weight: "25%" },
+    { label: "Resume Completeness", key: "resumeCompleteness", weight: "20%" },
+    { label: "Keyword Density",     key: "keywordDensity",     weight: "15%" },
+  ];
+  return (
+    <div className="card">
+      <div className="card-title"><span>📊</span> Score Breakdown</div>
+      <div className="breakdown-grid">
+        {dims.map(d => {
+          const val = breakdown[d.key] || 0;
+          const col = scoreColor(val);
+          return (
+            <div key={d.key} className="breakdown-item">
+              <div className="breakdown-label">{d.label} <span style={{ color: "var(--accent)", opacity: 0.7 }}>({d.weight})</span></div>
+              <div className="breakdown-score-val" style={{ color: col }}>{val}</div>
+              <div className="breakdown-bar-bg">
+                <div className="breakdown-bar-fill" style={{ width: `${val}%`, background: col }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {breakdown.notes && (
+        <div style={{ marginTop: 14, padding: "12px 16px", background: "var(--surface2)", borderRadius: 8, fontSize: 13, color: "var(--muted)", lineHeight: 1.6, borderLeft: "3px solid var(--accent)" }}>
+          💬 {breakdown.notes}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Resume Generator ──────────────────────────────────────────────────────────────
 const GEN_STEPS_LIST = [
-  "Analyzing job description keywords...",
-  "Extracting technical & domain skills...",
-  "Tailoring resume content to match JD...",
-  "Self-auditing keyword placement...",
-  "Calculating ATS compatibility score...",
-  "Generating formatted PDF resume...",
+  "Analyzing job description for technical keywords...",
+  "Mapping your profile to role requirements...",
+  "Generating tailored resume content...",
+  "Enriching skills and experience bullets...",
+  "Calculating holistic ATS score...",
+  "Rendering PDF...",
 ];
 
 function ResumeGenerator({ profile }) {
@@ -868,28 +1061,24 @@ function ResumeGenerator({ profile }) {
     try {
       const stepInterval = setInterval(() => {
         setGenStep(prev => prev < GEN_STEPS_LIST.length - 1 ? prev + 1 : prev);
-      }, 1800);
-
-      // Single call — backend LLM extracts JD keywords, builds the resume,
-      // self-audits which keywords it placed, then scores and returns PDF.
+      }, 2000);
       const result = await api.generateResumeWithScore(profile, jd);
-
       clearInterval(stepInterval);
       setGenStep(GEN_STEPS_LIST.length);
 
-      // Decode base64 PDF → Blob for download
       const binaryStr = atob(result.pdfBase64);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       const blob = new Blob([bytes], { type: "application/pdf" });
 
       setAtsResult({
-        atsScore:        result.atsScore,
-        scoreLabel:      result.scoreLabel,
-        matchedSkills:   result.matchedSkills,
-        totalSkills:     result.totalSkills,
-        matchedKeywords: result.matchedKeywords || [],
-        missingKeywords: result.missingKeywords || [],
+        atsScore:         result.atsScore,
+        scoreLabel:       result.scoreLabel,
+        matchedSkills:    result.matchedSkills,
+        totalSkills:      result.totalSkills,
+        matchedKeywords:  result.matchedKeywords  || [],
+        missingKeywords:  result.missingKeywords  || [],
+        scoringBreakdown: result.scoringBreakdown || null,
       });
       setPdfBlob(blob);
       setStatus("done");
@@ -907,7 +1096,6 @@ function ResumeGenerator({ profile }) {
 
   const reset = () => { setStatus("idle"); setAtsResult(null); setPdfBlob(null); setJd(""); setGenStep(0); setError(""); };
 
-  // ── Generating state ──
   if (status === "generating") {
     return (
       <div className="card generating">
@@ -925,98 +1113,87 @@ function ResumeGenerator({ profile }) {
     );
   }
 
-  // ── Done state ──
   if (status === "done" && atsResult) {
-    const scoreColor =
-      atsResult.atsScore >= 85 ? "var(--success)" :
-      atsResult.atsScore >= 70 ? "var(--accent)"  : "var(--danger)";
+    const sc  = atsResult.atsScore;
+    const col = scoreColor(sc);
+    const bg  = scoreBg(sc);
+    const contextMsg =
+      sc >= 90 ? "Outstanding — your resume is highly competitive for this role." :
+      sc >= 75 ? "Strong match. Weaving in the missing keywords could push you to Excellent." :
+      sc >= 55 ? "Reasonable fit. Adding the missing skills and regenerating will improve your score." :
+                 "Significant skill gap for this role. Focus on building the missing technical skills.";
 
     return (
       <div>
-        {/* Score Ring */}
-        <div className="score-display">
-          <div
-            className="score-ring"
-            style={{ background: `conic-gradient(${scoreColor} ${atsResult.atsScore * 3.6}deg, var(--surface2) 0)` }}
-          >
-            <span className="score-num" style={{ color: scoreColor }}>{atsResult.atsScore}</span>
+        <div className="score-display" style={{ background: bg }}>
+          <div className="score-ring" style={{ background: `conic-gradient(${col} ${sc * 3.6}deg, var(--surface2) 0)` }}>
+            <span className="score-num" style={{ color: col }}>{sc}</span>
           </div>
-          <div className="score-info">
-            <h3>ATS Score: <span style={{ color: scoreColor }}>{atsResult.scoreLabel}</span></h3>
-            <p className="score-desc">
-              Matched <strong style={{ color: scoreColor }}>{atsResult.matchedSkills}</strong> of{" "}
-              <strong>{atsResult.totalSkills}</strong> keywords the AI extracted from the job description.
-              {atsResult.atsScore >= 85
-                ? " Excellent — your resume is highly likely to pass ATS filters."
-                : atsResult.atsScore >= 70
-                  ? " Good match. Weaving in the missing keywords below could push you to Excellent."
-                  : " Consider adding the highlighted keywords to strengthen your ATS match."}
+          <div className="score-info" style={{ flex: 1 }}>
+            <h3>ATS Score: <span style={{ color: col }}>{atsResult.scoreLabel}</span></h3>
+            <p className="score-desc" style={{ marginBottom: 6 }}>
+              Matched <strong style={{ color: col }}>{atsResult.matchedSkills}</strong> of{" "}
+              <strong>{atsResult.totalSkills}</strong> technical keywords from the job description.
             </p>
+            <p className="score-desc">{contextMsg}</p>
           </div>
         </div>
 
-        {/* Keyword Analysis */}
+        <ScoringBreakdown breakdown={atsResult.scoringBreakdown} />
+
         <div className="card">
           <div className="card-title"><span>🎯</span> Keyword Match Analysis</div>
-
-          <div style={{ display: "flex", gap: 24, marginBottom: 20, flexWrap: "wrap" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: "var(--success)" }}>{atsResult.matchedKeywords.length}</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Matched</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: "var(--danger)" }}>{atsResult.missingKeywords.length}</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Missing</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: "var(--accent)" }}>{atsResult.totalSkills}</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Total JD Keywords</div>
-            </div>
+          <div style={{ display: "flex", gap: 28, marginBottom: 20, flexWrap: "wrap" }}>
+            {[
+              { label: "Matched",     val: atsResult.matchedKeywords.length, col: "var(--success)" },
+              { label: "Missing",     val: atsResult.missingKeywords.length, col: "var(--danger)"  },
+              { label: "Total in JD", val: atsResult.totalSkills,            col: "var(--accent)"  },
+            ].map(({ label, val, col: c }) => (
+              <div key={label} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: c }}>{val}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
+              </div>
+            ))}
           </div>
 
           {atsResult.matchedKeywords.length > 0 && (
             <>
-              <div className="keyword-section-title">✓ Found in your resume</div>
+              <div className="kw-section-title">✓ Found in your resume</div>
               <div className="skills-match">
-                {atsResult.matchedKeywords.map(s => (
-                  <span key={s} className="match-chip hit">✓ {s}</span>
-                ))}
+                {atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}
               </div>
             </>
           )}
 
           {atsResult.missingKeywords.length > 0 && (
             <>
-              <div className="keyword-section-title" style={{ marginTop: 20 }}>✕ Missing from your resume</div>
+              <div className="kw-section-title" style={{ marginTop: 20 }}>✕ Not in your resume</div>
               <div className="skills-match">
-                {atsResult.missingKeywords.map(s => (
-                  <span key={s} className="match-chip miss">{s}</span>
-                ))}
+                {atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}
               </div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12 }}>
-                💡 Tip: Update your profile to include the missing keywords and regenerate for a higher score.
+              <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>
+                💡 Add missing skills to your profile and regenerate to improve your score.
               </p>
             </>
           )}
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="download-btn" onClick={downloadPdf}>⬇ Download ATS-Optimized PDF</button>
-          <button className="btn btn-ghost" onClick={reset}>Generate Another</button>
+          <button className="btn btn-ghost" onClick={reset}>Try Another Job</button>
         </div>
       </div>
     );
   }
 
-  // ── Idle state ──
   return (
     <div>
       {error && <Alert>{error}</Alert>}
       <div className="card">
         <div className="card-title"><span>📋</span> Job Description</div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-          Paste the full job description. The AI will extract all important keywords, build your resume around them, and report exactly which ones made it in.
+          Paste the full job description. The AI will extract technical keywords, build your tailored resume,
+          and calculate a realistic ATS score based on keyword match, experience fit, and resume quality.
         </p>
         <div className="field">
           <label>Job Description *</label>
@@ -1026,24 +1203,16 @@ function ResumeGenerator({ profile }) {
       <div className="card">
         <div className="card-title"><span>👤</span> Profile Summary</div>
         <div className="profile-grid">
-          {[
-            ["Name",           profile.name],
-            ["Headline",       profile.headline || "—"],
-            ["Location",       profile.location],
-            ["Skills",         `${(profile.skills || []).length} selected`],
-            ["Experience",     `${(profile.companies || []).filter(c => c.company).length} positions`],
-            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`],
+          {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
+            ["Skills", `${(profile.skills || []).length} selected`],
+            ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
+            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
           ].map(([k, v]) => (
             <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
           ))}
         </div>
       </div>
-      <button
-        className="btn btn-primary"
-        style={{ width: "auto", padding: "16px 40px", fontSize: 16 }}
-        disabled={!jd.trim()}
-        onClick={generate}
-      >
+      <button className="btn btn-primary" style={{ width: "auto", padding: "16px 40px", fontSize: 16 }} disabled={!jd.trim()} onClick={generate}>
         🤖 Generate ATS-Optimized Resume
       </button>
       {!jd.trim() && <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 10 }}>Paste a job description above to enable generation</p>}
@@ -1051,7 +1220,7 @@ function ResumeGenerator({ profile }) {
   );
 }
 
-// ─── Profile Overview ─────────────────────────────────────────────────────────
+// ─── Profile Overview ───────────────────────────────────────────────────────
 function ProfileOverview({ profile, onEdit }) {
   const fmtDate = (val) => {
     if (!val) return "";
@@ -1071,18 +1240,13 @@ function ProfileOverview({ profile, onEdit }) {
           <div className="card">
             <div className="card-title"><span>👤</span> Personal</div>
             <div className="profile-grid">
-              {[
-                ["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
-                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"],
+              {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
+                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
               ].map(([k, v]) => (
                 <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
               ))}
             </div>
-            {profile.summary && (
-              <div style={{ marginTop: 16, padding: "12px 16px", background: "var(--surface2)", borderRadius: 8, fontSize: 14, lineHeight: 1.7, color: "var(--muted)" }}>
-                {profile.summary}
-              </div>
-            )}
+            {profile.summary && <div style={{ marginTop: 16, padding: "12px 16px", background: "var(--surface2)", borderRadius: 8, fontSize: 14, lineHeight: 1.7, color: "var(--muted)" }}>{profile.summary}</div>}
           </div>
 
           <div className="card">
@@ -1092,38 +1256,15 @@ function ProfileOverview({ profile, onEdit }) {
                 <div style={{ fontWeight: 600 }}>{c.role} @ {c.company}</div>
                 <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
                   {c.location && <span style={{ marginRight: 8 }}>📍 {c.location}</span>}
-                  {fmtDate(c.startDate)} — {c.current ? "Present" : fmtDate(c.endDate)}
+                  {fmtDate(c.startDate)} – {c.current ? "Present" : fmtDate(c.endDate)}
                 </div>
               </div>
             ))}
           </div>
-          <div className="card">
-            <div className="card-title"><span>🎓</span> Education</div>
-            {(profile.education || []).filter(e => e.institution).map((e, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: "8px 0",
-                  borderBottom: "1px solid var(--border)"
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>
-                  {e.degree} {e.field && `in ${e.field}`}
-                </div>
-                <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                  {e.institution}
-                  {e.location && ` · ${e.location}`}
-                  {e.year && ` · ${e.year}`}
-                  {e.gpa && ` · GPA: ${e.gpa}`}
-                </div>
-              </div>
-            ))}
-          </div>
+
           <div className="card">
             <div className="card-title"><span>⚡</span> Skills ({(profile.skills || []).length})</div>
-            <div className="skills-grid">
-              {(profile.skills || []).map(s => <span key={s} className="skill-chip selected">{s}</span>)}
-            </div>
+            <div className="skills-grid">{(profile.skills || []).map(s => <span key={s} className="skill-chip selected">{s}</span>)}</div>
           </div>
 
           {(profile.certifications || []).filter(c => c.name).length > 0 && (
@@ -1150,7 +1291,7 @@ function ProfileOverview({ profile, onEdit }) {
   );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Dashboard ──────────────────────────────────────────────────────────────
 function Dashboard({ session, profile, onLogout, onEditProfile }) {
   const [activePage, setActivePage] = useState(profile ? "generate" : "profile");
 
@@ -1173,7 +1314,6 @@ function Dashboard({ session, profile, onLogout, onEditProfile }) {
           <button className="btn btn-ghost btn-sm" style={{ marginTop: 12, width: "100%" }} onClick={onLogout}>Sign Out</button>
         </div>
       </div>
-
       <div className="main-content">
         {activePage === "generate" && (
           <>
@@ -1205,13 +1345,22 @@ function Dashboard({ session, profile, onLogout, onEditProfile }) {
   );
 }
 
-// ─── Root App ─────────────────────────────────────────────────────────────────
+// ─── Root App ───────────────────────────────────────────────────────────────
 export default function App() {
   const [authView, setAuthView] = useState("login");
   const [session, setSession] = useState(() => {
     const user  = localStorage.getItem("ats_user");
     const token = localStorage.getItem("ats_token");
-    return (user && token) ? JSON.parse(user) : null;
+    if (!user || !token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem("ats_token");
+        localStorage.removeItem("ats_user");
+        return null;
+      }
+    } catch { /* malformed token — let API reject it */ }
+    return JSON.parse(user);
   });
   const [profile, setProfile] = useState(null);
   const [buildingProfile, setBuildingProfile] = useState(false);
@@ -1238,12 +1387,19 @@ export default function App() {
             setBuildingProfile(true);
           }
         })
-        .catch(() => setBuildingProfile(true))
+        .catch(() => {
+          localStorage.removeItem("ats_token");
+          localStorage.removeItem("ats_user");
+          setSession(null);
+          setProfile(null);
+          setBuildingProfile(false);
+        })
         .finally(() => setLoadingProfile(false));
     }
   }, [session]);
 
-  const handleLogin  = data => setSession({ email: data.email, fullName: data.fullName });
+  const handleLogin = data => setSession({ email: data.email, fullName: data.fullName });
+
   const handleLogout = () => {
     localStorage.removeItem("ats_token");
     localStorage.removeItem("ats_user");
@@ -1265,15 +1421,15 @@ export default function App() {
           </div>
         )}
         {session && !loadingProfile && buildingProfile && (
-          <ProfileBuilder
-            session={session}
-            initialProfile={profile}
-            onComplete={p => {
-              setProfile(p);
-              setBuildingProfile(false);
-            }}
-          />
-        )}
+  <ProfileBuilder
+    session={session}
+    initialProfile={profile}
+    onComplete={p => {
+      setProfile(p);
+      setBuildingProfile(false);
+    }}
+  />
+)}
         {session && !loadingProfile && !buildingProfile && (
           <Dashboard session={session} profile={profile} onLogout={handleLogout} onEditProfile={() => setBuildingProfile(true)} />
         )}
