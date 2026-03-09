@@ -16,16 +16,9 @@ public class Resume {
     private List<Certification> certifications;
 
     /**
-     * All meaningful keywords the LLM extracted from the job description.
-     * Populated by the AI prompt (Step 1 of the prompt).
-     * Excluded from PDF generation — used only for ATS scoring.
+     * Keywords the LLM extracted from the job description (Step 1 of the prompt).
+     * Used by AtsScoreService for deterministic text scanning.
+     * Not rendered in the PDF.
      */
     private List<String> extractedJdKeywords;
-
-    /**
-     * Subset of extractedJdKeywords that the LLM confirmed it placed
-     * in the generated resume (Step 3 self-audit).
-     * Excluded from PDF generation — used only for ATS scoring.
-     */
-    private List<String> detectedInResume;
 }

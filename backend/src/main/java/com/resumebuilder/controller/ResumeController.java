@@ -39,7 +39,6 @@ public class ResumeController {
     }
 
     // ── POST /api/resume/generate ─────────────────────────────────────────────
-    // Generate PDF from raw Resume JSON (no AI)
     @PostMapping("/generate")
     public ResponseEntity<byte[]> generate(@RequestBody Resume resume) throws Exception {
         byte[] pdf = resumePdfService.generateResume(resume);
@@ -50,7 +49,6 @@ public class ResumeController {
     }
 
     // ── POST /api/resume/tailor-and-generate ──────────────────────────────────
-    // Legacy: AI tailor + download raw PDF (no score)
     @PostMapping("/tailor-and-generate")
     public ResponseEntity<byte[]> tailorAndGenerate(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -67,51 +65,41 @@ public class ResumeController {
     }
 
     // ── POST /api/resume/tailor-generate-score ────────────────────────────────
-    // PRIMARY endpoint: AI tailors resume + self-audits keyword coverage.
-    // ATS score is computed purely from the LLM's two keyword lists —
-    // no hardcoded patterns, no string matching, no stop-word lists.
+    // PRIMARY endpoint.
     //
-    // Response JSON:
-    // {
-    //   atsScore         : int       (0–100, true percentage)
-    //   scoreLabel       : string    ("Excellent" | "Good" | "Needs Improvement")
-    //   matchedSkills    : int       (count of keywords placed in resume)
-    //   totalSkills      : int       (total JD keywords extracted)
-    //   matchedKeywords  : string[]  (keywords confirmed in resume — green chips)
-    //   missingKeywords  : string[]  (keywords missing from resume — red chips)
-    //   pdfBase64        : string    (base64-encoded PDF)
-    // }
+    // Step 1 (LLM)  : extract JD keywords + generate tailored resume JSON
+    // Step 2 (Java) : flatten resume JSON → scan for each keyword (deterministic)
+    // Step 3 (Java) : compute score = matched / total * 100
+    //
+    // Response: { atsScore, scoreLabel, matchedSkills, totalSkills,
+    //             matchedKeywords, missingKeywords, pdfBase64 }
     @PostMapping("/tailor-generate-score")
     public ResponseEntity<Map<String, Object>> tailorGenerateWithScore(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody TailorRequest request) throws Exception {
 
-        // 1. LLM: extract JD keywords + generate resume + self-audit coverage
+        // 1. LLM generates resume + returns extractedJdKeywords[]
         Resume tailoredResume = tailoringService.tailorResume(
                 request.getResumeMetaData(), request.getJobDescription());
 
-        // 2. Pull the two keyword lists directly from the LLM's output
-        //    (populated by extractedJdKeywords and detectedInResume fields in Resume model)
+        // 2. Serialize resume to JSON so AtsScoreService can scan its full text
+        String resumeJson = objectMapper.writeValueAsString(tailoredResume);
+
+        // 3. Get the LLM-extracted keyword list
         java.util.List<String> extractedJdKeywords =
                 tailoredResume.getExtractedJdKeywords() != null
                         ? tailoredResume.getExtractedJdKeywords()
                         : new ArrayList<>();
 
-        java.util.List<String> detectedInResume =
-                tailoredResume.getDetectedInResume() != null
-                        ? tailoredResume.getDetectedInResume()
-                        : new ArrayList<>();
+        // 4. Deterministic scan: check each keyword against the resume text
+        AtsScoreResponse atsScore = atsScoreService.scoreFromResumeJson(
+                extractedJdKeywords, resumeJson);
 
-        // 3. Pure-math scoring — no heuristics, no pattern matching
-        AtsScoreResponse atsScore = atsScoreService.scoreFromLlmOutput(
-                extractedJdKeywords, detectedInResume);
-
-        // 4. Generate PDF (extractedJdKeywords and detectedInResume are ignored by PDF renderer
-        //    because ResumePdfService only reads the standard resume fields)
+        // 5. Render PDF
         byte[] pdf       = resumePdfService.generateResume(tailoredResume);
         String pdfBase64 = Base64.getEncoder().encodeToString(pdf);
 
-        // 5. Return everything to the frontend in one response
+        // 6. Return combined response
         Map<String, Object> result = new HashMap<>();
         result.put("atsScore",        atsScore.getAtsScore());
         result.put("scoreLabel",      atsScore.getScoreLabel());

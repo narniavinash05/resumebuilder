@@ -66,6 +66,20 @@ const YEARS = (() => {
   return arr;
 })();
 
+function formatMonthYear(value) {
+  if (!value) return "";
+
+  const [year, month] = value.split("-");
+
+  const map = {
+    "01":"Jan","02":"Feb","03":"Mar","04":"Apr",
+    "05":"May","06":"Jun","07":"Jul","08":"Aug",
+    "09":"Sep","10":"Oct","11":"Nov","12":"Dec"
+  };
+
+  return `${map[month]}, ${year}`;
+}
+
 // Stores value as "YYYY-MM"
 function MonthYearPicker({ value, onChange, disabled }) {
   const [year, setYear] = useState("");
@@ -797,7 +811,17 @@ function ProfileBuilder({ session, initialProfile, onComplete }) {
   const saveProfile = async () => {
     setSaving(true); setError("");
     try {
-      await api.saveProfile(JSON.stringify(profile));
+      const formattedProfile = {
+        ...profile,
+        companies: (profile.companies || []).map(c => ({
+          ...c,
+          startDate: formatMonthYear(c.startDate),
+          endDate: c.current ? "Present" : formatMonthYear(c.endDate)
+        }))
+      };
+
+      await api.saveProfile(JSON.stringify(formattedProfile));
+
       onComplete(profile);
     } catch (e) { setError(e.message); }
     setSaving(false);
@@ -811,10 +835,10 @@ function ProfileBuilder({ session, initialProfile, onComplete }) {
       </div>
       {error && <Alert>{error}</Alert>}
       <StepperBar currentStep={currentStep} completedSteps={completedSteps} onNavigate={setCurrentStep} />
-      {currentStep === "personal"       && <PersonalStep       data={profile} onChange={setProfile} onNext={goNext} />}
-      {currentStep === "experience"     && <ExperienceStep     data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "education"      && <EducationStep      data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "skills"         && <SkillsStep         data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "personal" && <PersonalStep data={profile} onChange={setProfile} onNext={goNext} />}
+      {currentStep === "experience" && <ExperienceStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "education" && <EducationStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "skills" && <SkillsStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
       {currentStep === "certifications" && <CertificationsStep data={profile} onChange={setProfile} onSave={saveProfile} onBack={goBack} saving={saving} />}
     </div>
   );
