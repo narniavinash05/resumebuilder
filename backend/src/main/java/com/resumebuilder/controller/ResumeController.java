@@ -26,16 +26,16 @@ public class ResumeController {
     private final ResumeTailoringService tailoringService;
     private final ResumePdfService       resumePdfService;
     private final AtsScoreService        atsScoreService;
-    private final ResumeParserService    resumeParserService;   // ← CHANGED (was ResumeParseService)
+    private final ResumeParserService    resumeParserService;
 
     public ResumeController(ResumeTailoringService tailoringService,
                             ResumePdfService       resumePdfService,
                             AtsScoreService        atsScoreService,
-                            ResumeParserService resumeParserService) {  // ← CHANGED
+                            ResumeParserService resumeParserService) {
         this.tailoringService   = tailoringService;
         this.resumePdfService   = resumePdfService;
         this.atsScoreService    = atsScoreService;
-        this.resumeParserService = resumeParserService;          // ← CHANGED
+        this.resumeParserService = resumeParserService;
     }
 
     // ── POST /api/resume/generate ─────────────────────────────────────────────

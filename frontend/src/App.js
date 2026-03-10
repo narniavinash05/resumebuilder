@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-// ─── API Layer ─────────────────────────────────────────────────────────────
+// ─── API Layer ────────────────────────────────────────────────────────────────
 const BASE_URL = "http://localhost:8080";
-
 const getToken = () => localStorage.getItem("ats_token");
 
 const apiFetch = async (path, options = {}) => {
@@ -20,10 +19,6 @@ const apiFetch = async (path, options = {}) => {
     localStorage.removeItem("ats_user");
     window.location.href = "/";
     return;
-  }
-  if (options.binary) {
-    if (!res.ok) throw new Error("Failed to generate PDF");
-    return res.blob();
   }
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || "Request failed");
@@ -65,7 +60,7 @@ const api = {
   },
 };
 
-// ─── Month/Year Dropdown ───────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const MONTHS = [
   { value: "01", label: "January" },  { value: "02", label: "February" },
   { value: "03", label: "March" },    { value: "04", label: "April" },
@@ -76,34 +71,23 @@ const MONTHS = [
 ];
 const YEARS = (() => {
   const cur = new Date().getFullYear();
-  const a = [];
-  for (let y = cur; y >= 1980; y--) a.push(String(y));
-  return a;
+  const arr = [];
+  for (let y = cur; y >= 1980; y--) arr.push(String(y));
+  return arr;
 })();
 
 function MonthYearPicker({ value, onChange, disabled }) {
-  const [year, setYear]   = useState("");
+  const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
-
   useEffect(() => {
     if (value && value.includes("-")) {
       const [y, m] = value.split("-");
       setYear(y || ""); setMonth(m || "");
     } else { setYear(""); setMonth(""); }
   }, [value]);
-
-  const handleYear  = (v) => { setYear(v);  onChange(v && month  ? `${v}-${month}` : ""); };
-  const handleMonth = (v) => { setMonth(v); onChange(year && v   ? `${year}-${v}`  : ""); };
-
-  const sel = {
-    width: "100%", padding: "14px 12px",
-    background: disabled ? "rgba(255,255,255,0.03)" : "var(--surface)",
-    border: "1px solid var(--border)", borderRadius: "var(--radius)",
-    color: disabled ? "var(--muted)" : "var(--text)",
-    fontFamily: "var(--font-body)", fontSize: 14, outline: "none",
-    opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "pointer",
-  };
-
+  const handleYear = (v) => { setYear(v); if (v && month) onChange(`${v}-${month}`); else onChange(""); };
+  const handleMonth = (v) => { setMonth(v); if (year && v) onChange(`${year}-${v}`); else onChange(""); };
+  const sel = { width: "100%", padding: "14px 12px", background: disabled ? "rgba(255,255,255,0.03)" : "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", color: disabled ? "var(--muted)" : "var(--text)", fontFamily: "var(--font-body)", fontSize: 14, outline: "none", opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "pointer" };
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       <select value={month} onChange={e => handleMonth(e.target.value)} disabled={disabled} style={sel}>
@@ -118,12 +102,22 @@ function MonthYearPicker({ value, onChange, disabled }) {
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────
+const fmtDate = (val) => {
+  if (!val) return "";
+  const [y, m] = val.split("-");
+  const mo = MONTHS.find(x => x.value === m);
+  return [mo?.label?.slice(0, 3), y].filter(Boolean).join(" ");
+};
+
+const scoreColor = (s) => s >= 90 ? "var(--success)" : s >= 75 ? "var(--accent)" : s >= 55 ? "#f0a830" : "var(--danger)";
+const scoreBg    = (s) => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
+
+// ─── CSS ──────────────────────────────────────────────────────────────────────
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26; --surface3: #202030;
     --border: rgba(255,255,255,0.08); --accent: #e8c547; --accent2: #4ecdc4;
     --text: #f0ede8; --muted: #7a7890; --danger: #ff6b6b; --success: #4ecdc4;
     --radius: 12px; --font-display: 'Playfair Display', serif; --font-body: 'DM Sans', sans-serif;
@@ -131,11 +125,10 @@ const css = `
   body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
   .app { min-height: 100vh; display: flex; flex-direction: column; }
 
-  /* ── Auth ── */
   .auth-page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
   .auth-brand { background: var(--surface); display: flex; flex-direction: column; justify-content: center; padding: 60px; position: relative; overflow: hidden; border-right: 1px solid var(--border); }
   .auth-brand::before { content: ''; position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(232,197,71,0.15), transparent 70%); }
-  .auth-brand::after  { content: ''; position: absolute; bottom: -80px; right: -80px;  width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(78,205,196,0.1), transparent 70%); }
+  .auth-brand::after { content: ''; position: absolute; bottom: -80px; right: -80px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(78,205,196,0.1), transparent 70%); }
   .brand-logo { font-family: var(--font-display); font-size: 48px; font-weight: 900; line-height: 1; position: relative; z-index: 1; }
   .brand-logo span { color: var(--accent); }
   .brand-tagline { margin-top: 20px; font-size: 18px; color: var(--muted); line-height: 1.6; max-width: 340px; position: relative; z-index: 1; }
@@ -150,7 +143,6 @@ const css = `
   .auth-switch { margin-top: 20px; text-align: center; font-size: 14px; color: var(--muted); }
   .auth-switch button { background: none; border: none; color: var(--accent); cursor: pointer; font-weight: 600; }
 
-  /* ── Form Fields ── */
   .field { margin-bottom: 20px; }
   .field label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
   .field input, .field textarea, .field select { width: 100%; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-body); font-size: 15px; transition: border-color 0.2s; outline: none; }
@@ -158,7 +150,6 @@ const css = `
   .field textarea { resize: vertical; min-height: 100px; }
   select option { background: #1a1a26; color: var(--text); }
 
-  /* ── Buttons ── */
   .btn { padding: 14px 24px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font-body); font-size: 15px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
   .btn-primary { background: var(--accent); color: #0a0a0f; width: 100%; justify-content: center; }
   .btn-primary:hover { background: #f0d055; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,197,71,0.3); }
@@ -167,65 +158,96 @@ const css = `
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
   .btn-teal { background: var(--accent2); color: #0a0a0f; }
   .btn-teal:hover { background: #6eded6; transform: translateY(-1px); }
+  .btn-danger { background: rgba(255,107,107,0.1); color: var(--danger); border: 1px solid rgba(255,107,107,0.2); }
+  .btn-danger:hover { background: rgba(255,107,107,0.2); }
   .btn-sm { padding: 8px 16px; font-size: 13px; }
   .btn-icon { padding: 10px; border-radius: 8px; }
 
-  /* ── Alerts ── */
   .alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
-  .alert-error   { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff9999; }
-  .alert-success { background: rgba(78,205,196,0.1);  border: 1px solid rgba(78,205,196,0.3);  color: var(--accent2); }
-  .alert-info    { background: rgba(232,197,71,0.1);  border: 1px solid rgba(232,197,71,0.3);  color: var(--accent); }
+  .alert-error { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff9999; }
+  .alert-success { background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.3); color: var(--accent2); }
+  .alert-info { background: rgba(232,197,71,0.1); border: 1px solid rgba(232,197,71,0.3); color: var(--accent); }
 
-  /* ── Dashboard / Sidebar ── */
   .dashboard { display: flex; min-height: 100vh; }
-  .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; position: fixed; height: 100vh; z-index: 10; }
-  .sidebar-logo { padding: 0 24px 24px; border-bottom: 1px solid var(--border); }
-  .sidebar-logo span { font-family: var(--font-display); font-size: 22px; font-weight: 900; }
-  .sidebar-logo span b { color: var(--accent); }
-  .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 0; position: fixed; height: 100vh; z-index: 10; }
+  .sidebar-logo { padding: 24px; border-bottom: 1px solid var(--border); cursor: pointer; transition: opacity 0.15s; }
+  .sidebar-logo:hover { opacity: 0.8; }
+  .sidebar-logo .logo-text { font-family: var(--font-display); font-size: 22px; font-weight: 900; }
+  .sidebar-logo .logo-text b { color: var(--accent); }
+  .sidebar-logo .home-hint { font-size: 10px; color: var(--muted); display: block; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
   .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 500; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: rgba(232,197,71,0.12); color: var(--accent); }
-  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-  .sidebar-user { padding: 16px 24px; border-top: 1px solid var(--border); }
-  .user-info { display: flex; align-items: center; gap: 12px; }
-  .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0a0a0f; }
-  .user-name  { font-size: 13px; font-weight: 600; }
-  .user-email { font-size: 11px; color: var(--muted); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-badge { font-size: 11px; font-weight: 700; background: var(--accent); color: #0a0a0f; border-radius: 10px; padding: 2px 7px; }
+  .sidebar-user { padding: 16px; border-top: 1px solid var(--border); }
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0a0a0f; flex-shrink: 0; }
+  .user-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-email { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .main-content { margin-left: 240px; flex: 1; padding: 40px; min-height: 100vh; }
   .page-header { margin-bottom: 32px; }
   .page-title { font-family: var(--font-display); font-size: 28px; font-weight: 700; }
   .page-sub { color: var(--muted); font-size: 15px; margin-top: 6px; }
 
-  /* ── Stepper ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .card-title span { font-size: 18px; }
+
+  .home-hero { background: linear-gradient(135deg, rgba(232,197,71,0.08), rgba(78,205,196,0.06)); border: 1px solid rgba(232,197,71,0.15); border-radius: 16px; padding: 40px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .home-hero h1 { font-family: var(--font-display); font-size: 32px; font-weight: 900; margin-bottom: 10px; }
+  .home-hero p { color: var(--muted); font-size: 16px; line-height: 1.6; max-width: 420px; }
+  .home-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; }
+  .stat-card-num { font-family: var(--font-display); font-size: 36px; font-weight: 700; }
+  .stat-card-label { font-size: 13px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .home-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  .action-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; cursor: pointer; transition: all 0.2s; }
+  .action-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .action-card.teal:hover { border-color: var(--accent2); }
+  .action-card-icon { font-size: 32px; margin-bottom: 14px; }
+  .action-card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; font-family: var(--font-display); }
+  .action-card-sub { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+  .resumes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .resume-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.15s; cursor: pointer; }
+  .resume-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
+  .resume-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+  .resume-card-company { font-weight: 700; font-size: 16px; }
+  .resume-card-position { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .resume-card-score { font-family: var(--font-display); font-size: 28px; font-weight: 700; flex-shrink: 0; }
+  .resume-card-score-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right; }
+  .resume-card-meta { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .resume-card-chip { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .resume-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+
   .stepper { display: flex; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 4px; }
   .step { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 16px; border-radius: 24px; transition: all 0.2s; }
   .step.active { background: rgba(232,197,71,0.12); }
   .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 1px solid var(--border); flex-shrink: 0; transition: all 0.2s; }
   .step.active .step-num { background: var(--accent); color: #0a0a0f; border-color: var(--accent); }
-  .step.done  .step-num  { background: var(--success); color: #0a0a0f; border-color: var(--success); }
+  .step.done .step-num { background: var(--success); color: #0a0a0f; border-color: var(--success); }
   .step-label { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
   .step.active .step-label { color: var(--text); }
   .step-divider { flex: 1; height: 1px; background: var(--border); min-width: 16px; max-width: 32px; }
 
-  /* ── Cards ── */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
-  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-  .card-title span { font-size: 18px; }
-
-  /* ── Skills ── */
   .skills-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
   .skill-chip { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; transition: all 0.15s; user-select: none; background: var(--surface2); }
   .skill-chip:hover { border-color: var(--accent); }
   .skill-chip.selected { background: rgba(232,197,71,0.15); border-color: var(--accent); color: var(--accent); }
   .skill-chip.teal.selected { background: rgba(78,205,196,0.15); border-color: var(--accent2); color: var(--accent2); }
+
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); padding: 4px; border-radius: 10px; width: fit-content; flex-wrap: wrap; }
+  .tab { padding: 8px 18px; border-radius: 7px; border: none; background: none; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: var(--surface2); color: var(--text); }
+
   .add-row-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px dashed var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 13px; transition: all 0.15s; margin-top: 8px; }
   .add-row-btn:hover { border-color: var(--accent); color: var(--accent); }
   .cert-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 12px; }
   .date-label { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: block; }
   .present-pill { display: flex; align-items: center; gap: 8px; padding: 14px 16px; background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.25); border-radius: var(--radius); color: var(--accent2); font-size: 14px; }
 
-  /* ── Score ── */
   .score-display { display: flex; align-items: center; gap: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
   .score-ring { width: 100px; height: 100px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
   .score-ring::before { content: ''; position: absolute; width: 76px; height: 76px; border-radius: 50%; background: var(--surface); }
@@ -234,8 +256,8 @@ const css = `
   .score-desc { color: var(--muted); font-size: 14px; line-height: 1.6; }
   .skills-match { display: flex; flex-wrap: wrap; gap: 8px; }
   .match-chip { padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; }
-  .match-chip.hit  { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
-  .match-chip.miss { background: rgba(255,107,107,0.1); color: #ff9999;        border: 1px solid rgba(255,107,107,0.2); }
+  .match-chip.hit { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
+  .match-chip.miss { background: rgba(255,107,107,0.1); color: #ff9999; border: 1px solid rgba(255,107,107,0.2); }
   .kw-section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 16px 0 10px; }
   .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
   .breakdown-item { background: var(--surface2); border-radius: 10px; padding: 14px 16px; }
@@ -243,130 +265,73 @@ const css = `
   .breakdown-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
   .breakdown-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
   .breakdown-score-val { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+
   .generating { display: flex; flex-direction: column; align-items: center; padding: 60px; gap: 20px; }
   .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .spinner-sm { width: 20px; height: 20px; border-width: 2px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .prog-steps { display: flex; flex-direction: column; gap: 10px; width: 300px; }
+  .prog-steps { display: flex; flex-direction: column; gap: 10px; width: 320px; }
   .prog-step { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
-  .prog-step.done   { color: var(--success); }
+  .prog-step.done { color: var(--success); }
   .prog-step.active { color: var(--text); }
   .prog-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--surface2); flex-shrink: 0; }
-  .prog-step.done   .prog-dot { background: var(--success); }
+  .prog-step.done .prog-dot { background: var(--success); }
   .prog-step.active .prog-dot { background: var(--accent); animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
   .download-btn { display: flex; align-items: center; gap: 10px; padding: 16px 32px; background: linear-gradient(135deg, var(--accent), #d4aa30); color: #0a0a0f; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
   .download-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(232,197,71,0.4); }
+
   .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .info-row { display: flex; flex-direction: column; gap: 4px; }
   .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
   .info-val { font-size: 15px; font-weight: 500; }
   .complete-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-  .complete-badge.done    { background: rgba(78,205,196,0.15); color: var(--accent2); }
-  .complete-badge.pending { background: rgba(232,197,71,0.15);  color: var(--accent); }
-  .tab-bar { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); padding: 4px; border-radius: 10px; width: fit-content; flex-wrap: wrap; }
-  .tab { padding: 8px 18px; border-radius: 7px; border: none; background: none; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
-  .tab.active { background: var(--surface2); color: var(--text); }
+  .complete-badge.done { background: rgba(78,205,196,0.15); color: var(--accent2); }
+  .complete-badge.pending { background: rgba(232,197,71,0.15); color: var(--accent); }
 
-  /* ── Upload Page ── */
-  .upload-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; background: var(--bg); }
-  .upload-page-inner { width: 100%; max-width: 640px; }
-  .upload-page-logo { font-family: var(--font-display); font-size: 26px; font-weight: 900; text-align: center; margin-bottom: 32px; }
-  .upload-page-logo b { color: var(--accent); }
-
-  /* 3-step breadcrumb for upload flow */
-  .flow-steps { display: flex; align-items: center; justify-content: center; margin-bottom: 40px; }
-  .flow-step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .flow-step-circle { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border: 2px solid var(--border); color: var(--muted); transition: all 0.3s; }
-  .flow-step-circle.active { border-color: var(--accent); color: var(--accent); background: rgba(232,197,71,0.1); }
-  .flow-step-circle.done   { border-color: var(--success); color: #0a0a0f; background: var(--success); }
-  .flow-step-label { font-size: 11px; color: var(--muted); white-space: nowrap; font-weight: 500; }
-  .flow-step-label.active { color: var(--accent); }
-  .flow-step-label.done   { color: var(--success); }
-  .flow-step-line { width: 64px; height: 2px; background: var(--border); margin: 0 10px; margin-bottom: 20px; transition: background 0.3s; }
-  .flow-step-line.done { background: var(--success); }
-
-  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 52px 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface2); position: relative; }
-  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(232,197,71,0.04); }
+  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface2); position: relative; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(232,197,71,0.05); }
   .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-icon { font-size: 52px; margin-bottom: 16px; }
-  .upload-title { font-size: 20px; font-weight: 700; font-family: var(--font-display); margin-bottom: 8px; }
-  .upload-sub { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
-  .upload-formats { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .format-chip { padding: 5px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; }
-
-  /* Parsing animation */
-  .parsing-overlay { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 52px 32px; }
-  .parsing-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
-  .parsing-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; width: 300px; }
-  .parsing-step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); transition: color 0.3s; }
-  .parsing-step.done   { color: var(--success); }
-  .parsing-step.active { color: var(--text); }
-  .parsing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--surface2); flex-shrink: 0; }
-  .parsing-step.done   .parsing-dot { background: var(--success); }
-  .parsing-step.active .parsing-dot { background: var(--accent); animation: pulse 1s infinite; }
-
-  /* Parse result banner */
-  .parse-result-banner { display: flex; align-items: flex-start; gap: 16px; padding: 20px 24px; border-radius: var(--radius); background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.3); margin-bottom: 24px; }
-  .parse-result-icon { font-size: 32px; flex-shrink: 0; }
-  .parse-result-text h4 { font-size: 16px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
-  .parse-result-text p  { font-size: 13px; color: var(--muted); }
-  .parse-fields-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .upload-formats { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .format-chip { padding: 4px 10px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; }
+  .parse-result-banner { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: var(--radius); background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.3); margin-bottom: 20px; }
   .parse-field-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.2); color: var(--accent2); }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(4px); }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto; padding: 32px; position: relative; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 16px; transition: all 0.15s; }
+  .modal-close:hover { color: var(--text); border-color: var(--accent); }
 
   @media (max-width: 900px) {
     .auth-page { grid-template-columns: 1fr; }
     .auth-brand { display: none; }
-    .profile-grid { grid-template-columns: 1fr; }
+    .profile-grid, .home-actions, .home-stats-row, .breakdown-grid { grid-template-columns: 1fr; }
     .sidebar { width: 200px; }
     .main-content { margin-left: 200px; padding: 24px; }
   }
 `;
 
-// ─── Skill Options ─────────────────────────────────────────────────────────
+// ─── Skill categories ─────────────────────────────────────────────────────────
 const SKILL_CATEGORIES = {
   "Programming Languages": ["JavaScript","TypeScript","Python","Java","C++","C#","Go","Rust","Swift","Kotlin","PHP","Ruby","Scala","R"],
-  "Frontend":  ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
-  "Backend":   ["Node.js","Express.js","Django","FastAPI","Spring Boot","Laravel","Ruby on Rails","REST APIs","Microservices"],
+  "Frontend": ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
+  "Backend": ["Node.js","Express.js","Django","FastAPI","Spring Boot","Laravel","Ruby on Rails","REST APIs","Microservices"],
   "Cloud & DevOps": ["AWS","Azure","GCP","Docker","Kubernetes","Terraform","CI/CD","Jenkins","GitHub Actions","Linux"],
   "Databases": ["PostgreSQL","MySQL","MongoDB","Redis","DynamoDB","Elasticsearch","SQLite","Cassandra"],
   "Data & AI": ["Machine Learning","Deep Learning","TensorFlow","PyTorch","Pandas","NumPy","Scikit-learn","Data Analysis","Power BI","Tableau"],
   "Soft Skills": ["Leadership","Communication","Problem Solving","Team Collaboration","Agile","Scrum","Project Management","Mentoring"],
 };
 
-// ─── Shared UI ─────────────────────────────────────────────────────────────
+// ─── Shared UI ────────────────────────────────────────────────────────────────
 function Alert({ type = "error", children }) {
   return <div className={`alert alert-${type}`}>{children}</div>;
 }
 function Spinner({ small }) {
-  return <span className="spinner" style={small ? { width: 20, height: 20, borderWidth: 2 } : {}} />;
+  return <span className={`spinner${small ? " spinner-sm" : ""}`} style={small ? { display: "inline-block" } : {}} />;
 }
 
-// ─── Flow Steps breadcrumb (upload page) ───────────────────────────────────
-function FlowSteps({ current }) {
-  const items = [
-    { id: "upload",  label: "Upload Resume"    },
-    { id: "parsing", label: "Auto-Fill Fields" },
-    { id: "review",  label: "Review & Save"    },
-  ];
-  const activeIdx = current === "upload" ? 0 : current === "parsing" ? 1 : 2;
-  return (
-    <div className="flow-steps">
-      {items.map((item, i) => (
-        <div key={item.id} style={{ display: "flex", alignItems: "center" }}>
-          <div className="flow-step-item">
-            <div className={`flow-step-circle ${i < activeIdx ? "done" : i === activeIdx ? "active" : ""}`}>
-              {i < activeIdx ? "✓" : i + 1}
-            </div>
-            <span className={`flow-step-label ${i < activeIdx ? "done" : i === activeIdx ? "active" : ""}`}>{item.label}</span>
-          </div>
-          {i < items.length - 1 && <div className={`flow-step-line ${i < activeIdx ? "done" : ""}`} />}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Auth Brand ─────────────────────────────────────────────────────────────
+// ─── Auth Brand ───────────────────────────────────────────────────────────────
 function AuthBrand() {
   return (
     <div className="auth-brand">
@@ -381,12 +346,12 @@ function AuthBrand() {
   );
 }
 
-// ─── Login ──────────────────────────────────────────────────────────────────
+// ─── Login ────────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async () => {
     setError(""); setLoading(true);
@@ -411,7 +376,7 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
           <div className="field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
           <div className="field"><label>Password</label><input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} /></div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !email || !password}>
-            {loading ? <><Spinner small /> Signing in…</> : "Sign In →"}
+            {loading ? <><Spinner small /> Signing in...</> : "Sign In →"}
           </button>
           <div className="auth-switch">Don't have an account? <button onClick={onSwitch}>Create one</button></div>
         </div>
@@ -420,18 +385,18 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
   );
 }
 
-// ─── Signup ─────────────────────────────────────────────────────────────────
+// ─── Signup ───────────────────────────────────────────────────────────────────
 function SignupPage({ onSwitch }) {
-  const [form, setForm]       = useState({ fullName: "", email: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ fullName: "", email: "", password: "", confirm: "" });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError]     = useState("");
+  const [error, setError] = useState("");
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async () => {
     setError("");
     if (form.password !== form.confirm) { setError("Passwords don't match"); return; }
-    if (form.password.length < 6)       { setError("Password must be at least 6 characters"); return; }
+    if (form.password.length < 6) { setError("Password must be at least 6 characters"); return; }
     setLoading(true);
     try { await api.signup(form.fullName, form.email, form.password); setSuccess(true); }
     catch (e) { setError(e.message); }
@@ -446,10 +411,8 @@ function SignupPage({ onSwitch }) {
           <h1 className="auth-title">Check your inbox</h1>
           <p className="auth-sub">Verification email sent to <strong>{form.email}</strong></p>
           <Alert type="success">✓ Account created! Click the link in your email to verify.</Alert>
-          <Alert type="info">💡 Check spam if you don't see it. The link also appears in Spring Boot console logs.</Alert>
-          <div style={{ textAlign: "center", marginTop: 20 }}>
-            <button className="btn btn-ghost" onClick={onSwitch}>Back to Sign In</button>
-          </div>
+          <Alert type="info">💡 Check spam if not received. Link also appears in Spring Boot logs.</Alert>
+          <div style={{ textAlign: "center", marginTop: 20 }}><button className="btn btn-ghost" onClick={onSwitch}>Back to Sign In</button></div>
         </div>
       </div>
     </div>
@@ -468,7 +431,7 @@ function SignupPage({ onSwitch }) {
           <div className="field"><label>Password</label><input type="password" placeholder="Min 6 characters" value={form.password} onChange={set("password")} /></div>
           <div className="field"><label>Confirm Password</label><input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} /></div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !form.fullName || !form.email || !form.password}>
-            {loading ? <><Spinner small /> Creating…</> : "Create Account →"}
+            {loading ? <><Spinner small /> Creating...</> : "Create Account →"}
           </button>
           <div className="auth-switch">Already have an account? <button onClick={onSwitch}>Sign in</button></div>
         </div>
@@ -477,165 +440,12 @@ function SignupPage({ onSwitch }) {
   );
 }
 
-// ─── Upload Page — shown FIRST for new users ────────────────────────────────
-// Phase: "upload" → (api call) → "parsing" → "success"
-// On success: renders result + "Review & Fill Profile →" button
-// On skip: calls onSkip() to go straight to blank form
-const PARSE_STEP_LABELS = [
-  "Extracting text from document…",
-  "Detecting section boundaries…",
-  "Parsing contact & personal info…",
-  "Reading work experience…",
-  "Extracting education & skills…",
-];
-
-function UploadPage({ onParsed, onSkip }) {
-  const [phase, setPhase]         = useState("upload");
-  const [dragging, setDragging]   = useState(false);
-  const [error, setError]         = useState("");
-  const [parseStep, setParseStep] = useState(0);
-  const [parsedData, setParsedData] = useState(null);
-
-  const handleFile = async (file) => {
-    if (!file) return;
-    const ext = file.name.split(".").pop().toLowerCase();
-    const allowedMimes = ["application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/msword","text/plain"];
-    if (!allowedMimes.includes(file.type) && !["pdf","docx","doc","txt"].includes(ext)) {
-      setError("Please upload a PDF, Word (.docx/.doc), or .txt file.");
-      return;
-    }
-    setError(""); setPhase("parsing"); setParseStep(0);
-
-    // Animate the parse steps while waiting — the real Java parser is fast (2-4s)
-    const interval = setInterval(() => {
-      setParseStep(p => Math.min(p + 1, PARSE_STEP_LABELS.length - 1));
-    }, 400);
-
-    try {
-      const data = await api.parseResume(file);
-      clearInterval(interval);
-      setParseStep(PARSE_STEP_LABELS.length); // all done
-      setParsedData(data);
-      setPhase("success");
-    } catch (e) {
-      clearInterval(interval);
-      setError(e.message || "Parse failed. You can still fill in the form manually.");
-      setPhase("upload");
-    }
-  };
-
-  const onDrop = (e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); };
-
-  // ── Parsing phase ──────────────────────────────────────────────────────────
-  if (phase === "parsing") return (
-    <div className="upload-page">
-      <div className="upload-page-inner">
-        <div className="upload-page-logo">Résumé<b>AI</b></div>
-        <FlowSteps current="parsing" />
-        <div className="card">
-          <div className="parsing-overlay">
-            <div className="spinner" style={{ width: 56, height: 56, borderWidth: 4 }} />
-            <p className="parsing-title">Reading your resume…</p>
-            <p style={{ color: "var(--muted)", fontSize: 13 }}>Usually completes in 2–4 seconds</p>
-            <div className="parsing-steps">
-              {PARSE_STEP_LABELS.map((s, i) => (
-                <div key={i} className={`parsing-step ${i < parseStep ? "done" : i === parseStep ? "active" : ""}`}>
-                  <div className="parsing-dot" />
-                  <span>{i < parseStep ? `✓ ${s}` : s}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ── Success phase ──────────────────────────────────────────────────────────
-  if (phase === "success" && parsedData) {
-    const FIELD_LABELS = { name:"Name", email:"Email", phone:"Phone", location:"Location", headline:"Headline", summary:"Summary", linkedin:"LinkedIn", github:"GitHub", companies:"Experience", education:"Education", skills:"Skills", certifications:"Certifications" };
-    const filled = Object.entries(parsedData)
-      .filter(([, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim())
-      .map(([k]) => FIELD_LABELS[k] || k);
-
-    return (
-      <div className="upload-page">
-        <div className="upload-page-inner">
-          <div className="upload-page-logo">Résumé<b>AI</b></div>
-          <FlowSteps current="success" />
-          <div className="card">
-            <div className="parse-result-banner" style={{ marginBottom: 0 }}>
-              <div className="parse-result-icon">✅</div>
-              <div className="parse-result-text" style={{ flex: 1 }}>
-                <h4>Resume parsed — {filled.length} fields auto-filled</h4>
-                <p>Review and edit everything in the form. Nothing saves until you click <strong>Save Profile</strong>.</p>
-                <div className="parse-fields-preview">
-                  {filled.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => onParsed(parsedData)}>
-              Review &amp; Fill Profile →
-            </button>
-            <button className="btn btn-ghost" onClick={() => { setParsedData(null); setPhase("upload"); }}>
-              Upload Different File
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Upload phase ───────────────────────────────────────────────────────────
-  return (
-    <div className="upload-page">
-      <div className="upload-page-inner">
-        <div className="upload-page-logo">Résumé<b>AI</b></div>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>
-            Let's build your profile
-          </h2>
-          <p style={{ color: "var(--muted)", fontSize: 15 }}>
-            Upload your existing resume and we'll auto-fill everything instantly.
-          </p>
-        </div>
-        <FlowSteps current="upload" />
-        {error && <Alert>{error}</Alert>}
-        <div
-          className={`upload-zone ${dragging ? "drag-over" : ""}`}
-          onDragOver={e => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        >
-          <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
-          <div className="upload-icon">📄</div>
-          <div className="upload-title">Drop your resume here</div>
-          <div className="upload-sub">
-            We'll instantly extract your name, contact info, work experience,<br />
-            education, and skills — no typing needed.
-          </div>
-          <div className="upload-formats">
-            {["PDF", "DOCX", "DOC", "TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
-          </div>
-        </div>
-        <div style={{ textAlign: "center", marginTop: 20 }}>
-          <button className="btn btn-ghost btn-sm" onClick={onSkip}>
-            Skip — I'll fill in the form manually
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Stepper bar ─────────────────────────────────────────────────────────────
+// ─── Profile Stepper ──────────────────────────────────────────────────────────
 const STEPS = [
-  { id: "personal",       label: "Personal",       icon: "👤" },
-  { id: "experience",     label: "Experience",     icon: "🏢" },
-  { id: "education",      label: "Education",      icon: "🎓" },
-  { id: "skills",         label: "Skills",         icon: "⚡" },
+  { id: "personal", label: "Personal", icon: "👤" },
+  { id: "experience", label: "Experience", icon: "🏢" },
+  { id: "education", label: "Education", icon: "🎓" },
+  { id: "skills", label: "Skills", icon: "⚡" },
   { id: "certifications", label: "Certifications", icon: "🏅" },
 ];
 
@@ -658,7 +468,6 @@ function StepperBar({ currentStep, completedSteps, onNavigate }) {
   );
 }
 
-// ─── Personal Step ──────────────────────────────────────────────────────────
 function PersonalStep({ data, onChange, onNext }) {
   const set = k => e => onChange({ ...data, [k]: e.target.value });
   return (
@@ -675,22 +484,19 @@ function PersonalStep({ data, onChange, onNext }) {
           <div className="field"><label>GitHub / Portfolio</label><input value={data.github || ""} onChange={set("github")} placeholder="github.com/janesmith" /></div>
           <div className="field"><label>Website</label><input value={data.website || ""} onChange={set("website")} placeholder="janesmith.dev" /></div>
         </div>
-        <div className="field"><label>Professional Summary</label><textarea value={data.summary || ""} onChange={set("summary")} placeholder="Brief 2-3 sentence summary…" rows={4} /></div>
+        <div className="field"><label>Professional Summary</label><textarea value={data.summary || ""} onChange={set("summary")} placeholder="Brief 2-3 sentence summary..." rows={4} /></div>
       </div>
-      <button className="btn btn-primary" style={{ width: "auto" }} disabled={!data.name || !data.email || !data.phone || !data.location} onClick={onNext}>
-        Continue to Experience →
-      </button>
+      <button className="btn btn-primary" style={{ width: "auto" }} disabled={!data.name || !data.email || !data.phone || !data.location} onClick={onNext}>Continue to Experience →</button>
     </div>
   );
 }
 
-// ─── Experience Step ────────────────────────────────────────────────────────
 function ExperienceStep({ data, onChange, onNext, onBack }) {
   const empty = () => ({ company: "", role: "", location: "", startDate: "", endDate: "", current: false, description: "" });
   const companies = data.companies?.length ? data.companies : [empty()];
   const update = (i, field, val) => onChange({ ...data, companies: companies.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add    = () => onChange({ ...data, companies: [...companies, empty()] });
-  const remove = i  => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
+  const add = () => onChange({ ...data, companies: [...companies, empty()] });
+  const remove = i => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -706,20 +512,12 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               <div className="field"><label>Company *</label><input value={c.company} onChange={e => update(i, "company", e.target.value)} placeholder="Acme Corp" /></div>
               <div className="field"><label>Job Title *</label><input value={c.role} onChange={e => update(i, "role", e.target.value)} placeholder="Software Engineer" /></div>
             </div>
-            <div className="field">
-              <label>Location</label>
-              <input value={c.location || ""} onChange={e => update(i, "location", e.target.value)} placeholder="Dallas, TX  /  Remote  /  New York, NY (Hybrid)" />
-            </div>
+            <div className="field"><label>Location</label><input value={c.location || ""} onChange={e => update(i, "location", e.target.value)} placeholder="Dallas, TX / Remote / New York, NY (Hybrid)" /></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", marginBottom: 8 }}>
-              <div>
-                <span className="date-label">Start Date</span>
-                <MonthYearPicker value={c.startDate || ""} onChange={val => update(i, "startDate", val)} />
-              </div>
+              <div><span className="date-label">Start Date</span><MonthYearPicker value={c.startDate || ""} onChange={val => update(i, "startDate", val)} /></div>
               <div>
                 <span className="date-label">End Date</span>
-                {c.current
-                  ? <div className="present-pill">📌 Currently working here</div>
-                  : <MonthYearPicker value={c.endDate || ""} onChange={val => update(i, "endDate", val)} />}
+                {c.current ? <div className="present-pill">📌 Currently working here</div> : <MonthYearPicker value={c.endDate || ""} onChange={val => update(i, "endDate", val)} />}
                 <label style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>
                   <input type="checkbox" checked={!!c.current} onChange={e => update(i, "current", e.target.checked)} style={{ width: 14, height: 14 }} />
                   I currently work here
@@ -727,8 +525,8 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               </div>
             </div>
             <div className="field" style={{ marginTop: 8 }}>
-              <label>Key Achievements &amp; Responsibilities</label>
-              <textarea value={c.description} onChange={e => update(i, "description", e.target.value)} placeholder={"• Led team of 5 engineers...\n• Built system that improved performance by 40%...\n• Deployed microservices on AWS EKS..."} rows={6} />
+              <label>Key Achievements & Responsibilities</label>
+              <textarea value={c.description} onChange={e => update(i, "description", e.target.value)} placeholder={"• Led team of 5 engineers...\n• Built system that improved performance by 40%...\n• Deployed microservices on AWS EKS..."} rows={5} />
             </div>
           </div>
         ))}
@@ -742,15 +540,12 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
   );
 }
 
-// ─── Education Step ─────────────────────────────────────────────────────────
-// ✅ FIX: Added `location` field so it matches the prompt schema and parser output
 function EducationStep({ data, onChange, onNext, onBack }) {
-  const emptyEdu = () => ({ institution: "", degree: "", field: "", location: "", year: "", gpa: "" });
-  const edu = data.education?.length ? data.education : [emptyEdu()];
-
+  const empty = () => ({ institution: "", degree: "", field: "", location: "", year: "", gpa: "" });
+  const edu = data.education?.length ? data.education : [empty()];
   const update = (i, field, val) => onChange({ ...data, education: edu.map((e, idx) => idx === i ? { ...e, [field]: val } : e) });
-  const add    = () => onChange({ ...data, education: [...edu, emptyEdu()] });
-  const remove = i  => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
+  const add = () => onChange({ ...data, education: [...edu, empty()] });
+  const remove = i => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -763,10 +558,7 @@ function EducationStep({ data, onChange, onNext, onBack }) {
               {edu.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
-              <div className="field">
-                <label>Institution *</label>
-                <input value={e.institution} onChange={ev => update(i, "institution", ev.target.value)} placeholder="MIT" />
-              </div>
+              <div className="field"><label>Institution *</label><input value={e.institution} onChange={ev => update(i, "institution", ev.target.value)} placeholder="MIT" /></div>
               <div className="field">
                 <label>Degree</label>
                 <select value={e.degree} onChange={ev => update(i, "degree", ev.target.value)}>
@@ -781,23 +573,10 @@ function EducationStep({ data, onChange, onNext, onBack }) {
                   <option>Diploma</option>
                 </select>
               </div>
-              <div className="field">
-                <label>Field of Study</label>
-                <input value={e.field} onChange={ev => update(i, "field", ev.target.value)} placeholder="Computer Science" />
-              </div>
-              {/* ── Location field — NEW ── */}
-              <div className="field">
-                <label>Location</label>
-                <input value={e.location || ""} onChange={ev => update(i, "location", ev.target.value)} placeholder="Cambridge, MA" />
-              </div>
-              <div className="field">
-                <label>Graduation Year</label>
-                <input type="number" value={e.year} onChange={ev => update(i, "year", ev.target.value)} placeholder="2020" />
-              </div>
-              <div className="field">
-                <label>GPA (Optional)</label>
-                <input value={e.gpa || ""} onChange={ev => update(i, "gpa", ev.target.value)} placeholder="3.8 / 4.0" />
-              </div>
+              <div className="field"><label>Field of Study</label><input value={e.field} onChange={ev => update(i, "field", ev.target.value)} placeholder="Computer Science" /></div>
+              <div className="field"><label>Location (City, ST)</label><input value={e.location || ""} onChange={ev => update(i, "location", ev.target.value)} placeholder="Cambridge, MA" /></div>
+              <div className="field"><label>Graduation Year</label><input type="number" value={e.year} onChange={ev => update(i, "year", ev.target.value)} placeholder="2020" /></div>
+              <div className="field"><label>GPA (Optional)</label><input value={e.gpa || ""} onChange={ev => update(i, "gpa", ev.target.value)} placeholder="3.8 / 4.0" /></div>
             </div>
           </div>
         ))}
@@ -811,18 +590,17 @@ function EducationStep({ data, onChange, onNext, onBack }) {
   );
 }
 
-// ─── Skills Step ─────────────────────────────────────────────────────────────
 function SkillsStep({ data, onChange, onNext, onBack }) {
-  const selected   = data.skills || [];
+  const selected = data.skills || [];
   const [activeTab, setActiveTab] = useState(Object.keys(SKILL_CATEGORIES)[0]);
-  const [custom, setCustom]       = useState("");
-  const toggle    = s  => onChange({ ...data, skills: selected.includes(s) ? selected.filter(x => x !== s) : [...selected, s] });
+  const [custom, setCustom] = useState("");
+  const toggle = skill => onChange({ ...data, skills: selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill] });
   const addCustom = () => { if (custom.trim() && !selected.includes(custom.trim())) { onChange({ ...data, skills: [...selected, custom.trim()] }); setCustom(""); } };
 
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>⚡</span> Technical &amp; Professional Skills</div>
+        <div className="card-title"><span>⚡</span> Technical & Professional Skills</div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>Select all applicable skills. These will be matched against job descriptions.</p>
         <div className="tab-bar">
           {Object.keys(SKILL_CATEGORIES).map(cat => <button key={cat} className={`tab ${activeTab === cat ? "active" : ""}`} onClick={() => setActiveTab(cat)}>{cat}</button>)}
@@ -835,7 +613,7 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
           ))}
         </div>
         <div style={{ marginTop: 20, display: "flex", gap: 10, alignItems: "center" }}>
-          <div className="field" style={{ flex: 1, margin: 0 }}><input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Add custom skill…" onKeyDown={e => e.key === "Enter" && addCustom()} /></div>
+          <div className="field" style={{ flex: 1, margin: 0 }}><input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Add custom skill..." onKeyDown={e => e.key === "Enter" && addCustom()} /></div>
           <button className="btn btn-ghost btn-sm" onClick={addCustom}>+ Add</button>
         </div>
         {selected.length > 0 && (
@@ -853,24 +631,23 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
   );
 }
 
-// ─── Certifications Step ────────────────────────────────────────────────────
 function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
-  const certs  = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
-  const update = (i, f, v) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [f]: v } : c) });
-  const add    = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
-  const remove = i  => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
+  const certs = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
+  const update = (i, field, val) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
+  const add = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
+  const remove = i => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
 
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>🏅</span> Certifications &amp; Licenses</div>
+        <div className="card-title"><span>🏅</span> Certifications & Licenses</div>
         {certs.map((c, i) => (
           <div key={i} className="cert-row">
             <div className="field" style={{ margin: 0 }}><label>Certification Name</label><input value={c.name} onChange={e => update(i, "name", e.target.value)} placeholder="AWS Solutions Architect" /></div>
             <div className="field" style={{ margin: 0 }}><label>Issuer</label><input value={c.issuer} onChange={e => update(i, "issuer", e.target.value)} placeholder="Amazon Web Services" /></div>
             <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
               <div className="field" style={{ margin: 0, width: 90 }}><label>Year</label><input type="number" value={c.year} onChange={e => update(i, "year", e.target.value)} placeholder="2023" /></div>
-              {certs.length > 1 && <button className="btn btn-ghost btn-icon" style={{ height: 48 }} onClick={() => remove(i)}>✕</button>}
+              {certs.length > 1 && <button className="btn btn-ghost btn-icon" style={{ marginBottom: 0, height: 48 }} onClick={() => remove(i)}>✕</button>}
             </div>
           </div>
         ))}
@@ -879,53 +656,116 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
       <div style={{ display: "flex", gap: 12 }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-teal" style={{ padding: "14px 32px" }} onClick={onSave} disabled={saving}>
-          {saving ? <><Spinner small /> Saving…</> : "✓ Save Profile & Continue"}
+          {saving ? <><Spinner small /> Saving...</> : "✓ Save Profile & Continue"}
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Profile Builder — stepper form, shown AFTER upload or skip ─────────────
-function ProfileBuilder({ session, initialProfile, parsedProfile, onComplete }) {
-  const [currentStep,    setCurrentStep]    = useState("personal");
-  const [completedSteps, setCompletedSteps] = useState([]);
-  const [profile,        setProfile]        = useState({});
-  const [saving,         setSaving]         = useState(false);
-  const [error,          setError]          = useState("");
+// ─── Resume Upload Zone ───────────────────────────────────────────────────────
+function ResumeUploadZone({ onParsed }) {
+  const [dragging, setDragging] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [error, setError] = useState("");
 
-  // On mount: merge parsedProfile (from upload) or initialProfile (from edit) into form
-  useEffect(() => {
-    const base   = initialProfile || {};
-    const parsed = parsedProfile  || {};
-    const merged = {
-      name:     parsed.name     || base.name     || "",
-      headline: parsed.headline || base.headline || "",
-      email:    parsed.email    || base.email    || "",
-      phone:    parsed.phone    || base.phone    || "",
-      location: parsed.location || base.location || "",
-      linkedin: parsed.linkedin || base.linkedin || "",
-      github:   parsed.github   || base.github   || "",
-      website:  parsed.website  || base.website  || "",
-      summary:  parsed.summary  || base.summary  || "",
-      companies:      (parsed.companies?.length      ? parsed.companies      : null) || base.companies      || [],
-      education:      (parsed.education?.length      ? parsed.education      : null) || base.education      || [],
-      skills:         (parsed.skills?.length         ? parsed.skills         : null) || base.skills         || [],
-      certifications: (parsed.certifications?.length ? parsed.certifications : null) || base.certifications || [],
-    };
-    setProfile(merged);
-
-    // Auto-mark steps complete when editing an existing profile
-    if (initialProfile) {
-      const c = [];
-      if (initialProfile.name)                   c.push("personal");
-      if (initialProfile.companies?.length)       c.push("experience");
-      if (initialProfile.education?.length)       c.push("education");
-      if (initialProfile.skills?.length)          c.push("skills");
-      if (initialProfile.certifications?.length)  c.push("certifications");
-      setCompletedSteps(c);
+  const handleFile = async (file) => {
+    if (!file) return;
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (!["pdf", "docx", "doc", "txt"].includes(ext)) {
+      setError("Please upload a PDF, Word (.docx/.doc), or .txt file."); return;
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    setParsing(true); setError("");
+    try {
+      const data = await api.parseResume(file);
+      onParsed(data);
+    } catch (e) {
+      setError(e.message || "Failed to parse resume. Please fill in the form manually.");
+    }
+    setParsing(false);
+  };
+
+  if (parsing) {
+    return (
+      <div className="card" style={{ textAlign: "center", padding: "40px" }}>
+        <div className="spinner" style={{ margin: "0 auto 16px" }} />
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700 }}>Parsing your resume…</p>
+        <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 8 }}>Extracting experience, skills, education and more</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 28 }}>
+      <div className="card-title"><span>📄</span> Auto-fill from Resume</div>
+      <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
+        Upload your existing resume and we'll automatically extract and fill in all the fields below.
+      </p>
+      {error && <Alert>{error}</Alert>}
+      <div
+        className={`upload-zone ${dragging ? "drag-over" : ""}`}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+      >
+        <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
+        <div style={{ fontSize: 36, marginBottom: 10 }}>📁</div>
+        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Drop your resume here or click to browse</div>
+        <div style={{ fontSize: 13, color: "var(--muted)" }}>Auto-fills all profile fields — review before saving</div>
+        <div className="upload-formats">
+          {["PDF", "DOCX", "DOC", "TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Profile Builder ──────────────────────────────────────────────────────────
+function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
+  const [currentStep, setCurrentStep] = useState("personal");
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const [profile, setProfile] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [parsedData, setParsedData] = useState(null);
+  const [showUpload, setShowUpload] = useState(true);
+
+  useEffect(() => {
+    if (initialProfile) {
+      setProfile(initialProfile);
+      setShowUpload(false);
+      const completed = [];
+      if (initialProfile.name) completed.push("personal");
+      if (initialProfile.companies?.length) completed.push("experience");
+      if (initialProfile.education?.length) completed.push("education");
+      if (initialProfile.skills?.length) completed.push("skills");
+      if (initialProfile.certifications?.length) completed.push("certifications");
+      setCompletedSteps(completed);
+    }
+  }, [initialProfile]);
+
+  const handleParsed = (data) => {
+    setParsedData(data);
+    setShowUpload(false);
+    setProfile(prev => ({
+      ...prev,
+      name: data.name || prev.name || "",
+      headline: data.headline || prev.headline || "",
+      email: data.email || prev.email || "",
+      phone: data.phone || prev.phone || "",
+      location: data.location || prev.location || "",
+      linkedin: data.linkedin || prev.linkedin || "",
+      github: data.github || prev.github || "",
+      website: data.website || prev.website || "",
+      summary: data.summary || prev.summary || "",
+      companies: (data.companies?.length ? data.companies : null) || prev.companies || [],
+      education: (data.education?.length ? data.education : null) || prev.education || [],
+      skills: (data.skills?.length ? data.skills : null) || prev.skills || [],
+      certifications: (data.certifications?.length ? data.certifications : null) || prev.certifications || [],
+    }));
+    setCurrentStep("personal");
+    setCompletedSteps([]);
+  };
 
   const stepIndex = STEPS.findIndex(s => s.id === currentStep);
   const goNext = () => {
@@ -936,64 +776,68 @@ function ProfileBuilder({ session, initialProfile, parsedProfile, onComplete }) 
 
   const saveProfile = async () => {
     setSaving(true); setError("");
-    try { await api.saveProfile(JSON.stringify(profile)); onComplete(profile); }
-    catch (e) { setError(e.message); }
+    try {
+      await api.saveProfile(JSON.stringify(profile));
+      onComplete(profile);
+    } catch (e) { setError(e.message); }
     setSaving(false);
   };
 
-  // Compute filled fields from parsed data for the banner
-  const FIELD_LABELS = { name:"Name", email:"Email", phone:"Phone", location:"Location", headline:"Headline", summary:"Summary", linkedin:"LinkedIn", github:"GitHub", companies:"Experience", education:"Education", skills:"Skills", certifications:"Certifications" };
-  const filledFromParse = parsedProfile
-    ? Object.entries(parsedProfile).filter(([, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim()).map(([k]) => FIELD_LABELS[k] || k)
-    : [];
+  const FIELD_LABELS = { name: "Name", email: "Email", phone: "Phone", location: "Location", headline: "Headline", summary: "Summary", companies: "Experience", education: "Education", skills: "Skills", certifications: "Certifications" };
+  const filledFields = parsedData ? Object.entries(parsedData).filter(([k, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim()).map(([k]) => FIELD_LABELS[k] || k) : [];
 
   return (
     <div className="main-content" style={{ marginLeft: 0 }}>
-      <div className="page-header">
-        <h1 className="page-title">Build Your Profile</h1>
-        <p className="page-sub">Complete your profile to unlock AI-powered resume generation</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+        <div>
+          <h1 className="page-title">Build Your Profile</h1>
+          <p className="page-sub">Complete your profile to unlock AI-powered resume generation</p>
+        </div>
+        {onCancel && <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>}
       </div>
 
       {error && <Alert>{error}</Alert>}
+      {showUpload && <ResumeUploadZone onParsed={handleParsed} />}
 
-      {/* ── Parse success banner (persists at top of form) ── */}
-      {filledFromParse.length > 0 && (
-        <div className="parse-result-banner">
-          <div className="parse-result-icon">✅</div>
-          <div className="parse-result-text" style={{ flex: 1 }}>
-            <h4>{filledFromParse.length} fields auto-filled from your resume</h4>
-            <p>Review each section carefully. Edit anything that needs adjusting before saving.</p>
-            <div className="parse-fields-preview">
-              {filledFromParse.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
+      {parsedData && !showUpload && (
+        <div className="parse-result-banner" style={{ marginBottom: 20 }}>
+          <span style={{ fontSize: 28 }}>✅</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, color: "var(--accent2)", marginBottom: 4 }}>Resume parsed — {filledFields.length} fields auto-filled</div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>Review and edit each section below, then save your profile.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              {filledFields.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
             </div>
           </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setParsedData(null); setProfile({}); setCompletedSteps([]); setShowUpload(true); setCurrentStep("personal"); }}>✕ Clear</button>
         </div>
       )}
 
-      {/* ── Stepper breadcrumbs — shown here, AFTER upload success ── */}
+      {!showUpload && !parsedData && (
+        <div style={{ marginBottom: 20 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowUpload(true)}>📄 Upload resume to auto-fill</button>
+        </div>
+      )}
+
       <StepperBar currentStep={currentStep} completedSteps={completedSteps} onNavigate={setCurrentStep} />
 
-      {currentStep === "personal"       && <PersonalStep       data={profile} onChange={setProfile} onNext={goNext} />}
-      {currentStep === "experience"     && <ExperienceStep     data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "education"      && <EducationStep      data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "skills"         && <SkillsStep         data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "personal" && <PersonalStep data={profile} onChange={setProfile} onNext={goNext} />}
+      {currentStep === "experience" && <ExperienceStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "education" && <EducationStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "skills" && <SkillsStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
       {currentStep === "certifications" && <CertificationsStep data={profile} onChange={setProfile} onSave={saveProfile} onBack={goBack} saving={saving} />}
     </div>
   );
 }
 
-// ─── Score helpers ──────────────────────────────────────────────────────────
-const scoreColor = s => s >= 90 ? "var(--success)" : s >= 75 ? "var(--accent)" : s >= 55 ? "#f0a830" : "var(--danger)";
-const scoreBg    = s => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
-
-// ─── Scoring Breakdown ──────────────────────────────────────────────────────
+// ─── Score Breakdown ──────────────────────────────────────────────────────────
 function ScoringBreakdown({ breakdown }) {
   if (!breakdown) return null;
   const dims = [
-    { label: "Keyword Match",       key: "keywordMatch",       weight: "40%" },
-    { label: "Candidate Fit",       key: "candidateFit",       weight: "25%" },
+    { label: "Keyword Match", key: "keywordMatch", weight: "40%" },
+    { label: "Candidate Fit", key: "candidateFit", weight: "25%" },
     { label: "Resume Completeness", key: "resumeCompleteness", weight: "20%" },
-    { label: "Keyword Density",     key: "keywordDensity",     weight: "15%" },
+    { label: "Keyword Density", key: "keywordDensity", weight: "15%" },
   ];
   return (
     <div className="card">
@@ -1020,95 +864,161 @@ function ScoringBreakdown({ breakdown }) {
   );
 }
 
-// ─── Resume Generator ────────────────────────────────────────────────────────
+// ─── Resume Generator ─────────────────────────────────────────────────────────
 const GEN_STEPS_LIST = [
-  "Analyzing job description for technical keywords…",
-  "Mapping your profile to role requirements…",
-  "Generating tailored resume content…",
-  "Enriching skills and experience bullets…",
-  "Calculating holistic ATS score…",
-  "Rendering PDF…",
+  "Analyzing job description for technical keywords...",
+  "Mapping your profile to role requirements...",
+  "Generating tailored resume content...",
+  "Enriching skills and experience bullets...",
+  "Calculating holistic ATS score...",
+  "Rendering PDF...",
 ];
 
-function ResumeGenerator({ profile }) {
-  const [jd, setJd]           = useState("");
-  const [status, setStatus]   = useState("idle");
+function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPosition = "" }) {
+  const [company, setCompany] = useState(prefillCompany);
+  const [position, setPosition] = useState(prefillPosition);
+  const [jd, setJd] = useState("");
+  const [step, setStep] = useState("meta");
   const [genStep, setGenStep] = useState(0);
   const [atsResult, setAtsResult] = useState(null);
-  const [pdfBlob, setPdfBlob]     = useState(null);
-  const [error, setError]         = useState("");
+  const [pdfBlob, setPdfBlob] = useState(null);
+  const [error, setError] = useState("");
 
-  const generate = async () => {
+  const startGenerate = async () => {
     if (!jd.trim()) return;
-    setStatus("generating"); setGenStep(0); setError(""); setAtsResult(null); setPdfBlob(null);
+    setStep("generate"); setGenStep(0); setError(""); setAtsResult(null); setPdfBlob(null);
     try {
-      const stepInterval = setInterval(() => setGenStep(p => p < GEN_STEPS_LIST.length - 1 ? p + 1 : p), 2000);
-      const result = await api.generateResumeWithScore(profile, jd);
-      clearInterval(stepInterval);
+      const intervalId = setInterval(() => {
+        setGenStep(prev => prev < GEN_STEPS_LIST.length - 1 ? prev + 1 : prev);
+      }, 2000);
+      const result = await api.generateResumeWithScore(
+        { ...profile, targetCompany: company, targetPosition: position }, jd
+      );
+      clearInterval(intervalId);
       setGenStep(GEN_STEPS_LIST.length);
+
       const binaryStr = atob(result.pdfBase64);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       const blob = new Blob([bytes], { type: "application/pdf" });
-      setAtsResult({ atsScore: result.atsScore, scoreLabel: result.scoreLabel, matchedSkills: result.matchedSkills, totalSkills: result.totalSkills, matchedKeywords: result.matchedKeywords || [], missingKeywords: result.missingKeywords || [], scoringBreakdown: result.scoringBreakdown || null });
+
+      const ats = {
+        atsScore: result.atsScore,
+        scoreLabel: result.scoreLabel,
+        matchedSkills: result.matchedSkills,
+        totalSkills: result.totalSkills,
+        matchedKeywords: result.matchedKeywords || [],
+        missingKeywords: result.missingKeywords || [],
+        scoringBreakdown: result.scoringBreakdown || null,
+      };
+      setAtsResult(ats);
       setPdfBlob(blob);
-      setStatus("done");
-    } catch (e) { setError(e.message); setStatus("idle"); }
+      setStep("done");
+
+      onSaveResume({
+        id: Date.now().toString(),
+        company,
+        position,
+        generatedAt: new Date().toISOString(),
+        atsScore: result.atsScore,
+        scoreLabel: result.scoreLabel,
+        matchedKeywords: result.matchedKeywords || [],
+        missingKeywords: result.missingKeywords || [],
+        scoringBreakdown: result.scoringBreakdown || null,
+        pdfBase64: result.pdfBase64,
+      });
+    } catch (e) { setError(e.message); setStep("meta"); }
   };
 
   const downloadPdf = () => {
     const url = URL.createObjectURL(pdfBlob);
     const a = document.createElement("a");
-    a.href = url; a.download = `${(profile.name || "Resume").replace(/\s+/g, "_")}_ATS_Optimized.pdf`; a.click();
+    a.href = url;
+    a.download = `${(profile.name || "Resume").replace(/\s+/g, "_")}_${company || "ATS"}_Optimized.pdf`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
-  const reset = () => { setStatus("idle"); setAtsResult(null); setPdfBlob(null); setJd(""); setGenStep(0); setError(""); };
+  const reset = () => { setStep("meta"); setAtsResult(null); setPdfBlob(null); setJd(""); setGenStep(0); setError(""); setCompany(""); setPosition(""); };
 
-  if (status === "generating") return (
-    <div className="card generating">
-      <div className="spinner" />
-      <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>Generating Your Resume</p>
-      <div className="prog-steps">
-        {GEN_STEPS_LIST.map((s, i) => (
-          <div key={i} className={`prog-step ${i < genStep ? "done" : i === genStep ? "active" : ""}`}>
-            <div className="prog-dot" />{i < genStep ? `✓ ${s}` : s}
-          </div>
-        ))}
+  if (step === "generate") {
+    return (
+      <div className="card generating">
+        <div className="spinner" />
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>Generating Your Resume</p>
+        <p style={{ color: "var(--muted)", fontSize: 14 }}>{company && position ? `Tailoring for ${position} at ${company}` : "AI is crafting your ATS-optimized resume"}</p>
+        <div className="prog-steps">
+          {GEN_STEPS_LIST.map((s, i) => (
+            <div key={i} className={`prog-step ${i < genStep ? "done" : i === genStep ? "active" : ""}`}>
+              <div className="prog-dot" />{i < genStep ? `✓ ${s}` : s}
+            </div>
+          ))}
+        </div>
+        <p style={{ color: "var(--muted)", fontSize: 13 }}>This may take 30–60 seconds…</p>
       </div>
-      <p style={{ color: "var(--muted)", fontSize: 13 }}>This may take 30–60 seconds while the AI tailors your resume…</p>
-    </div>
-  );
+    );
+  }
 
-  if (status === "done" && atsResult) {
-    const sc = atsResult.atsScore, col = scoreColor(sc), bg = scoreBg(sc);
-    const contextMsg = sc >= 90 ? "Outstanding — your resume is highly competitive for this role." : sc >= 75 ? "Strong match. Adding the missing keywords could push you to Excellent." : sc >= 55 ? "Reasonable fit. Add the missing skills and regenerate to improve your score." : "Significant skill gap for this role. Focus on building the missing technical skills.";
+  if (step === "done" && atsResult) {
+    const sc = atsResult.atsScore;
+    const col = scoreColor(sc);
+    const bg = scoreBg(sc);
+    const contextMsg = sc >= 90 ? "Outstanding — your resume is highly competitive for this role." :
+      sc >= 75 ? "Strong match. Weaving in the missing keywords could push you to Excellent." :
+      sc >= 55 ? "Reasonable fit. Adding the missing skills and regenerating will improve your score." :
+      "Significant skill gap for this role. Focus on building the missing technical skills.";
+
     return (
       <div>
+        {company && position && (
+          <div style={{ marginBottom: 20, padding: "12px 20px", background: "var(--surface2)", borderRadius: 10, display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 20 }}>🎯</span>
+            <div>
+              <div style={{ fontWeight: 600 }}>{position}</div>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>{company}</div>
+            </div>
+          </div>
+        )}
         <div className="score-display" style={{ background: bg }}>
           <div className="score-ring" style={{ background: `conic-gradient(${col} ${sc * 3.6}deg, var(--surface2) 0)` }}>
             <span className="score-num" style={{ color: col }}>{sc}</span>
           </div>
           <div className="score-info" style={{ flex: 1 }}>
             <h3>ATS Score: <span style={{ color: col }}>{atsResult.scoreLabel}</span></h3>
-            <p className="score-desc" style={{ marginBottom: 6 }}>Matched <strong style={{ color: col }}>{atsResult.matchedSkills}</strong> of <strong>{atsResult.totalSkills}</strong> keywords from the job description.</p>
+            <p className="score-desc" style={{ marginBottom: 6 }}>
+              Matched <strong style={{ color: col }}>{atsResult.matchedSkills}</strong> of <strong>{atsResult.totalSkills}</strong> technical keywords.
+            </p>
             <p className="score-desc">{contextMsg}</p>
           </div>
         </div>
+
         <ScoringBreakdown breakdown={atsResult.scoringBreakdown} />
+
         <div className="card">
           <div className="card-title"><span>🎯</span> Keyword Match Analysis</div>
           <div style={{ display: "flex", gap: 28, marginBottom: 20, flexWrap: "wrap" }}>
-            {[["Matched", atsResult.matchedKeywords.length, "var(--success)"], ["Missing", atsResult.missingKeywords.length, "var(--danger)"], ["Total in JD", atsResult.totalSkills, "var(--accent)"]].map(([label, val, c]) => (
+            {[
+              { label: "Matched", val: atsResult.matchedKeywords.length, col: "var(--success)" },
+              { label: "Missing", val: atsResult.missingKeywords.length, col: "var(--danger)" },
+              { label: "Total in JD", val: atsResult.totalSkills, col: "var(--accent)" },
+            ].map(({ label, val, col: c }) => (
               <div key={label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: c }}>{val}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
               </div>
             ))}
           </div>
-          {atsResult.matchedKeywords.length > 0 && (<><div className="kw-section-title">✓ Found in your resume</div><div className="skills-match">{atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>)}
-          {atsResult.missingKeywords.length > 0 && (<><div className="kw-section-title" style={{ marginTop: 20 }}>✕ Not in your resume</div><div className="skills-match">{atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div><p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>💡 Add missing skills to your profile and regenerate to improve your score.</p></>)}
+          {atsResult.matchedKeywords.length > 0 && (
+            <><div className="kw-section-title">✓ Found in your resume</div>
+            <div className="skills-match">{atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
+          )}
+          {atsResult.missingKeywords.length > 0 && (
+            <><div className="kw-section-title" style={{ marginTop: 20 }}>✕ Not in your resume</div>
+            <div className="skills-match">{atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>💡 Add missing skills to your profile and regenerate to improve your score.</p></>
+          )}
         </div>
+
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="download-btn" onClick={downloadPdf}>⬇ Download ATS-Optimized PDF</button>
           <button className="btn btn-ghost" onClick={reset}>Try Another Job</button>
@@ -1120,48 +1030,271 @@ function ResumeGenerator({ profile }) {
   return (
     <div>
       {error && <Alert>{error}</Alert>}
+
+      <div className="card">
+        <div className="card-title"><span>🎯</span> Target Role</div>
+        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>
+          Tell us where you're applying. This lets us tailor the resume specifically for this company and role.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+          <div className="field"><label>Company Name *</label><input value={company} onChange={e => setCompany(e.target.value)} placeholder="Google, Amazon, Stripe..." /></div>
+          <div className="field"><label>Position / Role *</label><input value={position} onChange={e => setPosition(e.target.value)} placeholder="Senior Software Engineer" /></div>
+        </div>
+      </div>
+
       <div className="card">
         <div className="card-title"><span>📋</span> Job Description</div>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>Paste the full job description. The AI will extract technical keywords, build your tailored resume, and calculate a realistic ATS score.</p>
-        <div className="field"><label>Job Description *</label><textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here…" rows={14} /></div>
+        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
+          Paste the full job description. The AI will extract keywords, build your tailored resume, and calculate a realistic ATS score.
+        </p>
+        <div className="field">
+          <label>Job Description *</label>
+          <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here..." rows={14} />
+        </div>
       </div>
+
       <div className="card">
         <div className="card-title"><span>👤</span> Profile Summary</div>
         <div className="profile-grid">
-          {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location], ["Skills", `${(profile.skills || []).length} selected`], ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`], ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]].map(([k, v]) => (
+          {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
+            ["Skills", `${(profile.skills || []).length} selected`],
+            ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
+            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
+          ].map(([k, v]) => (
             <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
           ))}
         </div>
       </div>
-      <button className="btn btn-primary" style={{ width: "auto", padding: "16px 40px", fontSize: 16 }} disabled={!jd.trim()} onClick={generate}>
+
+      <button
+        className="btn btn-primary"
+        style={{ width: "auto", padding: "16px 40px", fontSize: 16 }}
+        disabled={!jd.trim() || !company.trim() || !position.trim()}
+        onClick={startGenerate}
+      >
         🤖 Generate ATS-Optimized Resume
       </button>
-      {!jd.trim() && <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 10 }}>Paste a job description above to enable generation</p>}
+      {(!jd.trim() || !company.trim() || !position.trim()) && (
+        <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 10 }}>Fill in company name, position, and job description to continue</p>
+      )}
     </div>
   );
 }
 
-// ─── Profile Overview ───────────────────────────────────────────────────────
-function ProfileOverview({ profile, onEdit }) {
-  const fmtDate = (val) => {
-    if (!val) return "";
-    const [y, m] = val.split("-");
-    const month = MONTHS.find(mo => mo.value === m);
-    return [month?.label?.slice(0, 3), y].filter(Boolean).join(" ");
+// ─── Resume Detail Modal ──────────────────────────────────────────────────────
+function ResumeDetailModal({ resume, onClose }) {
+  const sc = resume.atsScore;
+  const col = scoreColor(sc);
+  const bg = scoreBg(sc);
+
+  const downloadPdf = () => {
+    const binaryStr = atob(resume.pdfBase64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Resume_${resume.company}_${resume.position}.pdf`.replace(/\s+/g, "_");
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{resume.position}</div>
+          <div style={{ fontSize: 16, color: "var(--muted)" }}>{resume.company}</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+            Generated {new Date(resume.generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          </div>
+        </div>
+
+        <div className="score-display" style={{ background: bg, marginBottom: 20 }}>
+          <div className="score-ring" style={{ background: `conic-gradient(${col} ${sc * 3.6}deg, var(--surface2) 0)` }}>
+            <span className="score-num" style={{ color: col }}>{sc}</span>
+          </div>
+          <div className="score-info" style={{ flex: 1 }}>
+            <h3>ATS Score: <span style={{ color: col }}>{resume.scoreLabel}</span></h3>
+            <p className="score-desc">Matched {resume.matchedKeywords?.length || 0} keywords from the job description.</p>
+          </div>
+        </div>
+
+        <ScoringBreakdown breakdown={resume.scoringBreakdown} />
+
+        {(resume.matchedKeywords?.length > 0 || resume.missingKeywords?.length > 0) && (
+          <div className="card">
+            <div className="card-title"><span>🎯</span> Keywords</div>
+            {resume.matchedKeywords?.length > 0 && (
+              <><div className="kw-section-title">✓ Matched</div>
+              <div className="skills-match">{resume.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
+            )}
+            {resume.missingKeywords?.length > 0 && (
+              <><div className="kw-section-title" style={{ marginTop: 16 }}>✕ Missing</div>
+              <div className="skills-match">{resume.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div></>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+          {resume.pdfBase64 && <button className="download-btn" onClick={downloadPdf}>⬇ Download PDF</button>}
+          <button className="btn btn-ghost" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Resume Card (extracted to avoid hook-in-map) ────────────────────────────
+function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const col = scoreColor(resume.atsScore);
+
+  const downloadPdf = (e) => {
+    e.stopPropagation();
+    const s = atob(resume.pdfBase64); const b = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+    const blob = new Blob([b], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url;
+    a.download = `Resume_${resume.company}_${resume.position}.pdf`.replace(/\s+/g, "_");
+    a.click(); URL.revokeObjectURL(url);
   };
 
   return (
     <div>
+      {showDetail && <ResumeDetailModal resume={resume} onClose={() => setShowDetail(false)} />}
+      <div className="resume-card" onClick={() => setShowDetail(true)}>
+        <div className="resume-card-header">
+          <div>
+            <div className="resume-card-company">{resume.company}</div>
+            <div className="resume-card-position">{resume.position}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div className="resume-card-score" style={{ color: col }}>{resume.atsScore}</div>
+            <div className="resume-card-score-label">{resume.scoreLabel}</div>
+          </div>
+        </div>
+        <div style={{ height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${resume.atsScore}%`, background: col, borderRadius: 2 }} />
+        </div>
+        <div className="resume-card-meta">
+          <span className="resume-card-chip">✓ {resume.matchedKeywords?.length || 0} matched</span>
+          <span className="resume-card-chip">✕ {resume.missingKeywords?.length || 0} missing</span>
+          <span className="resume-card-chip">
+            {new Date(resume.generatedAt).toLocaleDateString("en-US", showDate === "long"
+              ? { month: "short", day: "numeric", year: "numeric" }
+              : { month: "short", day: "numeric" })}
+          </span>
+        </div>
+        <div className="resume-card-actions" onClick={e => e.stopPropagation()}>
+          {resume.pdfBase64 && <button className="btn btn-ghost btn-sm" onClick={downloadPdf}>⬇ PDF</button>}
+          <button className="btn btn-ghost btn-sm" onClick={() => onNavigate("generate", { company: resume.company, position: resume.position })}>↻ Redo</button>
+          <button className="btn btn-danger btn-sm" onClick={() => onDelete(resume.id)}>🗑</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Home Dashboard ───────────────────────────────────────────────────────────
+function HomeDashboard({ profile, generatedResumes, onNavigate, onDeleteResume }) {
+  const avgScore = generatedResumes.length > 0
+    ? Math.round(generatedResumes.reduce((s, r) => s + r.atsScore, 0) / generatedResumes.length) : null;
+  const bestScore = generatedResumes.length > 0 ? Math.max(...generatedResumes.map(r => r.atsScore)) : null;
+  const sorted = [...generatedResumes].sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
+
+  return (
+    <div>
+      <div className="home-hero">
+        <div>
+          <h1>{profile ? `Welcome back, ${profile.name?.split(" ")[0] || "there"}!` : "Welcome to RésuméAI"}</h1>
+          <p>{profile
+            ? "Your AI-powered career command center. Generate tailored resumes, track your applications, and maximize your ATS scores."
+            : "Complete your profile to start generating ATS-optimized resumes tailored to every job you apply for."}</p>
+        </div>
+        <div style={{ display: "flex", gap: 12, flexShrink: 0, flexWrap: "wrap" }}>
+          {profile
+            ? <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("generate")}>✨ Generate Resume</button>
+            : <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("profile")}>Complete Profile →</button>
+          }
+        </div>
+      </div>
+
+      {generatedResumes.length > 0 && (
+        <div className="home-stats-row">
+          <div className="stat-card">
+            <div className="stat-card-num" style={{ color: "var(--accent)" }}>{generatedResumes.length}</div>
+            <div className="stat-card-label">Resumes Generated</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-num" style={{ color: avgScore !== null ? scoreColor(avgScore) : "var(--accent)" }}>{avgScore ?? "—"}</div>
+            <div className="stat-card-label">Average ATS Score</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-num" style={{ color: bestScore !== null ? scoreColor(bestScore) : "var(--accent)" }}>{bestScore ?? "—"}</div>
+            <div className="stat-card-label">Best Score</div>
+          </div>
+        </div>
+      )}
+
+      <div className="home-actions">
+        <div className="action-card" onClick={() => onNavigate("generate")}>
+          <div className="action-card-icon">✨</div>
+          <div className="action-card-title">Generate ATS Resume</div>
+          <div className="action-card-sub">Paste a job description, enter company details, and let AI craft a perfectly tailored resume with ATS score analysis.</div>
+        </div>
+        <div className="action-card teal" onClick={() => onNavigate("profile")}>
+          <div className="action-card-icon">👤</div>
+          <div className="action-card-title">{profile ? "Edit Profile" : "Build Profile"}</div>
+          <div className="action-card-sub">{profile ? "Update your work history, skills, education, and certifications to improve future resume quality." : "Build your professional profile with your work history, skills, and education."}</div>
+        </div>
+      </div>
+
+      {sorted.length > 0 && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>Generated Resumes</h2>
+              <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 4 }}>Your application history — click any card to view details</p>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => onNavigate("generate")}>+ New Resume</button>
+          </div>
+          <div className="resumes-grid">
+            {sorted.map(r => <ResumeCard key={r.id} resume={r} onNavigate={onNavigate} onDelete={onDeleteResume} />)}
+          </div>
+        </div>
+      )}
+
+      {generatedResumes.length === 0 && profile && (
+        <div className="card" style={{ textAlign: "center", padding: "60px 40px" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+          <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 8 }}>No resumes generated yet</h3>
+          <p style={{ color: "var(--muted)", marginBottom: 24 }}>Generate your first ATS-optimized resume for a specific job posting</p>
+          <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("generate")}>✨ Generate Your First Resume</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Profile Overview ─────────────────────────────────────────────────────────
+function ProfileOverview({ profile, onEdit }) {
+  return (
+    <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <span className={`complete-badge ${profile ? "done" : "pending"}`}>{profile ? "✓ Profile Complete" : "⚠ Profile Incomplete"}</span>
-        <button className="btn btn-ghost btn-sm" onClick={onEdit}>{profile ? "✎ Edit Profile" : "Complete Profile"}</button>
+        <button className="btn btn-ghost btn-sm" onClick={onEdit}>{profile ? "✏ Edit Profile" : "Complete Profile"}</button>
       </div>
       {profile ? (
         <>
           <div className="card">
             <div className="card-title"><span>👤</span> Personal</div>
             <div className="profile-grid">
-              {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone], ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]].map(([k, v]) => (
+              {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
+                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
+              ].map(([k, v]) => (
                 <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
               ))}
             </div>
@@ -1183,12 +1316,9 @@ function ProfileOverview({ profile, onEdit }) {
             <div className="card-title"><span>🎓</span> Education</div>
             {(profile.education || []).filter(e => e.institution).map((e, i) => (
               <div key={i} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 12, marginBottom: 12 }}>
-                <div style={{ fontWeight: 600 }}>{e.degree}{e.degree && e.institution ? " — " : ""}{e.institution}</div>
+                <div style={{ fontWeight: 600 }}>{e.degree} {e.field ? `in ${e.field}` : ""}</div>
                 <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
-                  {e.field    && <span>{e.field}</span>}
-                  {e.location && <span> · 📍 {e.location}</span>}
-                  {e.year     && <span> · {e.year}</span>}
-                  {e.gpa      && <span> · GPA {e.gpa}</span>}
+                  {e.institution}{e.location ? ` · ${e.location}` : ""}{e.year ? ` · ${e.year}` : ""}{e.gpa ? ` · GPA ${e.gpa}` : ""}
                 </div>
               </div>
             ))}
@@ -1221,45 +1351,115 @@ function ProfileOverview({ profile, onEdit }) {
   );
 }
 
-// ─── Dashboard ──────────────────────────────────────────────────────────────
-function Dashboard({ session, profile, onLogout, onEditProfile }) {
-  const [activePage, setActivePage] = useState(profile ? "generate" : "profile");
+// ─── Main Dashboard Shell ─────────────────────────────────────────────────────
+function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile, onSaveResume, onDeleteResume }) {
+  const [activePage, setActivePage] = useState("home");
+  const [generatePrefill, setGeneratePrefill] = useState(null);
+
+  const navigate = (page, prefill = null) => {
+    setGeneratePrefill(prefill);
+    setActivePage(page);
+  };
+
+  const NAV = [
+    { id: "home", label: "Dashboard", icon: "🏠" },
+    { id: "generate", label: "Generate Resume", icon: "✨" },
+    { id: "resumes", label: "My Resumes", icon: "📄", badge: generatedResumes.length || null },
+    { id: "profile", label: "My Profile", icon: "👤" },
+  ];
+
   return (
     <div className="dashboard">
       <div className="sidebar">
-        <div className="sidebar-logo"><span>Résumé<b>AI</b></span></div>
+        <div className="sidebar-logo" onClick={() => setActivePage("home")} title="Go to Dashboard">
+          <div className="logo-text">Résumé<b>AI</b></div>
+          <span className="home-hint">↩ Click to go home</span>
+        </div>
         <nav className="sidebar-nav">
-          {[{ id: "generate", label: "Generate Resume", icon: "✨" }, { id: "profile", label: "My Profile", icon: "👤" }].map(item => (
-            <button key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => setActivePage(item.id)}>
-              <span className="nav-icon">{item.icon}</span>{item.label}
+          {NAV.map(item => (
+            <button key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => navigate(item.id)}>
+              <span className="nav-icon">{item.icon}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge ? <span className="nav-badge">{item.badge}</span> : null}
             </button>
           ))}
         </nav>
         <div className="sidebar-user">
           <div className="user-info">
             <div className="user-avatar">{session.fullName?.[0]?.toUpperCase() || "U"}</div>
-            <div><div className="user-name">{session.fullName}</div><div className="user-email">{session.email}</div></div>
+            <div style={{ overflow: "hidden" }}>
+              <div className="user-name">{session.fullName}</div>
+              <div className="user-email">{session.email}</div>
+            </div>
           </div>
           <button className="btn btn-ghost btn-sm" style={{ marginTop: 12, width: "100%" }} onClick={onLogout}>Sign Out</button>
         </div>
       </div>
+
       <div className="main-content">
+        {activePage === "home" && (
+          <>
+            <div className="page-header">
+              <h1 className="page-title">Dashboard</h1>
+              <p className="page-sub">Your career optimization center</p>
+            </div>
+            <HomeDashboard profile={profile} generatedResumes={generatedResumes} onNavigate={navigate} onDeleteResume={onDeleteResume} />
+          </>
+        )}
+
         {activePage === "generate" && (
           <>
             <div className="page-header">
               <h1 className="page-title">Generate Resume</h1>
-              <p className="page-sub">Paste a job description and let AI craft your perfect ATS-optimized resume</p>
+              <p className="page-sub">Create an ATS-optimized resume tailored to a specific job posting</p>
             </div>
             {!profile ? (
               <div className="card" style={{ textAlign: "center", padding: "60px" }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 8 }}>Complete your profile first</h3>
                 <p style={{ color: "var(--muted)", marginBottom: 24 }}>We need your details to generate a personalized resume</p>
-                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => { setActivePage("profile"); onEditProfile(); }}>Complete Profile</button>
+                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => { navigate("profile"); onEditProfile(); }}>Complete Profile</button>
               </div>
-            ) : <ResumeGenerator profile={profile} />}
+            ) : (
+              <ResumeGenerator
+                key={generatePrefill ? JSON.stringify(generatePrefill) : "default"}
+                profile={profile}
+                onSaveResume={onSaveResume}
+                prefillCompany={generatePrefill?.company || ""}
+                prefillPosition={generatePrefill?.position || ""}
+              />
+            )}
           </>
         )}
+
+        {activePage === "resumes" && (
+          <>
+            <div className="page-header">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <h1 className="page-title">My Resumes</h1>
+                  <p className="page-sub">{generatedResumes.length} resume{generatedResumes.length !== 1 ? "s" : ""} generated</p>
+                </div>
+                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => navigate("generate")}>✨ New Resume</button>
+              </div>
+            </div>
+            {generatedResumes.length === 0 ? (
+              <div className="card" style={{ textAlign: "center", padding: "60px 40px" }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+                <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 8 }}>No resumes yet</h3>
+                <p style={{ color: "var(--muted)", marginBottom: 24 }}>Generate your first ATS-optimized resume tailored to a job posting</p>
+                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => navigate("generate")}>✨ Generate First Resume</button>
+              </div>
+            ) : (
+              <div className="resumes-grid">
+                {[...generatedResumes].sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt)).map(r => (
+                  <ResumeCard key={r.id} resume={r} onNavigate={navigate} onDelete={onDeleteResume} showDate="long" />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
         {activePage === "profile" && (
           <>
             <div className="page-header">
@@ -1274,16 +1474,11 @@ function Dashboard({ session, profile, onLogout, onEditProfile }) {
   );
 }
 
-// ─── Root App ───────────────────────────────────────────────────────────────
-// App phases:
-//   "loading"   — fetching profile from API
-//   "upload"    — NEW USER: show UploadPage (full-screen, before form)
-//   "form"      — show ProfileBuilder stepper (after upload success / skip / edit)
-//   "dashboard" — main dashboard
+// ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [authView, setAuthView] = useState("login");
-  const [session, setSession]   = useState(() => {
-    const user  = localStorage.getItem("ats_user");
+  const [session, setSession] = useState(() => {
+    const user = localStorage.getItem("ats_user");
     const token = localStorage.getItem("ats_token");
     if (!user || !token) return null;
     try {
@@ -1294,10 +1489,11 @@ export default function App() {
     } catch {}
     return JSON.parse(user);
   });
-  const [profile,       setProfile]       = useState(null);
-  const [appPhase,      setAppPhase]      = useState("loading");
-  const [parsedProfile, setParsedProfile] = useState(null);
-  const [verifiedMsg,   setVerifiedMsg]   = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [buildingProfile, setBuildingProfile] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [verifiedMsg, setVerifiedMsg] = useState(false);
+  const [generatedResumes, setGeneratedResumes] = useState([]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1307,78 +1503,95 @@ export default function App() {
     }
   }, []);
 
-  // Load profile on login
   useEffect(() => {
-    if (!session) { setAppPhase("loading"); return; }
-    setAppPhase("loading");
-    api.getProfile()
-      .then(data => {
-        if (data.profileComplete && data.profile) {
-          try { setProfile(JSON.parse(data.profile)); setAppPhase("dashboard"); }
-          catch { setAppPhase("upload"); }     // corrupt JSON → re-build
-        } else {
-          setAppPhase("upload");               // new user → upload first
-        }
-      })
-      .catch(() => {
-        localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user");
-        setSession(null); setAppPhase("loading");
-      });
+    if (session) {
+      setLoadingProfile(true);
+      api.getProfile()
+        .then(data => {
+          if (data.profileComplete && data.profile) {
+            try {
+              const parsed = JSON.parse(data.profile);
+              setProfile(parsed);
+              if (parsed._generatedResumes) {
+                setGeneratedResumes(parsed._generatedResumes);
+              }
+            } catch { setProfile(null); setBuildingProfile(true); }
+          } else {
+            setBuildingProfile(true);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user");
+          setSession(null); setProfile(null); setBuildingProfile(false);
+        })
+        .finally(() => setLoadingProfile(false));
+    }
   }, [session]);
 
-  const handleLogin  = data => setSession({ email: data.email, fullName: data.fullName });
+  const handleLogin = data => setSession({ email: data.email, fullName: data.fullName });
+
   const handleLogout = () => {
     localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user");
-    setSession(null); setProfile(null); setParsedProfile(null); setAppPhase("loading");
+    setSession(null); setProfile(null); setBuildingProfile(false); setGeneratedResumes([]);
   };
 
-  // Upload page callbacks
-  const handleParsed      = (data) => { setParsedProfile(data); setAppPhase("form"); };
-  const handleSkipUpload  = ()     => { setParsedProfile(null); setAppPhase("form"); };
+  const handleSaveResume = async (resume) => {
+    const updated = [resume, ...generatedResumes].slice(0, 50);
+    setGeneratedResumes(updated);
+    if (profile) {
+      const profileWithHistory = { ...profile, _generatedResumes: updated };
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
+    }
+  };
 
-  // Profile builder callbacks
-  const handleProfileComplete = (p) => { setProfile(p); setParsedProfile(null); setAppPhase("dashboard"); };
-  const handleEditProfile     = ()   => { setParsedProfile(null); setAppPhase("form"); };
+  const handleDeleteResume = async (id) => {
+    const updated = generatedResumes.filter(r => r.id !== id);
+    setGeneratedResumes(updated);
+    if (profile) {
+      const profileWithHistory = { ...profile, _generatedResumes: updated };
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
+    }
+  };
+
+  const handleProfileComplete = async (p) => {
+    const profileWithHistory = { ...p, _generatedResumes: generatedResumes };
+    setProfile(profileWithHistory);
+    setBuildingProfile(false);
+  };
 
   return (
     <>
       <style>{css}</style>
       <div className="app">
-
-        {/* ── Not logged in ── */}
         {!session && (
           authView === "login"
             ? <LoginPage onLogin={handleLogin} onSwitch={() => setAuthView("signup")} verifiedMsg={verifiedMsg} />
             : <SignupPage onSwitch={() => setAuthView("login")} />
         )}
-
-        {/* ── Loading spinner ── */}
-        {session && appPhase === "loading" && (
+        {session && loadingProfile && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
             <div className="spinner" /><p style={{ color: "var(--muted)" }}>Loading your profile…</p>
           </div>
         )}
-
-        {/* ── Upload page — shown FIRST for new users, before the form ── */}
-        {session && appPhase === "upload" && (
-          <UploadPage onParsed={handleParsed} onSkip={handleSkipUpload} />
-        )}
-
-        {/* ── Profile Builder stepper — shown AFTER upload or skip ── */}
-        {session && appPhase === "form" && (
+        {session && !loadingProfile && buildingProfile && (
           <ProfileBuilder
             session={session}
             initialProfile={profile}
-            parsedProfile={parsedProfile}
             onComplete={handleProfileComplete}
+            onCancel={profile ? () => setBuildingProfile(false) : null}
           />
         )}
-
-        {/* ── Dashboard ── */}
-        {session && appPhase === "dashboard" && (
-          <Dashboard session={session} profile={profile} onLogout={handleLogout} onEditProfile={handleEditProfile} />
+        {session && !loadingProfile && !buildingProfile && (
+          <Dashboard
+            session={session}
+            profile={profile}
+            generatedResumes={generatedResumes}
+            onLogout={handleLogout}
+            onEditProfile={() => setBuildingProfile(true)}
+            onSaveResume={handleSaveResume}
+            onDeleteResume={handleDeleteResume}
+          />
         )}
-
       </div>
     </>
   );
