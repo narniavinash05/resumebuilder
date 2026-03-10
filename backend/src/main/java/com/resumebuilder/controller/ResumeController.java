@@ -4,8 +4,8 @@ import com.resumebuilder.dto.AuthDtos.AtsScoreResponse;
 import com.resumebuilder.model.Resume;
 import com.resumebuilder.model.TailorRequest;
 import com.resumebuilder.service.AtsScoreService;
+import com.resumebuilder.service.ResumeParserService;
 import com.resumebuilder.service.ResumePdfService;
-import com.resumebuilder.service.ResumeParseService;
 import com.resumebuilder.service.ResumeTailoringService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -26,16 +26,16 @@ public class ResumeController {
     private final ResumeTailoringService tailoringService;
     private final ResumePdfService       resumePdfService;
     private final AtsScoreService        atsScoreService;
-    private final ResumeParseService     resumeParseService;
+    private final ResumeParserService    resumeParserService;   // ← CHANGED (was ResumeParseService)
 
     public ResumeController(ResumeTailoringService tailoringService,
                             ResumePdfService       resumePdfService,
                             AtsScoreService        atsScoreService,
-                            ResumeParseService     resumeParseService) {
+                            ResumeParserService resumeParserService) {  // ← CHANGED
         this.tailoringService   = tailoringService;
         this.resumePdfService   = resumePdfService;
         this.atsScoreService    = atsScoreService;
-        this.resumeParseService = resumeParseService;
+        this.resumeParserService = resumeParserService;          // ← CHANGED
     }
 
     // ── POST /api/resume/generate ─────────────────────────────────────────────
@@ -115,7 +115,8 @@ public class ResumeController {
                     .body(Map.of("message", "No file uploaded"));
         }
 
-        Map<String, Object> profileData = resumeParseService.parseResume(file);
+        Map<String, Object> profileData = resumeParserService.parseResume(file);
         return ResponseEntity.ok(profileData);
     }
+
 }

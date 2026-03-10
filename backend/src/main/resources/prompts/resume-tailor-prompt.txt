@@ -56,7 +56,9 @@ Store as: extractedKeywords[]
 STEP 2 — GENERATE THE TAILORED RESUME
 ────────────────────────────────────────────────────────
 
-Using the candidate profile as the foundation, generate a complete ATS-optimized resume.
+Using the candidate profile as the foundation, generate a FULL-LENGTH, complete, ATS-optimized
+resume that fills an entire page. This is the most important output — do not truncate or
+abbreviate any section.
 
 CRITICAL GENERATION RULES:
 
@@ -64,48 +66,79 @@ CRITICAL GENERATION RULES:
    - Add relevant technical skills the candidate likely has based on their background,
      even if not explicitly listed in their profile (e.g. if they use React, they likely
      know JavaScript, HTML, CSS, npm — add them)
-   - Enhance experience bullet points with inferred technical details that are realistic
-     and consistent with the candidate's actual roles and seniority
-   - Add industry-standard tools a person in their role would realistically use
+   - Expand and enrich experience bullet points with specific technical details, metrics,
+     and quantified impact that are realistic and consistent with the candidate's actual
+     roles and seniority level
+   - Add industry-standard tools, protocols, and practices a person in their role would
+     realistically use day-to-day
    - For student/entry-level profiles: generate a strong skills section drawing from
      coursework, projects, and adjacent technologies even if not explicitly mentioned
+   - Infer and add relevant projects, system designs, team sizes, and tech stack details
+     that are consistent with the candidate's described experience
 
 2. DO NOT FABRICATE — Never invent:
    - Company names, job titles, or employment dates
    - Degrees, institutions, or graduation years
-   - Certifications not held
+   - Certifications not held by the candidate
 
 3. KEYWORD SATURATION — Every keyword in extractedKeywords MUST appear verbatim
-   somewhere in the resume (summary, experience bullets, or skills section)
+   somewhere in the resume (summary, experience bullets, or skills section).
+   Do not allow any extracted keyword to appear only in the skills section — each
+   should be naturally woven into at least one experience bullet as well.
 
-CHARACTER TARGETS (for ATS density and readability):
-  - Professional Summary : 300–450 characters
-  - Total Experience     : 2800–4000 characters across all roles
-  - Skills Section       : 450–650 characters
+CHARACTER TARGETS — these are MINIMUM targets. Write more if the candidate has the
+content to support it. A full-page resume is the goal.
 
-A. PROFESSIONAL SUMMARY (2–3 sentences, no "I"):
-   - State the exact job title from the JD verbatim as the opening descriptor
-   - Mention the candidate's primary aligned technologies
-   - Reference key methodologies/practices (CI/CD, Agile, full SDLC, etc.) if relevant
+  - Professional Summary : 400–550 characters (5-6 dense sentences)
+  - Total Experience     : 6000-7000 characters across all roles
+  - Skills Section       : 1000-2000 characters
 
-B. EXPERIENCE SECTION:
-   Recent/current role  → 10-15 bullets, 1200–1400 chars
-   Mid-level role       → 5-6 bullets,  700–900  chars
-   Older / early role   → 5-6 bullets,  700–750  chars
+A. PROFESSIONAL SUMMARY (3–4 sentences, no "I"):
+   - Open with the exact job title from the JD verbatim as the descriptor
+   - Name 4-6 of the candidate's primary aligned technologies
+   - Reference key methodologies (CI/CD, Agile, full SDLC, microservices, etc.) if relevant
+   - Close with a value statement about what they bring to the team
+
+B. EXPERIENCE SECTION — write DENSE, SUBSTANTIVE bullets:
+   Recent/current role  → 12-16 bullets, 1600–2200 chars
+   Mid-level role       → 7-9  bullets, 900–1200  chars
+   Older / early role   → 6-7  bullets, 750–900   chars
 
    Every bullet must:
-   - Start with a strong action verb (Built, Designed, Led, Optimized, Implemented, Reduced...)
-   - Include at least one extractedKeyword naturally
-   - Quantify impact where defensible (%, latency improvements, scale, user count, time saved)
+   - Start with a strong action verb (Built, Architected, Led, Optimized, Implemented,
+     Reduced, Delivered, Designed, Migrated, Scaled, Automated, Refactored, Deployed…)
+   - Include at least one extractedKeyword naturally embedded in the sentence
+   - Quantify impact wherever defensible: percentages, latency (ms), scale (users/RPS/TPS),
+     time saved (hours/week), cost reduction ($), team size, lines of code, API endpoints,
+     deployment frequency, error rate reduction
+   - Be specific enough that a technical recruiter finds it credible and impressive
 
-C. SKILLS SECTION (categorized):
-   Use categories: Languages | Frameworks | Databases | Cloud & DevOps | Tools | Methodologies
-   - Every extractedKeyword defensible for this candidate must appear here or in experience
-   - Add adjacent/inferred skills that strengthen the candidate's profile for this role
-   - Use exact wording from the JD for keywords
+   EXAMPLES of good bullets (model this density and specificity):
+   • Architected a distributed event-driven microservices platform on AWS EKS using Kafka
+     and Redis, reducing p99 API latency from 420ms to 38ms across 12M daily active users.
+   • Led migration of monolithic Node.js backend to 18 independently deployable services,
+     cutting deployment cycle from 3 weeks to 45 minutes via GitHub Actions CI/CD pipelines.
+   • Designed PostgreSQL schema with materialized views and partial indexes, improving
+     complex analytics query performance by 94% for a 2.3TB transactional dataset.
+   • Mentored 4 junior engineers in TypeScript best practices, TDD, and code review
+     culture, reducing production bug rate by 37% over two quarters.
 
-D. EDUCATION & CERTIFICATIONS:
-   Copy verbatim from candidate data — do not modify dates, institutions, or degree names.
+C. SKILLS SECTION (categorized, COMPREHENSIVE):
+   Use these categories: Languages | Frameworks & Libraries | Databases & Storage |
+   Cloud & DevOps | Tools & Platforms | Methodologies & Practices
+   - EVERY extractedKeyword that is defensible for this candidate MUST appear here
+   - Add ALL adjacent/inferred skills that strengthen the candidate's profile for this role
+   - Include version-specific or ecosystem tools (e.g. React → also list Redux, React Query,
+     React Router, Webpack, Vite, Jest, React Testing Library)
+   - Use exact wording from the JD for keywords (e.g. "RESTful APIs" not "REST")
+
+D. EDUCATION:
+   Copy verbatim from candidate data — do not modify institution, degree, field, or dates.
+   Include location if provided.
+   Add relevant coursework in a sub-line IF the candidate is a student or recent graduate.
+
+E. CERTIFICATIONS:
+   Copy verbatim from candidate data — do not modify names, issuers, or years.
 
 ────────────────────────────────────────────────────────
 STEP 3 — SCORE THE RESUME (YOUR EXPERT JUDGMENT)
@@ -128,12 +161,12 @@ SCORING CRITERIA — weigh each factor:
   Resume Completeness & ATS Format (20%)
     Does the resume have all critical sections (summary, experience, skills, education)?
     Are sections properly structured for ATS parsing?
-    Is experience relevant and clearly described?
+    Is experience relevant, detailed, and clearly described?
 
   Keyword Density & Placement (15%)
-    Are keywords distributed across summary, experience, AND skills?
+    Are keywords distributed across summary, experience bullets, AND skills?
     Or are they only stuffed in the skills section?
-    Natural integration across sections scores higher.
+    Natural integration across ALL sections scores higher.
 
 SCORING RULES:
   - Score range: 0–100 (integer)
@@ -217,5 +250,9 @@ FIELD RULES:
   - missingKeywords    : subset of extractedKeywords NOT in the resume
   - atsScore           : your holistic score 0–100 (integer)
   - scoreLabel         : "Excellent" | "Good" | "Fair" | "Needs Improvement"
-  - scoringBreakdown   : individual component scores (each 0–100) + one-sentence notes
+  - scoringBreakdown   : individual component scores (each 0–100) + one-sentence notes string
+  - experiences[].responsibilities : array of bullet strings — write 12-16 for current role,
+    7-9 for mid-level, 6-7 for older roles. Each bullet is a complete sentence, 80-160 chars.
+  - skillCategories    : use 6 categories minimum. Each category has 6-14 skills minimum.
+  - education[].location : include city/state of the institution
   - All resume fields  : fully populated — no empty arrays, no placeholder strings

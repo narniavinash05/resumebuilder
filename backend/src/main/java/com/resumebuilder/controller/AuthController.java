@@ -75,14 +75,30 @@ public class AuthController {
     // ── GET /api/auth/profile ─────────────────────────────────────────────────
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
+
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        }
+
         try {
             String profileJson = authService.getProfile(userDetails.getUsername());
+
+            Map<String, Object> response = new java.util.HashMap<>();
+
             if (profileJson == null) {
-                return ResponseEntity.ok(Map.of("profileComplete", false, "profile", (Object) null));
+                response.put("profileComplete", false);
+                response.put("profile", null);
+            } else {
+                response.put("profileComplete", true);
+                response.put("profile", profileJson);
             }
-            return ResponseEntity.ok(Map.of("profileComplete", true, "profile", profileJson));
+
+            return ResponseEntity.ok(response);
+
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage(), false));
+            e.printStackTrace();
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse(e.getMessage(), false));
         }
     }
 

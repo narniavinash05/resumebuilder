@@ -7,7 +7,6 @@ const getToken = () => localStorage.getItem("ats_token");
 
 const apiFetch = async (path, options = {}) => {
   const token = getToken();
-
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -16,22 +15,16 @@ const apiFetch = async (path, options = {}) => {
       ...(options.headers || {}),
     },
   });
-
-  // 🔹 Handle JWT expiration
   if (res.status === 401) {
     localStorage.removeItem("ats_token");
     localStorage.removeItem("ats_user");
-
-    // Redirect to login page cleanly
     window.location.href = "/";
     return;
   }
-
   if (options.binary) {
     if (!res.ok) throw new Error("Failed to generate PDF");
     return res.blob();
   }
-
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || "Request failed");
   return data;
@@ -50,9 +43,29 @@ const api = {
       method: "POST",
       body: JSON.stringify({ resumeMetaData, jobDescription }),
     }),
+  parseResume: (file) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetch(`${BASE_URL}/api/resume/parse`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then(async (res) => {
+      if (res.status === 401) {
+        localStorage.removeItem("ats_token");
+        localStorage.removeItem("ats_user");
+        window.location.href = "/";
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Parse failed");
+      return data;
+    });
+  },
 };
 
-// ─── Month/Year Dropdown Helpers ───────────────────────────────────────────
+// ─── Month/Year Dropdown ───────────────────────────────────────────────────
 const MONTHS = [
   { value: "01", label: "January" },  { value: "02", label: "February" },
   { value: "03", label: "March" },    { value: "04", label: "April" },
@@ -61,91 +74,45 @@ const MONTHS = [
   { value: "09", label: "September" },{ value: "10", label: "October" },
   { value: "11", label: "November" }, { value: "12", label: "December" },
 ];
-
 const YEARS = (() => {
-  const current = new Date().getFullYear();
-  const arr = [];
-  for (let y = current; y >= 1980; y--) arr.push(String(y));
-  return arr;
+  const cur = new Date().getFullYear();
+  const a = [];
+  for (let y = cur; y >= 1980; y--) a.push(String(y));
+  return a;
 })();
 
-// Stores value as "YYYY-MM" — same shape as the old type="month" input
 function MonthYearPicker({ value, onChange, disabled }) {
-  const [year, setYear] = useState("");
+  const [year, setYear]   = useState("");
   const [month, setMonth] = useState("");
 
-  // Sync with parent value
   useEffect(() => {
     if (value && value.includes("-")) {
       const [y, m] = value.split("-");
-      setYear(y || "");
-      setMonth(m || "");
-    } else {
-      setYear("");
-      setMonth("");
-    }
+      setYear(y || ""); setMonth(m || "");
+    } else { setYear(""); setMonth(""); }
   }, [value]);
 
-  const handleYearChange = (newYear) => {
-    setYear(newYear);
-    if (newYear && month) {
-      onChange(`${newYear}-${month}`);
-    } else {
-      onChange("");
-    }
-  };
+  const handleYear  = (v) => { setYear(v);  onChange(v && month  ? `${v}-${month}` : ""); };
+  const handleMonth = (v) => { setMonth(v); onChange(year && v   ? `${year}-${v}`  : ""); };
 
-  const handleMonthChange = (newMonth) => {
-    setMonth(newMonth);
-    if (year && newMonth) {
-      onChange(`${year}-${newMonth}`);
-    } else {
-      onChange("");
-    }
-  };
-
-  const selectStyle = {
-    width: "100%",
-    padding: "14px 12px",
+  const sel = {
+    width: "100%", padding: "14px 12px",
     background: disabled ? "rgba(255,255,255,0.03)" : "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
+    border: "1px solid var(--border)", borderRadius: "var(--radius)",
     color: disabled ? "var(--muted)" : "var(--text)",
-    fontFamily: "var(--font-body)",
-    fontSize: 14,
-    outline: "none",
-    opacity: disabled ? 0.5 : 1,
-    cursor: disabled ? "not-allowed" : "pointer",
+    fontFamily: "var(--font-body)", fontSize: 14, outline: "none",
+    opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "pointer",
   };
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-      <select
-        value={month}
-        onChange={(e) => handleMonthChange(e.target.value)}
-        disabled={disabled}
-        style={selectStyle}
-      >
+      <select value={month} onChange={e => handleMonth(e.target.value)} disabled={disabled} style={sel}>
         <option value="">Month</option>
-        {MONTHS.map((m) => (
-          <option key={m.value} value={m.value}>
-            {m.label}
-          </option>
-        ))}
+        {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
       </select>
-
-      <select
-        value={year}
-        onChange={(e) => handleYearChange(e.target.value)}
-        disabled={disabled}
-        style={selectStyle}
-      >
+      <select value={year} onChange={e => handleYear(e.target.value)} disabled={disabled} style={sel}>
         <option value="">Year</option>
-        {YEARS.map((y) => (
-          <option key={y} value={y}>
-            {y}
-          </option>
-        ))}
+        {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
       </select>
     </div>
   );
@@ -164,22 +131,11 @@ const css = `
   body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
   .app { min-height: 100vh; display: flex; flex-direction: column; }
 
+  /* ── Auth ── */
   .auth-page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
-  .auth-brand {
-    background: var(--surface); display: flex; flex-direction: column;
-    justify-content: center; padding: 60px; position: relative; overflow: hidden;
-    border-right: 1px solid var(--border);
-  }
-  .auth-brand::before {
-    content: ''; position: absolute; top: -100px; left: -100px;
-    width: 400px; height: 400px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(232,197,71,0.15), transparent 70%);
-  }
-  .auth-brand::after {
-    content: ''; position: absolute; bottom: -80px; right: -80px;
-    width: 300px; height: 300px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(78,205,196,0.1), transparent 70%);
-  }
+  .auth-brand { background: var(--surface); display: flex; flex-direction: column; justify-content: center; padding: 60px; position: relative; overflow: hidden; border-right: 1px solid var(--border); }
+  .auth-brand::before { content: ''; position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(232,197,71,0.15), transparent 70%); }
+  .auth-brand::after  { content: ''; position: absolute; bottom: -80px; right: -80px;  width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(78,205,196,0.1), transparent 70%); }
   .brand-logo { font-family: var(--font-display); font-size: 48px; font-weight: 900; line-height: 1; position: relative; z-index: 1; }
   .brand-logo span { color: var(--accent); }
   .brand-tagline { margin-top: 20px; font-size: 18px; color: var(--muted); line-height: 1.6; max-width: 340px; position: relative; z-index: 1; }
@@ -191,21 +147,18 @@ const css = `
   .auth-card { width: 100%; max-width: 420px; }
   .auth-title { font-family: var(--font-display); font-size: 32px; font-weight: 700; margin-bottom: 8px; }
   .auth-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+  .auth-switch { margin-top: 20px; text-align: center; font-size: 14px; color: var(--muted); }
+  .auth-switch button { background: none; border: none; color: var(--accent); cursor: pointer; font-weight: 600; }
 
+  /* ── Form Fields ── */
   .field { margin-bottom: 20px; }
   .field label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .field input, .field textarea, .field select {
-    width: 100%; padding: 14px 16px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius);
-    color: var(--text); font-family: var(--font-body); font-size: 15px;
-    transition: border-color 0.2s; outline: none;
-  }
-  .field input:focus, .field textarea:focus, .field select:focus {
-    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,197,71,0.1);
-  }
+  .field input, .field textarea, .field select { width: 100%; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-family: var(--font-body); font-size: 15px; transition: border-color 0.2s; outline: none; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,197,71,0.1); }
   .field textarea { resize: vertical; min-height: 100px; }
   select option { background: #1a1a26; color: var(--text); }
 
+  /* ── Buttons ── */
   .btn { padding: 14px 24px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font-body); font-size: 15px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
   .btn-primary { background: var(--accent); color: #0a0a0f; width: 100%; justify-content: center; }
   .btn-primary:hover { background: #f0d055; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,197,71,0.3); }
@@ -216,14 +169,14 @@ const css = `
   .btn-teal:hover { background: #6eded6; transform: translateY(-1px); }
   .btn-sm { padding: 8px 16px; font-size: 13px; }
   .btn-icon { padding: 10px; border-radius: 8px; }
-  .auth-switch { margin-top: 20px; text-align: center; font-size: 14px; color: var(--muted); }
-  .auth-switch button { background: none; border: none; color: var(--accent); cursor: pointer; font-weight: 600; }
 
+  /* ── Alerts ── */
   .alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
-  .alert-error { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff9999; }
-  .alert-success { background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.3); color: var(--accent2); }
-  .alert-info { background: rgba(232,197,71,0.1); border: 1px solid rgba(232,197,71,0.3); color: var(--accent); }
+  .alert-error   { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff9999; }
+  .alert-success { background: rgba(78,205,196,0.1);  border: 1px solid rgba(78,205,196,0.3);  color: var(--accent2); }
+  .alert-info    { background: rgba(232,197,71,0.1);  border: 1px solid rgba(232,197,71,0.3);  color: var(--accent); }
 
+  /* ── Dashboard / Sidebar ── */
   .dashboard { display: flex; min-height: 100vh; }
   .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; position: fixed; height: 100vh; z-index: 10; }
   .sidebar-logo { padding: 0 24px 24px; border-bottom: 1px solid var(--border); }
@@ -237,40 +190,42 @@ const css = `
   .sidebar-user { padding: 16px 24px; border-top: 1px solid var(--border); }
   .user-info { display: flex; align-items: center; gap: 12px; }
   .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0a0a0f; }
-  .user-name { font-size: 13px; font-weight: 600; }
+  .user-name  { font-size: 13px; font-weight: 600; }
   .user-email { font-size: 11px; color: var(--muted); }
   .main-content { margin-left: 240px; flex: 1; padding: 40px; min-height: 100vh; }
   .page-header { margin-bottom: 32px; }
   .page-title { font-family: var(--font-display); font-size: 28px; font-weight: 700; }
   .page-sub { color: var(--muted); font-size: 15px; margin-top: 6px; }
 
+  /* ── Stepper ── */
   .stepper { display: flex; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 4px; }
   .step { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 16px; border-radius: 24px; transition: all 0.2s; }
   .step.active { background: rgba(232,197,71,0.12); }
   .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 1px solid var(--border); flex-shrink: 0; transition: all 0.2s; }
   .step.active .step-num { background: var(--accent); color: #0a0a0f; border-color: var(--accent); }
-  .step.done .step-num { background: var(--success); color: #0a0a0f; border-color: var(--success); }
+  .step.done  .step-num  { background: var(--success); color: #0a0a0f; border-color: var(--success); }
   .step-label { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
   .step.active .step-label { color: var(--text); }
   .step-divider { flex: 1; height: 1px; background: var(--border); min-width: 16px; max-width: 32px; }
 
+  /* ── Cards ── */
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
   .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
   .card-title span { font-size: 18px; }
 
+  /* ── Skills ── */
   .skills-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
   .skill-chip { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; transition: all 0.15s; user-select: none; background: var(--surface2); }
   .skill-chip:hover { border-color: var(--accent); }
   .skill-chip.selected { background: rgba(232,197,71,0.15); border-color: var(--accent); color: var(--accent); }
   .skill-chip.teal.selected { background: rgba(78,205,196,0.15); border-color: var(--accent2); color: var(--accent2); }
-
   .add-row-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px dashed var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 13px; transition: all 0.15s; margin-top: 8px; }
   .add-row-btn:hover { border-color: var(--accent); color: var(--accent); }
   .cert-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 12px; }
-
   .date-label { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; display: block; }
   .present-pill { display: flex; align-items: center; gap: 8px; padding: 14px 16px; background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.25); border-radius: var(--radius); color: var(--accent2); font-size: 14px; }
 
+  /* ── Score ── */
   .score-display { display: flex; align-items: center; gap: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
   .score-ring { width: 100px; height: 100px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
   .score-ring::before { content: ''; position: absolute; width: 76px; height: 76px; border-radius: 50%; background: var(--surface); }
@@ -279,8 +234,8 @@ const css = `
   .score-desc { color: var(--muted); font-size: 14px; line-height: 1.6; }
   .skills-match { display: flex; flex-wrap: wrap; gap: 8px; }
   .match-chip { padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; }
-  .match-chip.hit { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
-  .match-chip.miss { background: rgba(255,107,107,0.1); color: #ff9999; border: 1px solid rgba(255,107,107,0.2); }
+  .match-chip.hit  { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
+  .match-chip.miss { background: rgba(255,107,107,0.1); color: #ff9999;        border: 1px solid rgba(255,107,107,0.2); }
   .kw-section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 16px 0 10px; }
   .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
   .breakdown-item { background: var(--surface2); border-radius: 10px; padding: 14px 16px; }
@@ -288,33 +243,75 @@ const css = `
   .breakdown-bar-bg { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
   .breakdown-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
   .breakdown-score-val { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-
   .generating { display: flex; flex-direction: column; align-items: center; padding: 60px; gap: 20px; }
   .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .prog-steps { display: flex; flex-direction: column; gap: 10px; width: 300px; }
   .prog-step { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
-  .prog-step.done { color: var(--success); }
+  .prog-step.done   { color: var(--success); }
   .prog-step.active { color: var(--text); }
   .prog-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--surface2); flex-shrink: 0; }
-  .prog-step.done .prog-dot { background: var(--success); }
+  .prog-step.done   .prog-dot { background: var(--success); }
   .prog-step.active .prog-dot { background: var(--accent); animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
   .download-btn { display: flex; align-items: center; gap: 10px; padding: 16px 32px; background: linear-gradient(135deg, var(--accent), #d4aa30); color: #0a0a0f; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
   .download-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(232,197,71,0.4); }
-
   .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .info-row { display: flex; flex-direction: column; gap: 4px; }
   .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
   .info-val { font-size: 15px; font-weight: 500; }
   .complete-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-  .complete-badge.done { background: rgba(78,205,196,0.15); color: var(--accent2); }
-  .complete-badge.pending { background: rgba(232,197,71,0.15); color: var(--accent); }
-
+  .complete-badge.done    { background: rgba(78,205,196,0.15); color: var(--accent2); }
+  .complete-badge.pending { background: rgba(232,197,71,0.15);  color: var(--accent); }
   .tab-bar { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); padding: 4px; border-radius: 10px; width: fit-content; flex-wrap: wrap; }
   .tab { padding: 8px 18px; border-radius: 7px; border: none; background: none; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
   .tab.active { background: var(--surface2); color: var(--text); }
+
+  /* ── Upload Page ── */
+  .upload-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; background: var(--bg); }
+  .upload-page-inner { width: 100%; max-width: 640px; }
+  .upload-page-logo { font-family: var(--font-display); font-size: 26px; font-weight: 900; text-align: center; margin-bottom: 32px; }
+  .upload-page-logo b { color: var(--accent); }
+
+  /* 3-step breadcrumb for upload flow */
+  .flow-steps { display: flex; align-items: center; justify-content: center; margin-bottom: 40px; }
+  .flow-step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .flow-step-circle { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border: 2px solid var(--border); color: var(--muted); transition: all 0.3s; }
+  .flow-step-circle.active { border-color: var(--accent); color: var(--accent); background: rgba(232,197,71,0.1); }
+  .flow-step-circle.done   { border-color: var(--success); color: #0a0a0f; background: var(--success); }
+  .flow-step-label { font-size: 11px; color: var(--muted); white-space: nowrap; font-weight: 500; }
+  .flow-step-label.active { color: var(--accent); }
+  .flow-step-label.done   { color: var(--success); }
+  .flow-step-line { width: 64px; height: 2px; background: var(--border); margin: 0 10px; margin-bottom: 20px; transition: background 0.3s; }
+  .flow-step-line.done { background: var(--success); }
+
+  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 52px 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface2); position: relative; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(232,197,71,0.04); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 52px; margin-bottom: 16px; }
+  .upload-title { font-size: 20px; font-weight: 700; font-family: var(--font-display); margin-bottom: 8px; }
+  .upload-sub { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
+  .upload-formats { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .format-chip { padding: 5px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; }
+
+  /* Parsing animation */
+  .parsing-overlay { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 52px 32px; }
+  .parsing-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+  .parsing-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; width: 300px; }
+  .parsing-step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); transition: color 0.3s; }
+  .parsing-step.done   { color: var(--success); }
+  .parsing-step.active { color: var(--text); }
+  .parsing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--surface2); flex-shrink: 0; }
+  .parsing-step.done   .parsing-dot { background: var(--success); }
+  .parsing-step.active .parsing-dot { background: var(--accent); animation: pulse 1s infinite; }
+
+  /* Parse result banner */
+  .parse-result-banner { display: flex; align-items: flex-start; gap: 16px; padding: 20px 24px; border-radius: var(--radius); background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.3); margin-bottom: 24px; }
+  .parse-result-icon { font-size: 32px; flex-shrink: 0; }
+  .parse-result-text h4 { font-size: 16px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+  .parse-result-text p  { font-size: 13px; color: var(--muted); }
+  .parse-fields-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .parse-field-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.2); color: var(--accent2); }
 
   @media (max-width: 900px) {
     .auth-page { grid-template-columns: 1fr; }
@@ -328,8 +325,8 @@ const css = `
 // ─── Skill Options ─────────────────────────────────────────────────────────
 const SKILL_CATEGORIES = {
   "Programming Languages": ["JavaScript","TypeScript","Python","Java","C++","C#","Go","Rust","Swift","Kotlin","PHP","Ruby","Scala","R"],
-  "Frontend": ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
-  "Backend": ["Node.js","Express.js","Django","FastAPI","Spring Boot","Laravel","Ruby on Rails","REST APIs","Microservices"],
+  "Frontend":  ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
+  "Backend":   ["Node.js","Express.js","Django","FastAPI","Spring Boot","Laravel","Ruby on Rails","REST APIs","Microservices"],
   "Cloud & DevOps": ["AWS","Azure","GCP","Docker","Kubernetes","Terraform","CI/CD","Jenkins","GitHub Actions","Linux"],
   "Databases": ["PostgreSQL","MySQL","MongoDB","Redis","DynamoDB","Elasticsearch","SQLite","Cassandra"],
   "Data & AI": ["Machine Learning","Deep Learning","TensorFlow","PyTorch","Pandas","NumPy","Scikit-learn","Data Analysis","Power BI","Tableau"],
@@ -342,6 +339,31 @@ function Alert({ type = "error", children }) {
 }
 function Spinner({ small }) {
   return <span className="spinner" style={small ? { width: 20, height: 20, borderWidth: 2 } : {}} />;
+}
+
+// ─── Flow Steps breadcrumb (upload page) ───────────────────────────────────
+function FlowSteps({ current }) {
+  const items = [
+    { id: "upload",  label: "Upload Resume"    },
+    { id: "parsing", label: "Auto-Fill Fields" },
+    { id: "review",  label: "Review & Save"    },
+  ];
+  const activeIdx = current === "upload" ? 0 : current === "parsing" ? 1 : 2;
+  return (
+    <div className="flow-steps">
+      {items.map((item, i) => (
+        <div key={item.id} style={{ display: "flex", alignItems: "center" }}>
+          <div className="flow-step-item">
+            <div className={`flow-step-circle ${i < activeIdx ? "done" : i === activeIdx ? "active" : ""}`}>
+              {i < activeIdx ? "✓" : i + 1}
+            </div>
+            <span className={`flow-step-label ${i < activeIdx ? "done" : i === activeIdx ? "active" : ""}`}>{item.label}</span>
+          </div>
+          {i < items.length - 1 && <div className={`flow-step-line ${i < activeIdx ? "done" : ""}`} />}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ─── Auth Brand ─────────────────────────────────────────────────────────────
@@ -361,16 +383,16 @@ function AuthBrand() {
 
 // ─── Login ──────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
   const handleSubmit = async () => {
     setError(""); setLoading(true);
     try {
       const data = await api.login(email, password);
-      localStorage.setItem("ats_token", data.token);
+      localStorage.setItem("ats_token", data.token || data.accessToken);
       localStorage.setItem("ats_user", JSON.stringify({ email: data.email, fullName: data.fullName }));
       onLogin(data);
     } catch (e) { setError(e.message); }
@@ -389,7 +411,7 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
           <div className="field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
           <div className="field"><label>Password</label><input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} /></div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !email || !password}>
-            {loading ? <><Spinner small /> Signing in...</> : "Sign In →"}
+            {loading ? <><Spinner small /> Signing in…</> : "Sign In →"}
           </button>
           <div className="auth-switch">Don't have an account? <button onClick={onSwitch}>Create one</button></div>
         </div>
@@ -400,21 +422,19 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
 
 // ─── Signup ─────────────────────────────────────────────────────────────────
 function SignupPage({ onSwitch }) {
-  const [form, setForm] = useState({ fullName: "", email: "", password: "", confirm: "" });
+  const [form, setForm]       = useState({ fullName: "", email: "", password: "", confirm: "" });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]     = useState("");
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async () => {
     setError("");
     if (form.password !== form.confirm) { setError("Passwords don't match"); return; }
-    if (form.password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (form.password.length < 6)       { setError("Password must be at least 6 characters"); return; }
     setLoading(true);
-    try {
-      await api.signup(form.fullName, form.email, form.password);
-      setSuccess(true);
-    } catch (e) { setError(e.message); }
+    try { await api.signup(form.fullName, form.email, form.password); setSuccess(true); }
+    catch (e) { setError(e.message); }
     setLoading(false);
   };
 
@@ -425,8 +445,8 @@ function SignupPage({ onSwitch }) {
         <div className="auth-card">
           <h1 className="auth-title">Check your inbox</h1>
           <p className="auth-sub">Verification email sent to <strong>{form.email}</strong></p>
-          <Alert type="success">✓ Account created! Click the link in your email to verify your account.</Alert>
-          <Alert type="info">💡 If you don't see the email, check your spam folder. The verify link also appears in the Spring Boot console logs.</Alert>
+          <Alert type="success">✓ Account created! Click the link in your email to verify.</Alert>
+          <Alert type="info">💡 Check spam if you don't see it. The link also appears in Spring Boot console logs.</Alert>
           <div style={{ textAlign: "center", marginTop: 20 }}>
             <button className="btn btn-ghost" onClick={onSwitch}>Back to Sign In</button>
           </div>
@@ -448,7 +468,7 @@ function SignupPage({ onSwitch }) {
           <div className="field"><label>Password</label><input type="password" placeholder="Min 6 characters" value={form.password} onChange={set("password")} /></div>
           <div className="field"><label>Confirm Password</label><input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} /></div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !form.fullName || !form.email || !form.password}>
-            {loading ? <><Spinner small /> Creating...</> : "Create Account →"}
+            {loading ? <><Spinner small /> Creating…</> : "Create Account →"}
           </button>
           <div className="auth-switch">Already have an account? <button onClick={onSwitch}>Sign in</button></div>
         </div>
@@ -457,12 +477,165 @@ function SignupPage({ onSwitch }) {
   );
 }
 
-// ─── Stepper ────────────────────────────────────────────────────────────────
+// ─── Upload Page — shown FIRST for new users ────────────────────────────────
+// Phase: "upload" → (api call) → "parsing" → "success"
+// On success: renders result + "Review & Fill Profile →" button
+// On skip: calls onSkip() to go straight to blank form
+const PARSE_STEP_LABELS = [
+  "Extracting text from document…",
+  "Detecting section boundaries…",
+  "Parsing contact & personal info…",
+  "Reading work experience…",
+  "Extracting education & skills…",
+];
+
+function UploadPage({ onParsed, onSkip }) {
+  const [phase, setPhase]         = useState("upload");
+  const [dragging, setDragging]   = useState(false);
+  const [error, setError]         = useState("");
+  const [parseStep, setParseStep] = useState(0);
+  const [parsedData, setParsedData] = useState(null);
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    const ext = file.name.split(".").pop().toLowerCase();
+    const allowedMimes = ["application/pdf","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/msword","text/plain"];
+    if (!allowedMimes.includes(file.type) && !["pdf","docx","doc","txt"].includes(ext)) {
+      setError("Please upload a PDF, Word (.docx/.doc), or .txt file.");
+      return;
+    }
+    setError(""); setPhase("parsing"); setParseStep(0);
+
+    // Animate the parse steps while waiting — the real Java parser is fast (2-4s)
+    const interval = setInterval(() => {
+      setParseStep(p => Math.min(p + 1, PARSE_STEP_LABELS.length - 1));
+    }, 400);
+
+    try {
+      const data = await api.parseResume(file);
+      clearInterval(interval);
+      setParseStep(PARSE_STEP_LABELS.length); // all done
+      setParsedData(data);
+      setPhase("success");
+    } catch (e) {
+      clearInterval(interval);
+      setError(e.message || "Parse failed. You can still fill in the form manually.");
+      setPhase("upload");
+    }
+  };
+
+  const onDrop = (e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); };
+
+  // ── Parsing phase ──────────────────────────────────────────────────────────
+  if (phase === "parsing") return (
+    <div className="upload-page">
+      <div className="upload-page-inner">
+        <div className="upload-page-logo">Résumé<b>AI</b></div>
+        <FlowSteps current="parsing" />
+        <div className="card">
+          <div className="parsing-overlay">
+            <div className="spinner" style={{ width: 56, height: 56, borderWidth: 4 }} />
+            <p className="parsing-title">Reading your resume…</p>
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>Usually completes in 2–4 seconds</p>
+            <div className="parsing-steps">
+              {PARSE_STEP_LABELS.map((s, i) => (
+                <div key={i} className={`parsing-step ${i < parseStep ? "done" : i === parseStep ? "active" : ""}`}>
+                  <div className="parsing-dot" />
+                  <span>{i < parseStep ? `✓ ${s}` : s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Success phase ──────────────────────────────────────────────────────────
+  if (phase === "success" && parsedData) {
+    const FIELD_LABELS = { name:"Name", email:"Email", phone:"Phone", location:"Location", headline:"Headline", summary:"Summary", linkedin:"LinkedIn", github:"GitHub", companies:"Experience", education:"Education", skills:"Skills", certifications:"Certifications" };
+    const filled = Object.entries(parsedData)
+      .filter(([, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim())
+      .map(([k]) => FIELD_LABELS[k] || k);
+
+    return (
+      <div className="upload-page">
+        <div className="upload-page-inner">
+          <div className="upload-page-logo">Résumé<b>AI</b></div>
+          <FlowSteps current="success" />
+          <div className="card">
+            <div className="parse-result-banner" style={{ marginBottom: 0 }}>
+              <div className="parse-result-icon">✅</div>
+              <div className="parse-result-text" style={{ flex: 1 }}>
+                <h4>Resume parsed — {filled.length} fields auto-filled</h4>
+                <p>Review and edit everything in the form. Nothing saves until you click <strong>Save Profile</strong>.</p>
+                <div className="parse-fields-preview">
+                  {filled.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => onParsed(parsedData)}>
+              Review &amp; Fill Profile →
+            </button>
+            <button className="btn btn-ghost" onClick={() => { setParsedData(null); setPhase("upload"); }}>
+              Upload Different File
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Upload phase ───────────────────────────────────────────────────────────
+  return (
+    <div className="upload-page">
+      <div className="upload-page-inner">
+        <div className="upload-page-logo">Résumé<b>AI</b></div>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>
+            Let's build your profile
+          </h2>
+          <p style={{ color: "var(--muted)", fontSize: 15 }}>
+            Upload your existing resume and we'll auto-fill everything instantly.
+          </p>
+        </div>
+        <FlowSteps current="upload" />
+        {error && <Alert>{error}</Alert>}
+        <div
+          className={`upload-zone ${dragging ? "drag-over" : ""}`}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+        >
+          <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
+          <div className="upload-icon">📄</div>
+          <div className="upload-title">Drop your resume here</div>
+          <div className="upload-sub">
+            We'll instantly extract your name, contact info, work experience,<br />
+            education, and skills — no typing needed.
+          </div>
+          <div className="upload-formats">
+            {["PDF", "DOCX", "DOC", "TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
+          </div>
+        </div>
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <button className="btn btn-ghost btn-sm" onClick={onSkip}>
+            Skip — I'll fill in the form manually
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Stepper bar ─────────────────────────────────────────────────────────────
 const STEPS = [
-  { id: "personal", label: "Personal", icon: "👤" },
-  { id: "experience", label: "Experience", icon: "🏢" },
-  { id: "education", label: "Education", icon: "🎓" },
-  { id: "skills", label: "Skills", icon: "⚡" },
+  { id: "personal",       label: "Personal",       icon: "👤" },
+  { id: "experience",     label: "Experience",     icon: "🏢" },
+  { id: "education",      label: "Education",      icon: "🎓" },
+  { id: "skills",         label: "Skills",         icon: "⚡" },
   { id: "certifications", label: "Certifications", icon: "🏅" },
 ];
 
@@ -502,25 +675,20 @@ function PersonalStep({ data, onChange, onNext }) {
           <div className="field"><label>GitHub / Portfolio</label><input value={data.github || ""} onChange={set("github")} placeholder="github.com/janesmith" /></div>
           <div className="field"><label>Website</label><input value={data.website || ""} onChange={set("website")} placeholder="janesmith.dev" /></div>
         </div>
-        <div className="field"><label>Professional Summary</label><textarea value={data.summary || ""} onChange={set("summary")} placeholder="Brief 2-3 sentence summary..." rows={4} /></div>
+        <div className="field"><label>Professional Summary</label><textarea value={data.summary || ""} onChange={set("summary")} placeholder="Brief 2-3 sentence summary…" rows={4} /></div>
       </div>
-      <button className="btn btn-primary" style={{ width: "auto" }} disabled={!data.name || !data.email || !data.phone || !data.location} onClick={onNext}>Continue to Experience →</button>
+      <button className="btn btn-primary" style={{ width: "auto" }} disabled={!data.name || !data.email || !data.phone || !data.location} onClick={onNext}>
+        Continue to Experience →
+      </button>
     </div>
   );
 }
 
-// ─── Experience Step  (UPDATED: location + month/year dropdowns) ────────────
+// ─── Experience Step ────────────────────────────────────────────────────────
 function ExperienceStep({ data, onChange, onNext, onBack }) {
-  const empty = () => ({
-    company: "", role: "", location: "",
-    startDate: "", endDate: "", current: false, description: "",
-  });
-
+  const empty = () => ({ company: "", role: "", location: "", startDate: "", endDate: "", current: false, description: "" });
   const companies = data.companies?.length ? data.companies : [empty()];
-
-  const update = (i, field, val) =>
-    onChange({ ...data, companies: companies.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-
+  const update = (i, field, val) => onChange({ ...data, companies: companies.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
   const add    = () => onChange({ ...data, companies: [...companies, empty()] });
   const remove = i  => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
 
@@ -528,96 +696,44 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
     <div>
       <div className="card">
         <div className="card-title"><span>🏢</span> Work Experience</div>
-
         {companies.map((c, i) => (
-          <div
-            key={i}
-            style={{
-              borderBottom: i < companies.length - 1 ? "1px solid var(--border)" : "none",
-              paddingBottom: 28, marginBottom: 28,
-            }}
-          >
-            {/* ── Header ── */}
+          <div key={i} style={{ borderBottom: i < companies.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: 28, marginBottom: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-                Position {i + 1}
-              </span>
-              {companies.length > 1 && (
-                <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>
-              )}
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.6px" }}>Position {i + 1}</span>
+              {companies.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
             </div>
-
-            {/* ── Row 1: Company + Job Title ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
-              <div className="field">
-                <label>Company *</label>
-                <input value={c.company} onChange={e => update(i, "company", e.target.value)} placeholder="Acme Corp" />
-              </div>
-              <div className="field">
-                <label>Job Title *</label>
-                <input value={c.role} onChange={e => update(i, "role", e.target.value)} placeholder="Software Engineer" />
-              </div>
+              <div className="field"><label>Company *</label><input value={c.company} onChange={e => update(i, "company", e.target.value)} placeholder="Acme Corp" /></div>
+              <div className="field"><label>Job Title *</label><input value={c.role} onChange={e => update(i, "role", e.target.value)} placeholder="Software Engineer" /></div>
             </div>
-
-            {/* ── Row 2: Location (full width) ── */}
             <div className="field">
               <label>Location</label>
-              <input
-                value={c.location || ""}
-                onChange={e => update(i, "location", e.target.value)}
-                placeholder="Dallas, TX  /  Remote  /  New York, NY (Hybrid)"
-              />
+              <input value={c.location || ""} onChange={e => update(i, "location", e.target.value)} placeholder="Dallas, TX  /  Remote  /  New York, NY (Hybrid)" />
             </div>
-
-            {/* ── Row 3: Start Date + End Date ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", marginBottom: 8 }}>
-              {/* Start */}
               <div>
                 <span className="date-label">Start Date</span>
-                <MonthYearPicker
-                  value={c.startDate || ""}
-                  onChange={val => update(i, "startDate", val)}
-                />
+                <MonthYearPicker value={c.startDate || ""} onChange={val => update(i, "startDate", val)} />
               </div>
-
-              {/* End */}
               <div>
                 <span className="date-label">End Date</span>
                 {c.current
                   ? <div className="present-pill">📌 Currently working here</div>
-                  : <MonthYearPicker
-                      value={c.endDate || ""}
-                      onChange={val => update(i, "endDate", val)}
-                    />
-                }
+                  : <MonthYearPicker value={c.endDate || ""} onChange={val => update(i, "endDate", val)} />}
                 <label style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>
-                  <input
-                    type="checkbox"
-                    checked={!!c.current}
-                    onChange={e => update(i, "current", e.target.checked)}
-                    style={{ width: 14, height: 14 }}
-                  />
+                  <input type="checkbox" checked={!!c.current} onChange={e => update(i, "current", e.target.checked)} style={{ width: 14, height: 14 }} />
                   I currently work here
                 </label>
               </div>
             </div>
-
-            {/* ── Achievements ── */}
             <div className="field" style={{ marginTop: 8 }}>
-              <label>Key Achievements & Responsibilities</label>
-              <textarea
-                value={c.description}
-                onChange={e => update(i, "description", e.target.value)}
-                placeholder={"• Led team of 5 engineers...\n• Built system that improved performance by 40%...\n• Deployed microservices on AWS EKS..."}
-                rows={5}
-              />
+              <label>Key Achievements &amp; Responsibilities</label>
+              <textarea value={c.description} onChange={e => update(i, "description", e.target.value)} placeholder={"• Led team of 5 engineers...\n• Built system that improved performance by 40%...\n• Deployed microservices on AWS EKS..."} rows={6} />
             </div>
           </div>
         ))}
-
         <button className="add-row-btn" onClick={add}>+ Add Another Position</button>
       </div>
-
       <div style={{ display: "flex", gap: 12 }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-primary" style={{ width: "auto" }} onClick={onNext}>Continue to Education →</button>
@@ -627,106 +743,33 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
 }
 
 // ─── Education Step ─────────────────────────────────────────────────────────
+// ✅ FIX: Added `location` field so it matches the prompt schema and parser output
 function EducationStep({ data, onChange, onNext, onBack }) {
-  const edu =
-    data.education || [
-      { institution: "", degree: "", field: "", year: "", gpa: "" },
-    ];
+  const emptyEdu = () => ({ institution: "", degree: "", field: "", location: "", year: "", gpa: "" });
+  const edu = data.education?.length ? data.education : [emptyEdu()];
 
-  const update = (i, field, val) =>
-    onChange({
-      ...data,
-      education: edu.map((e, idx) =>
-        idx === i ? { ...e, [field]: val } : e
-      ),
-    });
-
-  const add = () =>
-    onChange({
-      ...data,
-      education: [
-        ...edu,
-        { institution: "", degree: "", field: "", year: "", gpa: "" },
-      ],
-    });
-
-  const remove = (i) =>
-    onChange({
-      ...data,
-      education: edu.filter((_, idx) => idx !== i),
-    });
+  const update = (i, field, val) => onChange({ ...data, education: edu.map((e, idx) => idx === i ? { ...e, [field]: val } : e) });
+  const add    = () => onChange({ ...data, education: [...edu, emptyEdu()] });
+  const remove = i  => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
 
   return (
     <div>
       <div className="card">
-        <div className="card-title">
-          <span>🎓</span> Education
-        </div>
-
+        <div className="card-title"><span>🎓</span> Education</div>
         {edu.map((e, i) => (
-          <div
-            key={i}
-            style={{
-              borderBottom:
-                i < edu.length - 1
-                  ? "1px solid var(--border)"
-                  : "none",
-              paddingBottom: 20,
-              marginBottom: 20,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 12,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--muted)",
-                }}
-              >
-                Degree {i + 1}
-              </span>
-              {edu.length > 1 && (
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => remove(i)}
-                >
-                  ✕ Remove
-                </button>
-              )}
+          <div key={i} style={{ borderBottom: i < edu.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: 20, marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>Degree {i + 1}</span>
+              {edu.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
             </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "0 20px",
-              }}
-            >
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
               <div className="field">
                 <label>Institution *</label>
-                <input
-                  value={e.institution}
-                  onChange={(ev) =>
-                    update(i, "institution", ev.target.value)
-                  }
-                  placeholder="MIT"
-                />
+                <input value={e.institution} onChange={ev => update(i, "institution", ev.target.value)} placeholder="MIT" />
               </div>
-
               <div className="field">
                 <label>Degree</label>
-                <select
-                  value={e.degree}
-                  onChange={(ev) =>
-                    update(i, "degree", ev.target.value)
-                  }
-                >
+                <select value={e.degree} onChange={ev => update(i, "degree", ev.target.value)}>
                   <option value="">Select degree</option>
                   <option>Bachelor of Science</option>
                   <option>Bachelor of Arts</option>
@@ -738,60 +781,31 @@ function EducationStep({ data, onChange, onNext, onBack }) {
                   <option>Diploma</option>
                 </select>
               </div>
-
               <div className="field">
                 <label>Field of Study</label>
-                <input
-                  value={e.field}
-                  onChange={(ev) =>
-                    update(i, "field", ev.target.value)
-                  }
-                  placeholder="Computer Science"
-                />
+                <input value={e.field} onChange={ev => update(i, "field", ev.target.value)} placeholder="Computer Science" />
               </div>
-
+              {/* ── Location field — NEW ── */}
+              <div className="field">
+                <label>Location</label>
+                <input value={e.location || ""} onChange={ev => update(i, "location", ev.target.value)} placeholder="Cambridge, MA" />
+              </div>
               <div className="field">
                 <label>Graduation Year</label>
-                <input
-                  type="number"
-                  value={e.year}
-                  onChange={(ev) =>
-                    update(i, "year", ev.target.value)
-                  }
-                  placeholder="2020"
-                />
+                <input type="number" value={e.year} onChange={ev => update(i, "year", ev.target.value)} placeholder="2020" />
               </div>
-
               <div className="field">
                 <label>GPA (Optional)</label>
-                <input
-                  value={e.gpa || ""}
-                  onChange={(ev) =>
-                    update(i, "gpa", ev.target.value)
-                  }
-                  placeholder="3.8 / 4.0"
-                />
+                <input value={e.gpa || ""} onChange={ev => update(i, "gpa", ev.target.value)} placeholder="3.8 / 4.0" />
               </div>
             </div>
           </div>
         ))}
-
-        <button className="add-row-btn" onClick={add}>
-          + Add Another Degree
-        </button>
+        <button className="add-row-btn" onClick={add}>+ Add Another Degree</button>
       </div>
-
       <div style={{ display: "flex", gap: 12 }}>
-        <button className="btn btn-ghost" onClick={onBack}>
-          ← Back
-        </button>
-        <button
-          className="btn btn-primary"
-          style={{ width: "auto" }}
-          onClick={onNext}
-        >
-          Continue to Skills →
-        </button>
+        <button className="btn btn-ghost" onClick={onBack}>← Back</button>
+        <button className="btn btn-primary" style={{ width: "auto" }} onClick={onNext}>Continue to Skills →</button>
       </div>
     </div>
   );
@@ -799,16 +813,16 @@ function EducationStep({ data, onChange, onNext, onBack }) {
 
 // ─── Skills Step ─────────────────────────────────────────────────────────────
 function SkillsStep({ data, onChange, onNext, onBack }) {
-  const selected = data.skills || [];
+  const selected   = data.skills || [];
   const [activeTab, setActiveTab] = useState(Object.keys(SKILL_CATEGORIES)[0]);
-  const [custom, setCustom] = useState("");
-  const toggle = skill => onChange({ ...data, skills: selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill] });
+  const [custom, setCustom]       = useState("");
+  const toggle    = s  => onChange({ ...data, skills: selected.includes(s) ? selected.filter(x => x !== s) : [...selected, s] });
   const addCustom = () => { if (custom.trim() && !selected.includes(custom.trim())) { onChange({ ...data, skills: [...selected, custom.trim()] }); setCustom(""); } };
 
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>⚡</span> Technical & Professional Skills</div>
+        <div className="card-title"><span>⚡</span> Technical &amp; Professional Skills</div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>Select all applicable skills. These will be matched against job descriptions.</p>
         <div className="tab-bar">
           {Object.keys(SKILL_CATEGORIES).map(cat => <button key={cat} className={`tab ${activeTab === cat ? "active" : ""}`} onClick={() => setActiveTab(cat)}>{cat}</button>)}
@@ -821,7 +835,7 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
           ))}
         </div>
         <div style={{ marginTop: 20, display: "flex", gap: 10, alignItems: "center" }}>
-          <div className="field" style={{ flex: 1, margin: 0 }}><input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Add custom skill..." onKeyDown={e => e.key === "Enter" && addCustom()} /></div>
+          <div className="field" style={{ flex: 1, margin: 0 }}><input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Add custom skill…" onKeyDown={e => e.key === "Enter" && addCustom()} /></div>
           <button className="btn btn-ghost btn-sm" onClick={addCustom}>+ Add</button>
         </div>
         {selected.length > 0 && (
@@ -841,22 +855,22 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
 
 // ─── Certifications Step ────────────────────────────────────────────────────
 function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
-  const certs = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
-  const update = (i, field, val) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
-  const remove = i => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
+  const certs  = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
+  const update = (i, f, v) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [f]: v } : c) });
+  const add    = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
+  const remove = i  => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
 
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>🏅</span> Certifications & Licenses</div>
+        <div className="card-title"><span>🏅</span> Certifications &amp; Licenses</div>
         {certs.map((c, i) => (
           <div key={i} className="cert-row">
             <div className="field" style={{ margin: 0 }}><label>Certification Name</label><input value={c.name} onChange={e => update(i, "name", e.target.value)} placeholder="AWS Solutions Architect" /></div>
             <div className="field" style={{ margin: 0 }}><label>Issuer</label><input value={c.issuer} onChange={e => update(i, "issuer", e.target.value)} placeholder="Amazon Web Services" /></div>
             <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
               <div className="field" style={{ margin: 0, width: 90 }}><label>Year</label><input type="number" value={c.year} onChange={e => update(i, "year", e.target.value)} placeholder="2023" /></div>
-              {certs.length > 1 && <button className="btn btn-ghost btn-icon" style={{ marginBottom: 0, height: 48 }} onClick={() => remove(i)}>✕</button>}
+              {certs.length > 1 && <button className="btn btn-ghost btn-icon" style={{ height: 48 }} onClick={() => remove(i)}>✕</button>}
             </div>
           </div>
         ))}
@@ -865,143 +879,114 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
       <div style={{ display: "flex", gap: 12 }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-teal" style={{ padding: "14px 32px" }} onClick={onSave} disabled={saving}>
-          {saving ? <><Spinner small /> Saving...</> : "✓ Save Profile & Continue"}
+          {saving ? <><Spinner small /> Saving…</> : "✓ Save Profile & Continue"}
         </button>
       </div>
     </div>
   );
 }
 
-// ─── Profile Builder ────────────────────────────────────────────────────────
-function ProfileBuilder({ session, initialProfile, onComplete }) {
-  const [currentStep, setCurrentStep] = useState("personal");
+// ─── Profile Builder — stepper form, shown AFTER upload or skip ─────────────
+function ProfileBuilder({ session, initialProfile, parsedProfile, onComplete }) {
+  const [currentStep,    setCurrentStep]    = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
-  const [profile, setProfile] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [profile,        setProfile]        = useState({});
+  const [saving,         setSaving]         = useState(false);
+  const [error,          setError]          = useState("");
 
-  // 🔹 Sync profile when editing existing data
+  // On mount: merge parsedProfile (from upload) or initialProfile (from edit) into form
   useEffect(() => {
+    const base   = initialProfile || {};
+    const parsed = parsedProfile  || {};
+    const merged = {
+      name:     parsed.name     || base.name     || "",
+      headline: parsed.headline || base.headline || "",
+      email:    parsed.email    || base.email    || "",
+      phone:    parsed.phone    || base.phone    || "",
+      location: parsed.location || base.location || "",
+      linkedin: parsed.linkedin || base.linkedin || "",
+      github:   parsed.github   || base.github   || "",
+      website:  parsed.website  || base.website  || "",
+      summary:  parsed.summary  || base.summary  || "",
+      companies:      (parsed.companies?.length      ? parsed.companies      : null) || base.companies      || [],
+      education:      (parsed.education?.length      ? parsed.education      : null) || base.education      || [],
+      skills:         (parsed.skills?.length         ? parsed.skills         : null) || base.skills         || [],
+      certifications: (parsed.certifications?.length ? parsed.certifications : null) || base.certifications || [],
+    };
+    setProfile(merged);
+
+    // Auto-mark steps complete when editing an existing profile
     if (initialProfile) {
-      setProfile(initialProfile);
-
-      // Mark steps as completed based on available data
-      const completed = [];
-
-      if (initialProfile.name) completed.push("personal");
-      if (initialProfile.companies?.length) completed.push("experience");
-      if (initialProfile.education?.length) completed.push("education");
-      if (initialProfile.skills?.length) completed.push("skills");
-      if (initialProfile.certifications?.length) completed.push("certifications");
-
-      setCompletedSteps(completed);
+      const c = [];
+      if (initialProfile.name)                   c.push("personal");
+      if (initialProfile.companies?.length)       c.push("experience");
+      if (initialProfile.education?.length)       c.push("education");
+      if (initialProfile.skills?.length)          c.push("skills");
+      if (initialProfile.certifications?.length)  c.push("certifications");
+      setCompletedSteps(c);
     }
-  }, [initialProfile]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stepIndex = STEPS.findIndex(s => s.id === currentStep);
-
   const goNext = () => {
     const next = STEPS[stepIndex + 1];
-    if (next) {
-      setCompletedSteps(prev => [...new Set([...prev, currentStep])]);
-      setCurrentStep(next.id);
-    }
+    if (next) { setCompletedSteps(prev => [...new Set([...prev, currentStep])]); setCurrentStep(next.id); }
   };
-
-  const goBack = () => {
-    const prev = STEPS[stepIndex - 1];
-    if (prev) setCurrentStep(prev.id);
-  };
+  const goBack = () => { const prev = STEPS[stepIndex - 1]; if (prev) setCurrentStep(prev.id); };
 
   const saveProfile = async () => {
-    setSaving(true);
-    setError("");
-    try {
-      await api.saveProfile(JSON.stringify(profile));
-      onComplete(profile);
-    } catch (e) {
-      setError(e.message);
-    }
+    setSaving(true); setError("");
+    try { await api.saveProfile(JSON.stringify(profile)); onComplete(profile); }
+    catch (e) { setError(e.message); }
     setSaving(false);
   };
+
+  // Compute filled fields from parsed data for the banner
+  const FIELD_LABELS = { name:"Name", email:"Email", phone:"Phone", location:"Location", headline:"Headline", summary:"Summary", linkedin:"LinkedIn", github:"GitHub", companies:"Experience", education:"Education", skills:"Skills", certifications:"Certifications" };
+  const filledFromParse = parsedProfile
+    ? Object.entries(parsedProfile).filter(([, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim()).map(([k]) => FIELD_LABELS[k] || k)
+    : [];
 
   return (
     <div className="main-content" style={{ marginLeft: 0 }}>
       <div className="page-header">
         <h1 className="page-title">Build Your Profile</h1>
-        <p className="page-sub">
-          Complete your profile to unlock AI-powered resume generation
-        </p>
+        <p className="page-sub">Complete your profile to unlock AI-powered resume generation</p>
       </div>
 
       {error && <Alert>{error}</Alert>}
 
-      <StepperBar
-        currentStep={currentStep}
-        completedSteps={completedSteps}
-        onNavigate={setCurrentStep}
-      />
-
-      {currentStep === "personal" && (
-        <PersonalStep
-          data={profile}
-          onChange={setProfile}
-          onNext={goNext}
-        />
+      {/* ── Parse success banner (persists at top of form) ── */}
+      {filledFromParse.length > 0 && (
+        <div className="parse-result-banner">
+          <div className="parse-result-icon">✅</div>
+          <div className="parse-result-text" style={{ flex: 1 }}>
+            <h4>{filledFromParse.length} fields auto-filled from your resume</h4>
+            <p>Review each section carefully. Edit anything that needs adjusting before saving.</p>
+            <div className="parse-fields-preview">
+              {filledFromParse.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
+            </div>
+          </div>
+        </div>
       )}
 
-      {currentStep === "experience" && (
-        <ExperienceStep
-          data={profile}
-          onChange={setProfile}
-          onNext={goNext}
-          onBack={goBack}
-        />
-      )}
+      {/* ── Stepper breadcrumbs — shown here, AFTER upload success ── */}
+      <StepperBar currentStep={currentStep} completedSteps={completedSteps} onNavigate={setCurrentStep} />
 
-      {currentStep === "education" && (
-        <EducationStep
-          data={profile}
-          onChange={setProfile}
-          onNext={goNext}
-          onBack={goBack}
-        />
-      )}
-
-      {currentStep === "skills" && (
-        <SkillsStep
-          data={profile}
-          onChange={setProfile}
-          onNext={goNext}
-          onBack={goBack}
-        />
-      )}
-
-      {currentStep === "certifications" && (
-        <CertificationsStep
-          data={profile}
-          onChange={setProfile}
-          onSave={saveProfile}
-          onBack={goBack}
-          saving={saving}
-        />
-      )}
+      {currentStep === "personal"       && <PersonalStep       data={profile} onChange={setProfile} onNext={goNext} />}
+      {currentStep === "experience"     && <ExperienceStep     data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "education"      && <EducationStep      data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "skills"         && <SkillsStep         data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "certifications" && <CertificationsStep data={profile} onChange={setProfile} onSave={saveProfile} onBack={goBack} saving={saving} />}
     </div>
   );
 }
 
-// ─── Score color helpers (4 bands) ──────────────────────────────────────────────────────
-const scoreColor = (s) =>
-  s >= 90 ? "var(--success)" :
-  s >= 75 ? "var(--accent)"  :
-  s >= 55 ? "#f0a830"        : "var(--danger)";
+// ─── Score helpers ──────────────────────────────────────────────────────────
+const scoreColor = s => s >= 90 ? "var(--success)" : s >= 75 ? "var(--accent)" : s >= 55 ? "#f0a830" : "var(--danger)";
+const scoreBg    = s => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
 
-const scoreBg = (s) =>
-  s >= 90 ? "rgba(78,205,196,0.08)"  :
-  s >= 75 ? "rgba(232,197,71,0.08)"  :
-  s >= 55 ? "rgba(240,168,48,0.08)"  : "rgba(255,107,107,0.08)";
-
-// ─── Scoring Breakdown Card ─────────────────────────────────────────────────────────────────
+// ─── Scoring Breakdown ──────────────────────────────────────────────────────
 function ScoringBreakdown({ breakdown }) {
   if (!breakdown) return null;
   const dims = [
@@ -1021,9 +1006,7 @@ function ScoringBreakdown({ breakdown }) {
             <div key={d.key} className="breakdown-item">
               <div className="breakdown-label">{d.label} <span style={{ color: "var(--accent)", opacity: 0.7 }}>({d.weight})</span></div>
               <div className="breakdown-score-val" style={{ color: col }}>{val}</div>
-              <div className="breakdown-bar-bg">
-                <div className="breakdown-bar-fill" style={{ width: `${val}%`, background: col }} />
-              </div>
+              <div className="breakdown-bar-bg"><div className="breakdown-bar-fill" style={{ width: `${val}%`, background: col }} /></div>
             </div>
           );
         })}
@@ -1037,49 +1020,37 @@ function ScoringBreakdown({ breakdown }) {
   );
 }
 
-// ─── Resume Generator ──────────────────────────────────────────────────────────────
+// ─── Resume Generator ────────────────────────────────────────────────────────
 const GEN_STEPS_LIST = [
-  "Analyzing job description for technical keywords...",
-  "Mapping your profile to role requirements...",
-  "Generating tailored resume content...",
-  "Enriching skills and experience bullets...",
-  "Calculating holistic ATS score...",
-  "Rendering PDF...",
+  "Analyzing job description for technical keywords…",
+  "Mapping your profile to role requirements…",
+  "Generating tailored resume content…",
+  "Enriching skills and experience bullets…",
+  "Calculating holistic ATS score…",
+  "Rendering PDF…",
 ];
 
 function ResumeGenerator({ profile }) {
-  const [jd, setJd] = useState("");
-  const [status, setStatus] = useState("idle");
+  const [jd, setJd]           = useState("");
+  const [status, setStatus]   = useState("idle");
   const [genStep, setGenStep] = useState(0);
   const [atsResult, setAtsResult] = useState(null);
-  const [pdfBlob, setPdfBlob] = useState(null);
-  const [error, setError] = useState("");
+  const [pdfBlob, setPdfBlob]     = useState(null);
+  const [error, setError]         = useState("");
 
   const generate = async () => {
     if (!jd.trim()) return;
     setStatus("generating"); setGenStep(0); setError(""); setAtsResult(null); setPdfBlob(null);
     try {
-      const stepInterval = setInterval(() => {
-        setGenStep(prev => prev < GEN_STEPS_LIST.length - 1 ? prev + 1 : prev);
-      }, 2000);
+      const stepInterval = setInterval(() => setGenStep(p => p < GEN_STEPS_LIST.length - 1 ? p + 1 : p), 2000);
       const result = await api.generateResumeWithScore(profile, jd);
       clearInterval(stepInterval);
       setGenStep(GEN_STEPS_LIST.length);
-
       const binaryStr = atob(result.pdfBase64);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       const blob = new Blob([bytes], { type: "application/pdf" });
-
-      setAtsResult({
-        atsScore:         result.atsScore,
-        scoreLabel:       result.scoreLabel,
-        matchedSkills:    result.matchedSkills,
-        totalSkills:      result.totalSkills,
-        matchedKeywords:  result.matchedKeywords  || [],
-        missingKeywords:  result.missingKeywords  || [],
-        scoringBreakdown: result.scoringBreakdown || null,
-      });
+      setAtsResult({ atsScore: result.atsScore, scoreLabel: result.scoreLabel, matchedSkills: result.matchedSkills, totalSkills: result.totalSkills, matchedKeywords: result.matchedKeywords || [], missingKeywords: result.missingKeywords || [], scoringBreakdown: result.scoringBreakdown || null });
       setPdfBlob(blob);
       setStatus("done");
     } catch (e) { setError(e.message); setStatus("idle"); }
@@ -1088,41 +1059,30 @@ function ResumeGenerator({ profile }) {
   const downloadPdf = () => {
     const url = URL.createObjectURL(pdfBlob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(profile.name || "Resume").replace(/\s+/g, "_")}_ATS_Optimized.pdf`;
-    a.click();
+    a.href = url; a.download = `${(profile.name || "Resume").replace(/\s+/g, "_")}_ATS_Optimized.pdf`; a.click();
     URL.revokeObjectURL(url);
   };
 
   const reset = () => { setStatus("idle"); setAtsResult(null); setPdfBlob(null); setJd(""); setGenStep(0); setError(""); };
 
-  if (status === "generating") {
-    return (
-      <div className="card generating">
-        <div className="spinner" />
-        <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>Generating Your Resume</p>
-        <div className="prog-steps">
-          {GEN_STEPS_LIST.map((s, i) => (
-            <div key={i} className={`prog-step ${i < genStep ? "done" : i === genStep ? "active" : ""}`}>
-              <div className="prog-dot" />{i < genStep ? `✓ ${s}` : s}
-            </div>
-          ))}
-        </div>
-        <p style={{ color: "var(--muted)", fontSize: 13 }}>This may take 30–60 seconds while the AI tailors your resume…</p>
+  if (status === "generating") return (
+    <div className="card generating">
+      <div className="spinner" />
+      <p style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700 }}>Generating Your Resume</p>
+      <div className="prog-steps">
+        {GEN_STEPS_LIST.map((s, i) => (
+          <div key={i} className={`prog-step ${i < genStep ? "done" : i === genStep ? "active" : ""}`}>
+            <div className="prog-dot" />{i < genStep ? `✓ ${s}` : s}
+          </div>
+        ))}
       </div>
-    );
-  }
+      <p style={{ color: "var(--muted)", fontSize: 13 }}>This may take 30–60 seconds while the AI tailors your resume…</p>
+    </div>
+  );
 
   if (status === "done" && atsResult) {
-    const sc  = atsResult.atsScore;
-    const col = scoreColor(sc);
-    const bg  = scoreBg(sc);
-    const contextMsg =
-      sc >= 90 ? "Outstanding — your resume is highly competitive for this role." :
-      sc >= 75 ? "Strong match. Weaving in the missing keywords could push you to Excellent." :
-      sc >= 55 ? "Reasonable fit. Adding the missing skills and regenerating will improve your score." :
-                 "Significant skill gap for this role. Focus on building the missing technical skills.";
-
+    const sc = atsResult.atsScore, col = scoreColor(sc), bg = scoreBg(sc);
+    const contextMsg = sc >= 90 ? "Outstanding — your resume is highly competitive for this role." : sc >= 75 ? "Strong match. Adding the missing keywords could push you to Excellent." : sc >= 55 ? "Reasonable fit. Add the missing skills and regenerate to improve your score." : "Significant skill gap for this role. Focus on building the missing technical skills.";
     return (
       <div>
         <div className="score-display" style={{ background: bg }}>
@@ -1131,53 +1091,24 @@ function ResumeGenerator({ profile }) {
           </div>
           <div className="score-info" style={{ flex: 1 }}>
             <h3>ATS Score: <span style={{ color: col }}>{atsResult.scoreLabel}</span></h3>
-            <p className="score-desc" style={{ marginBottom: 6 }}>
-              Matched <strong style={{ color: col }}>{atsResult.matchedSkills}</strong> of{" "}
-              <strong>{atsResult.totalSkills}</strong> technical keywords from the job description.
-            </p>
+            <p className="score-desc" style={{ marginBottom: 6 }}>Matched <strong style={{ color: col }}>{atsResult.matchedSkills}</strong> of <strong>{atsResult.totalSkills}</strong> keywords from the job description.</p>
             <p className="score-desc">{contextMsg}</p>
           </div>
         </div>
-
         <ScoringBreakdown breakdown={atsResult.scoringBreakdown} />
-
         <div className="card">
           <div className="card-title"><span>🎯</span> Keyword Match Analysis</div>
           <div style={{ display: "flex", gap: 28, marginBottom: 20, flexWrap: "wrap" }}>
-            {[
-              { label: "Matched",     val: atsResult.matchedKeywords.length, col: "var(--success)" },
-              { label: "Missing",     val: atsResult.missingKeywords.length, col: "var(--danger)"  },
-              { label: "Total in JD", val: atsResult.totalSkills,            col: "var(--accent)"  },
-            ].map(({ label, val, col: c }) => (
+            {[["Matched", atsResult.matchedKeywords.length, "var(--success)"], ["Missing", atsResult.missingKeywords.length, "var(--danger)"], ["Total in JD", atsResult.totalSkills, "var(--accent)"]].map(([label, val, c]) => (
               <div key={label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: c }}>{val}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
               </div>
             ))}
           </div>
-
-          {atsResult.matchedKeywords.length > 0 && (
-            <>
-              <div className="kw-section-title">✓ Found in your resume</div>
-              <div className="skills-match">
-                {atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}
-              </div>
-            </>
-          )}
-
-          {atsResult.missingKeywords.length > 0 && (
-            <>
-              <div className="kw-section-title" style={{ marginTop: 20 }}>✕ Not in your resume</div>
-              <div className="skills-match">
-                {atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}
-              </div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>
-                💡 Add missing skills to your profile and regenerate to improve your score.
-              </p>
-            </>
-          )}
+          {atsResult.matchedKeywords.length > 0 && (<><div className="kw-section-title">✓ Found in your resume</div><div className="skills-match">{atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>)}
+          {atsResult.missingKeywords.length > 0 && (<><div className="kw-section-title" style={{ marginTop: 20 }}>✕ Not in your resume</div><div className="skills-match">{atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div><p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>💡 Add missing skills to your profile and regenerate to improve your score.</p></>)}
         </div>
-
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="download-btn" onClick={downloadPdf}>⬇ Download ATS-Optimized PDF</button>
           <button className="btn btn-ghost" onClick={reset}>Try Another Job</button>
@@ -1191,23 +1122,13 @@ function ResumeGenerator({ profile }) {
       {error && <Alert>{error}</Alert>}
       <div className="card">
         <div className="card-title"><span>📋</span> Job Description</div>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-          Paste the full job description. The AI will extract technical keywords, build your tailored resume,
-          and calculate a realistic ATS score based on keyword match, experience fit, and resume quality.
-        </p>
-        <div className="field">
-          <label>Job Description *</label>
-          <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here..." rows={14} />
-        </div>
+        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>Paste the full job description. The AI will extract technical keywords, build your tailored resume, and calculate a realistic ATS score.</p>
+        <div className="field"><label>Job Description *</label><textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here…" rows={14} /></div>
       </div>
       <div className="card">
         <div className="card-title"><span>👤</span> Profile Summary</div>
         <div className="profile-grid">
-          {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
-            ["Skills", `${(profile.skills || []).length} selected`],
-            ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
-            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
-          ].map(([k, v]) => (
+          {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location], ["Skills", `${(profile.skills || []).length} selected`], ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`], ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]].map(([k, v]) => (
             <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
           ))}
         </div>
@@ -1240,15 +1161,12 @@ function ProfileOverview({ profile, onEdit }) {
           <div className="card">
             <div className="card-title"><span>👤</span> Personal</div>
             <div className="profile-grid">
-              {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
-                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
-              ].map(([k, v]) => (
+              {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone], ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]].map(([k, v]) => (
                 <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
               ))}
             </div>
             {profile.summary && <div style={{ marginTop: 16, padding: "12px 16px", background: "var(--surface2)", borderRadius: 8, fontSize: 14, lineHeight: 1.7, color: "var(--muted)" }}>{profile.summary}</div>}
           </div>
-
           <div className="card">
             <div className="card-title"><span>🏢</span> Experience ({(profile.companies || []).filter(c => c.company).length} positions)</div>
             {(profile.companies || []).filter(c => c.company).map((c, i) => (
@@ -1261,12 +1179,24 @@ function ProfileOverview({ profile, onEdit }) {
               </div>
             ))}
           </div>
-
+          <div className="card">
+            <div className="card-title"><span>🎓</span> Education</div>
+            {(profile.education || []).filter(e => e.institution).map((e, i) => (
+              <div key={i} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 12, marginBottom: 12 }}>
+                <div style={{ fontWeight: 600 }}>{e.degree}{e.degree && e.institution ? " — " : ""}{e.institution}</div>
+                <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
+                  {e.field    && <span>{e.field}</span>}
+                  {e.location && <span> · 📍 {e.location}</span>}
+                  {e.year     && <span> · {e.year}</span>}
+                  {e.gpa      && <span> · GPA {e.gpa}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
           <div className="card">
             <div className="card-title"><span>⚡</span> Skills ({(profile.skills || []).length})</div>
             <div className="skills-grid">{(profile.skills || []).map(s => <span key={s} className="skill-chip selected">{s}</span>)}</div>
           </div>
-
           {(profile.certifications || []).filter(c => c.name).length > 0 && (
             <div className="card">
               <div className="card-title"><span>🏅</span> Certifications</div>
@@ -1294,7 +1224,6 @@ function ProfileOverview({ profile, onEdit }) {
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 function Dashboard({ session, profile, onLogout, onEditProfile }) {
   const [activePage, setActivePage] = useState(profile ? "generate" : "profile");
-
   return (
     <div className="dashboard">
       <div className="sidebar">
@@ -1346,26 +1275,29 @@ function Dashboard({ session, profile, onLogout, onEditProfile }) {
 }
 
 // ─── Root App ───────────────────────────────────────────────────────────────
+// App phases:
+//   "loading"   — fetching profile from API
+//   "upload"    — NEW USER: show UploadPage (full-screen, before form)
+//   "form"      — show ProfileBuilder stepper (after upload success / skip / edit)
+//   "dashboard" — main dashboard
 export default function App() {
   const [authView, setAuthView] = useState("login");
-  const [session, setSession] = useState(() => {
+  const [session, setSession]   = useState(() => {
     const user  = localStorage.getItem("ats_user");
     const token = localStorage.getItem("ats_token");
     if (!user || !token) return null;
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       if (payload.exp && payload.exp * 1000 < Date.now()) {
-        localStorage.removeItem("ats_token");
-        localStorage.removeItem("ats_user");
-        return null;
+        localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user"); return null;
       }
-    } catch { /* malformed token — let API reject it */ }
+    } catch {}
     return JSON.parse(user);
   });
-  const [profile, setProfile] = useState(null);
-  const [buildingProfile, setBuildingProfile] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [verifiedMsg, setVerifiedMsg] = useState(false);
+  const [profile,       setProfile]       = useState(null);
+  const [appPhase,      setAppPhase]      = useState("loading");
+  const [parsedProfile, setParsedProfile] = useState(null);
+  const [verifiedMsg,   setVerifiedMsg]   = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1375,64 +1307,78 @@ export default function App() {
     }
   }, []);
 
+  // Load profile on login
   useEffect(() => {
-    if (session) {
-      setLoadingProfile(true);
-      api.getProfile()
-        .then(data => {
-          if (data.profileComplete && data.profile) {
-            try { setProfile(JSON.parse(data.profile)); }
-            catch { setProfile(null); setBuildingProfile(true); }
-          } else {
-            setBuildingProfile(true);
-          }
-        })
-        .catch(() => {
-          localStorage.removeItem("ats_token");
-          localStorage.removeItem("ats_user");
-          setSession(null);
-          setProfile(null);
-          setBuildingProfile(false);
-        })
-        .finally(() => setLoadingProfile(false));
-    }
+    if (!session) { setAppPhase("loading"); return; }
+    setAppPhase("loading");
+    api.getProfile()
+      .then(data => {
+        if (data.profileComplete && data.profile) {
+          try { setProfile(JSON.parse(data.profile)); setAppPhase("dashboard"); }
+          catch { setAppPhase("upload"); }     // corrupt JSON → re-build
+        } else {
+          setAppPhase("upload");               // new user → upload first
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user");
+        setSession(null); setAppPhase("loading");
+      });
   }, [session]);
 
-  const handleLogin = data => setSession({ email: data.email, fullName: data.fullName });
-
+  const handleLogin  = data => setSession({ email: data.email, fullName: data.fullName });
   const handleLogout = () => {
-    localStorage.removeItem("ats_token");
-    localStorage.removeItem("ats_user");
-    setSession(null); setProfile(null); setBuildingProfile(false);
+    localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user");
+    setSession(null); setProfile(null); setParsedProfile(null); setAppPhase("loading");
   };
+
+  // Upload page callbacks
+  const handleParsed      = (data) => { setParsedProfile(data); setAppPhase("form"); };
+  const handleSkipUpload  = ()     => { setParsedProfile(null); setAppPhase("form"); };
+
+  // Profile builder callbacks
+  const handleProfileComplete = (p) => { setProfile(p); setParsedProfile(null); setAppPhase("dashboard"); };
+  const handleEditProfile     = ()   => { setParsedProfile(null); setAppPhase("form"); };
 
   return (
     <>
       <style>{css}</style>
       <div className="app">
+
+        {/* ── Not logged in ── */}
         {!session && (
           authView === "login"
             ? <LoginPage onLogin={handleLogin} onSwitch={() => setAuthView("signup")} verifiedMsg={verifiedMsg} />
             : <SignupPage onSwitch={() => setAuthView("login")} />
         )}
-        {session && loadingProfile && (
+
+        {/* ── Loading spinner ── */}
+        {session && appPhase === "loading" && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
             <div className="spinner" /><p style={{ color: "var(--muted)" }}>Loading your profile…</p>
           </div>
         )}
-        {session && !loadingProfile && buildingProfile && (
-  <ProfileBuilder
-    session={session}
-    initialProfile={profile}
-    onComplete={p => {
-      setProfile(p);
-      setBuildingProfile(false);
-    }}
-  />
-)}
-        {session && !loadingProfile && !buildingProfile && (
-          <Dashboard session={session} profile={profile} onLogout={handleLogout} onEditProfile={() => setBuildingProfile(true)} />
+
+        {/* ── Upload page — shown FIRST for new users, before the form ── */}
+        {session && appPhase === "upload" && (
+          <UploadPage onParsed={handleParsed} onSkip={handleSkipUpload} />
         )}
+
+        {/* ── Profile Builder stepper — shown AFTER upload or skip ── */}
+        {session && appPhase === "form" && (
+          <ProfileBuilder
+            session={session}
+            initialProfile={profile}
+            parsedProfile={parsedProfile}
+            onComplete={handleProfileComplete}
+          />
+        )}
+
+        {/* ── Dashboard ── */}
+        {session && appPhase === "dashboard" && (
+          <Dashboard session={session} profile={profile} onLogout={handleLogout} onEditProfile={handleEditProfile} />
+        )}
+
       </div>
     </>
   );
