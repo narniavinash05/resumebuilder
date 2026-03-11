@@ -3,10 +3,7 @@ package com.resumebuilder.controller;
 import com.resumebuilder.dto.AuthDtos.AtsScoreResponse;
 import com.resumebuilder.model.Resume;
 import com.resumebuilder.model.TailorRequest;
-import com.resumebuilder.service.AtsScoreService;
-import com.resumebuilder.service.ResumeParserService;
-import com.resumebuilder.service.ResumePdfService;
-import com.resumebuilder.service.ResumeTailoringService;
+import com.resumebuilder.service.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,15 +24,18 @@ public class ResumeController {
     private final ResumePdfService       resumePdfService;
     private final AtsScoreService        atsScoreService;
     private final ResumeParserService    resumeParserService;
+    private final ResumeVersionService resumeVersionService;
 
     public ResumeController(ResumeTailoringService tailoringService,
                             ResumePdfService       resumePdfService,
                             AtsScoreService        atsScoreService,
-                            ResumeParserService resumeParserService) {
+                            ResumeParserService resumeParserService,
+                            ResumeVersionService resumeVersionService) {
         this.tailoringService   = tailoringService;
         this.resumePdfService   = resumePdfService;
         this.atsScoreService    = atsScoreService;
         this.resumeParserService = resumeParserService;
+        this.resumeVersionService = resumeVersionService;
     }
 
     // ── POST /api/resume/generate ─────────────────────────────────────────────
@@ -79,6 +79,12 @@ public class ResumeController {
         // 1. LLM call — resume + full scoring in one shot
         Resume tailoredResume = tailoringService.tailorResume(
                 request.getResumeMetaData(), request.getJobDescription());
+
+        resumeVersionService.saveResumeVersion(
+                userDetails.getUsername(),
+                request.getJobDescription(),
+                tailoredResume
+        );
 
         // 2. Map LLM scoring onto DTO (zero Java logic, pure pass-through)
         AtsScoreResponse atsScore = atsScoreService.buildFromResume(tailoredResume);

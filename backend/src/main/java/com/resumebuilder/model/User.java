@@ -1,35 +1,48 @@
 package com.resumebuilder.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
-@Data
+@Table(name = "users", indexes = {
+        @Index(name = "idx_users_email", columnList = "email")
+})
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable=false, unique=true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable=false)
     private String password;
 
-    @Column(nullable = false)
+    @Column(nullable=false)
     private String fullName;
 
-    private boolean emailVerified = false;
+    private boolean emailVerified;
 
     private String verificationToken;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private Role role = Role.USER;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 }

@@ -6,11 +6,13 @@ import com.resumebuilder.model.UserProfile;
 import com.resumebuilder.repository.UserProfileRepository;
 import com.resumebuilder.repository.UserRepository;
 import com.resumebuilder.security.JwtUtil;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -38,6 +40,7 @@ public class AuthService {
     }
 
     public MessageResponse signup(SignupRequest request) {
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
@@ -54,7 +57,6 @@ public class AuthService {
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getVerificationToken());
         } catch (Exception e) {
-            // Log but don't fail signup if mail fails
             System.err.println("Warning: Could not send verification email - " + e.getMessage());
             System.out.println(">>> VERIFY LINK: /api/auth/verify?token=" + user.getVerificationToken() + "&email=" + user.getEmail());
         }
@@ -63,6 +65,7 @@ public class AuthService {
     }
 
     public MessageResponse verifyEmail(String email, String token) {
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -82,6 +85,7 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("No account found with this email"));
 
@@ -102,22 +106,25 @@ public class AuthService {
         return new AuthResponse(token, user.getEmail(), user.getFullName(), profileComplete);
     }
 
-    public MessageResponse saveProfile(String email, String profileJson) {
+    public MessageResponse saveProfile(String email, Map<String, Object> profileJson) {
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         UserProfile profile = profileRepository.findByUser(user)
-                .orElse(new UserProfile());
+                .orElseGet(UserProfile::new);
 
         profile.setUser(user);
         profile.setProfileJson(profileJson);
         profile.setProfileComplete(true);
+
         profileRepository.save(profile);
 
         return new MessageResponse("Profile saved successfully", true);
     }
 
-    public String getProfile(String email) {
+    public Map<String, Object> getProfile(String email) {
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
