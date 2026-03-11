@@ -667,7 +667,15 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
 function ResumeUploadZone({ onParsed }) {
   const [dragging, setDragging] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [parseStep, setParseStep] = useState(0);
   const [error, setError] = useState("");
+
+  const PARSE_STEPS = [
+    "Reading your resume…",
+    "Extracting work experience…",
+    "Pulling skills & education…",
+    "Finalising profile fields…",
+  ];
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -675,43 +683,57 @@ function ResumeUploadZone({ onParsed }) {
     if (!["pdf", "docx", "doc", "txt"].includes(ext)) {
       setError("Please upload a PDF, Word (.docx/.doc), or .txt file."); return;
     }
-    setParsing(true); setError("");
+    setParsing(true); setParseStep(0); setError("");
+    const ticker = setInterval(() => setParseStep(p => Math.min(p + 1, PARSE_STEPS.length - 1)), 1800);
     try {
       const data = await api.parseResume(file);
+      clearInterval(ticker);
       onParsed(data);
     } catch (e) {
-      setError(e.message || "Failed to parse resume. Please fill in the form manually.");
+      clearInterval(ticker);
+      setError(e.message || "Failed to parse resume. You can fill the form manually instead.");
+      setParsing(false);
     }
-    setParsing(false);
   };
 
   if (parsing) {
     return (
-      <div className="card" style={{ textAlign: "center", padding: "40px" }}>
-        <div className="spinner" style={{ margin: "0 auto 16px" }} />
-        <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700 }}>Parsing your resume…</p>
-        <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 8 }}>Extracting experience, skills, education and more</p>
+      <div style={{ textAlign: "center", padding: "32px 0" }}>
+        <div className="spinner" style={{ margin: "0 auto 20px", width: 40, height: 40 }} />
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
+          Analysing your resume…
+        </p>
+        <p style={{ color: "var(--accent)", fontSize: 14, minHeight: 20 }}>
+          {PARSE_STEPS[parseStep]}
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 24, maxWidth: 280, margin: "24px auto 0" }}>
+          {PARSE_STEPS.map((s, i) => (
+            <div key={s} className={`prog-step ${i < parseStep ? "done" : i === parseStep ? "active" : ""}`}>
+              <div className="prog-dot" />
+              <span style={{ fontSize: 13 }}>{s}</span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="card" style={{ marginBottom: 28 }}>
-      <div className="card-title"><span>📄</span> Auto-fill from Resume</div>
-      <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-        Upload your existing resume and we'll automatically extract and fill in all the fields below.
-      </p>
+    <div>
       {error && <Alert>{error}</Alert>}
       <div
         className={`upload-zone ${dragging ? "drag-over" : ""}`}
+        style={{ padding: "48px 32px" }}
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
       >
         <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
-        <div style={{ fontSize: 36, marginBottom: 10 }}>📁</div>
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Drop your resume here or click to browse</div>
-        <div style={{ fontSize: 13, color: "var(--muted)" }}>Auto-fills all profile fields — review before saving</div>
+        <div style={{ fontSize: 44, marginBottom: 14 }}>📄</div>
+        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Drop your resume here or click to browse</div>
+        <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>
+          AI will extract all your details and auto-fill the form
+        </div>
         <div className="upload-formats">
           {["PDF", "DOCX", "DOC", "TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
         </div>
@@ -720,20 +742,21 @@ function ResumeUploadZone({ onParsed }) {
   );
 }
 
-// ─── Profile Builder ──────────────────────────────────────────────────────────
+// ─── Profile Builder ────────────────────────────────────────────────
 function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
+  // phase: "upload" = dedicated upload/skip screen; "steps" = breadcrumb stepper
+  const [phase, setPhase] = useState(initialProfile ? "steps" : "upload");
   const [currentStep, setCurrentStep] = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
   const [profile, setProfile] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [parsedData, setParsedData] = useState(null);
-  const [showUpload, setShowUpload] = useState(true);
 
   useEffect(() => {
     if (initialProfile) {
       setProfile(initialProfile);
-      setShowUpload(false);
+      setPhase("steps");
       const completed = [];
       if (initialProfile.name) completed.push("personal");
       if (initialProfile.companies?.length) completed.push("experience");
@@ -746,7 +769,6 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
 
   const handleParsed = (data) => {
     setParsedData(data);
-    setShowUpload(false);
     setProfile(prev => ({
       ...prev,
       name: data.name || prev.name || "",
@@ -765,6 +787,7 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
     }));
     setCurrentStep("personal");
     setCompletedSteps([]);
+    setPhase("steps");
   };
 
   const stepIndex = STEPS.findIndex(s => s.id === currentStep);
@@ -772,7 +795,10 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
     const next = STEPS[stepIndex + 1];
     if (next) { setCompletedSteps(prev => [...new Set([...prev, currentStep])]); setCurrentStep(next.id); }
   };
-  const goBack = () => { const prev = STEPS[stepIndex - 1]; if (prev) setCurrentStep(prev.id); };
+  const goBack = () => {
+    if (stepIndex === 0 && !initialProfile) { setPhase("upload"); return; }
+    const prev = STEPS[stepIndex - 1]; if (prev) setCurrentStep(prev.id);
+  };
 
   const saveProfile = async () => {
     setSaving(true); setError("");
@@ -786,6 +812,46 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   const FIELD_LABELS = { name: "Name", email: "Email", phone: "Phone", location: "Location", headline: "Headline", summary: "Summary", companies: "Experience", education: "Education", skills: "Skills", certifications: "Certifications" };
   const filledFields = parsedData ? Object.entries(parsedData).filter(([k, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim()).map(([k]) => FIELD_LABELS[k] || k) : [];
 
+  // ── Phase 1: Upload screen ────────────────────────────────────────────
+  if (phase === "upload") {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: "40px 20px" }}>
+        <div style={{ width: "100%", maxWidth: 560 }}>
+          <div style={{ textAlign: "center", marginBottom: 36 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 900, marginBottom: 12 }}>
+              Ré<b style={{ color: "var(--accent)" }}>su</b>méAI
+            </div>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>
+              Build Your Profile
+            </h1>
+            <p style={{ color: "var(--muted)", fontSize: 15, lineHeight: 1.6 }}>
+              Upload your existing resume to auto-fill all fields — or start from scratch.
+            </p>
+          </div>
+
+          <div className="card" style={{ marginBottom: 16 }}>
+            <ResumeUploadZone onParsed={handleParsed} />
+          </div>
+
+          <button
+            className="btn btn-ghost"
+            style={{ width: "100%" }}
+            onClick={() => { setProfile({}); setCurrentStep("personal"); setCompletedSteps([]); setPhase("steps"); }}
+          >
+            ✏️ Fill in manually instead
+          </button>
+
+          {onCancel && (
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Phase 2: Stepper ──────────────────────────────────────────────
   return (
     <div className="main-content" style={{ marginLeft: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
@@ -793,29 +859,36 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
           <h1 className="page-title">Build Your Profile</h1>
           <p className="page-sub">Complete your profile to unlock AI-powered resume generation</p>
         </div>
-        {onCancel && <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {!initialProfile && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setPhase("upload")} title="Go back to upload screen">
+              📄 Re-upload
+            </button>
+          )}
+          {onCancel && <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>}
+        </div>
       </div>
 
       {error && <Alert>{error}</Alert>}
-      {showUpload && <ResumeUploadZone onParsed={handleParsed} />}
 
-      {parsedData && !showUpload && (
+      {parsedData && (
         <div className="parse-result-banner" style={{ marginBottom: 20 }}>
           <span style={{ fontSize: 28 }}>✅</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, color: "var(--accent2)", marginBottom: 4 }}>Resume parsed — {filledFields.length} fields auto-filled</div>
-            <div style={{ fontSize: 13, color: "var(--muted)" }}>Review and edit each section below, then save your profile.</div>
+            <div style={{ fontWeight: 600, color: "var(--accent2)", marginBottom: 4 }}>
+              Resume parsed — {filledFields.length} fields auto-filled
+            </div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>
+              Review and edit each section below, then save your profile.
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
               {filledFields.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setParsedData(null); setProfile({}); setCompletedSteps([]); setShowUpload(true); setCurrentStep("personal"); }}>✕ Clear</button>
-        </div>
-      )}
-
-      {!showUpload && !parsedData && (
-        <div style={{ marginBottom: 20 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowUpload(true)}>📄 Upload resume to auto-fill</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => {
+            setParsedData(null); setProfile({}); setCompletedSteps([]);
+            setCurrentStep("personal"); setPhase("upload");
+          }}>✕ Clear</button>
         </div>
       )}
 
@@ -830,7 +903,6 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   );
 }
 
-// ─── Score Breakdown ──────────────────────────────────────────────────────────
 function ScoringBreakdown({ breakdown }) {
   if (!breakdown) return null;
   const dims = [
