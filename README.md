@@ -1,197 +1,428 @@
-# 🤖 RésuméAI — ATS Resume Optimization Engine
+# 🤖 RésuméAI — AI-Powered ATS Resume Optimization Engine
 
-A full-stack **AI-powered resume builder** that generates JD-aligned, ATS-optimized resumes using Spring Boot, React, and OpenAI.
+RésuméAI is a full-stack AI platform that generates **ATS-optimized resumes tailored to job descriptions** using **Spring Boot, React, OpenAI, and PostgreSQL**.
+
+The system can:
+
+- Parse uploaded resumes into structured profile data
+- Tailor resumes to job descriptions using AI
+- Generate ATS compatibility scores
+- Export professional PDF resumes
+- Track resume versions per job application
 
 ---
 
-## 🧱 Tech Stack
+# 🧱 Tech Stack
 
 | Layer | Technology |
-|---|---|
-| Backend | Java 17, Spring Boot 3.2 |
-| AI / LLM | OpenAI GPT-4o-mini |
-| PDF Generation | OpenPDF (LibrePDF) |
-| Authentication | Spring Security + JWT |
-| Database | H2 (file-based, persists across restarts) |
-| Email | Spring Mail (Gmail SMTP) |
-| HTTP Client | WebClient (Reactive) |
-| Frontend | React 18, CRA |
+|------|------------|
+| Backend | Java 17, Spring Boot |
+| AI / LLM | OpenAI Chat API |
+| Database | PostgreSQL |
+| ORM | Spring Data JPA / Hibernate |
+| Migrations | Flyway |
+| Security | Spring Security + JWT |
+| Email | SendGrid |
+| PDF Generation | OpenPDF |
+| Resume Parsing | Apache PDFBox + Apache POI |
+| HTTP Client | Spring WebClient |
+| Frontend | React |
 
 ---
 
-## 🏗 Architecture
+# 🏗 System Architecture
 
 ```
-React Frontend (localhost:3000)
-        ↓  JWT Bearer Token
-Spring Boot Backend (localhost:8080)
-        ↓
-   ┌────────────────────────────────┐
-   │  Auth Layer (JWT + H2 DB)      │
-   │  User → Profile → Resume       │
-   └────────────────────────────────┘
-        ↓
-   Prompt Builder (resume-tailor-prompt.txt)
-        ↓
-   OpenAI GPT-4o-mini
-        ↓
-   JSON Validator + Resume Model Mapper
-        ↓
-   OpenPDF Rendering Engine
-        ↓
-   ATS-Optimized PDF Resume
-```
+React Frontend
+│
+│ JWT Bearer Token
+▼
+Spring Boot API
+│
+├── Authentication Layer
+│   └── JWT + PostgreSQL
+│
+├── Profile Service
+│   └── Stores structured resume data
+│
+├── Resume Parsing Service
+│   └── Extract text from PDF/DOCX → LLM
+│
+├── Resume Tailoring Service
+│   └── LLM generates ATS-optimized resume
+│
+├── ATS Score Service
+│   └── Maps LLM scoring results
+│
+├── Resume PDF Service
+│   └── Generates professional PDF
+│
+└── Resume Version Service
+    └── Stores resume history
 
----
+Database: PostgreSQL
 
-## 🔌 API Endpoints
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/api/auth/signup` | ❌ | Register new user |
-| GET | `/api/auth/verify` | ❌ | Verify email via token |
-| POST | `/api/auth/login` | ❌ | Login, returns JWT |
-| GET | `/api/auth/profile` | ✅ | Fetch saved profile |
-| POST | `/api/auth/profile` | ✅ | Save profile JSON |
-| POST | `/api/auth/ats-score` | ✅ | Calculate ATS keyword score |
-| POST | `/api/resume/tailor-and-generate` | ✅ | AI tailor + download PDF |
-| POST | `/api/resume/generate` | ✅ | Generate PDF (no AI) |
-
----
-
-## 🧠 Core Features
-
-**AI Resume Tailoring**
-- Extracts all technical keywords from job description
-- Forces keyword distribution across Summary, Experience, and Skills
-- Rewrites experience bullets with measurable impact
-- Normalizes terminology: RDBMS, NoSQL, Cloud technologies, CI/CD pipelines
-- Target ATS match: 90–95%
-
-**ATS Scoring Engine**
-- Matches candidate skills against JD keywords
-- Returns score, matched keywords, and missing keyword suggestions
-- Color-coded result: Excellent / Good / Needs Improvement
-
-**Auth & User Management**
-- JWT-based stateless authentication
-- Email verification on signup (Gmail SMTP)
-- Per-user profile storage in H2 database
-- Profile builder with 5-step breadcrumb flow
-
-**PDF Generation**
-- Professional layout with right-aligned dates
-- Lato font typography
-- Sections: Summary, Experience, Skills, Education, Certifications
-- Clickable hyperlinks for LinkedIn, Portfolio, Certificates
-
----
-
-## 🚀 Running Locally
-
-### Prerequisites
-- Java 17+
-- Maven 3.8+
-- Node.js 16+
-
-### Backend
-
-```bash
-cd backend
-mvn clean install
-mvn spring-boot:run
-# Runs at http://localhost:8080
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm start
-# Runs at http://localhost:3000
+External Services:
+- OpenAI API
+- SendGrid Email
 ```
 
 ---
 
-## ⚙️ Configuration
+# 🔌 API Endpoints
 
-Create `src/main/resources/application.properties` (not committed — see `.gitignore`):
+## Authentication
 
-```properties
-spring.application.name=resumebuilder
-spring.main.allow-circular-references=true
+| Method | Endpoint | Description |
+|------|----------|-------------|
+| POST | `/api/auth/signup` | Register user |
+| GET | `/api/auth/verify` | Verify email via token |
+| POST | `/api/auth/login` | Login and receive JWT |
+| POST | `/api/auth/forgot-password` | Request password reset |
+| POST | `/api/auth/reset-password` | Reset password |
+
+---
+
+## Profile Management
+
+| Method | Endpoint | Description |
+|------|----------|-------------|
+| GET | `/api/auth/profile` | Fetch profile JSON |
+| POST | `/api/auth/profile` | Save profile JSON |
+
+Profile data is stored in **JSONB format in PostgreSQL**.
+
+---
+
+## Resume Features
+
+| Method | Endpoint | Description |
+|------|----------|-------------|
+| POST | `/api/resume/parse` | Upload resume and auto-extract profile data |
+| POST | `/api/resume/generate` | Generate resume PDF |
+| POST | `/api/resume/tailor-and-generate` | AI tailor resume to job description |
+| POST | `/api/resume/tailor-generate-score` | Tailor resume + ATS score + PDF |
+
+---
+
+# 🧠 Core Features
+
+## AI Resume Tailoring
+
+The system sends the candidate profile and job description to the LLM.
+
+The AI:
+
+1. Extracts ATS keywords from the job description  
+2. Rewrites the resume using those keywords  
+3. Improves bullet points with quantified impact  
+4. Produces a structured resume JSON  
+
+The JSON resume is then rendered into a professional PDF.
+
+---
+
+## ATS Scoring
+
+The LLM evaluates resume compatibility with the job description.
+
+Scoring dimensions:
+
+| Metric | Weight |
+|------|------|
+| Keyword Match | 40% |
+| Candidate Fit | 25% |
+| Resume Completeness | 20% |
+| Keyword Density | 15% |
+
+Returned fields:
+
+```
+atsScore
+scoreLabel
+matchedKeywords
+missingKeywords
+scoringBreakdown
+```
+
+---
+
+## Resume Parsing (Auto-Fill)
+
+Users can upload an existing resume.
+
+Supported formats:
+
+- PDF
+- DOCX
+- DOC
+- TXT
+
+Process:
+
+```
+Upload File
+↓
+Extract Text (PDFBox / POI)
+↓
+LLM Resume Parser
+↓
+Structured JSON Profile
+```
+
+The frontend can use this data to **auto-fill profile fields**.
+
+---
+
+## Resume Version Tracking
+
+Each tailored resume is saved with:
+
+- Job description  
+- ATS score  
+- Resume JSON  
+- Timestamp  
+
+Stored in table:
+
+```
+resume_versions
+```
+
+This allows tracking **resume history per job application**.
+
+---
+
+# 🗄 Database Schema
+
+## Users
+
+Table: `users`
+
+| Column | Type |
+|------|------|
+| id | BIGSERIAL |
+| email | VARCHAR |
+| password | VARCHAR |
+| full_name | VARCHAR |
+| email_verified | BOOLEAN |
+| verification_token | VARCHAR |
+| role | VARCHAR |
+| created_at | TIMESTAMP |
+
+---
+
+## User Profiles
+
+Table: `user_profiles`
+
+| Column | Type |
+|------|------|
+| id | BIGSERIAL |
+| user_id | BIGINT |
+| profile_json | JSONB |
+| profile_complete | BOOLEAN |
+| updated_at | TIMESTAMP |
+
+---
+
+## Resumes
+
+Table: `resumes`
+
+| Column | Type |
+|------|------|
+| id | BIGSERIAL |
+| user_id | BIGINT |
+| title | VARCHAR |
+| created_at | TIMESTAMP |
+
+---
+
+## Resume Versions
+
+Table: `resume_versions`
+
+| Column | Type |
+|------|------|
+| id | BIGSERIAL |
+| resume_id | BIGINT |
+| resume_json | JSONB |
+| job_description | TEXT |
+| ats_score | INT |
+| created_at | TIMESTAMP |
+
+---
+
+# ✉ Email System
+
+Email functionality uses **SendGrid API**.
+
+Used for:
+
+- Email verification
+- Password reset
+
+Required configuration:
+
+```
+sendgrid.api.key
+sendgrid.from.email
+```
+
+---
+
+# 🤖 LLM Integration
+
+OpenAI is used for two major functions.
+
+### Resume Parsing
+
+Extracts structured fields:
+
+- name
+- contact info
+- experience
+- education
+- skills
+- certifications
+
+### Resume Tailoring
+
+Generates:
+
+- ATS-optimized resume
+- keyword placement
+- scoring breakdown
+
+---
+
+# ⚙️ Configuration
+
+Create:
+
+```
+src/main/resources/application.properties
+```
+
+Example configuration:
+
+```
 server.port=8080
 
-# H2 File Database (persists across restarts)
-spring.datasource.url=jdbc:h2:file:./data/resumedb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
-spring.datasource.driver-class-name=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=update
-spring.h2.console.enabled=true
+# PostgreSQL
+spring.datasource.url=jdbc:postgresql://localhost:5432/resumebuilder
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.jpa.hibernate.ddl-auto=validate
 
 # JWT
-jwt.secret=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+jwt.secret=YOUR_SECRET
 jwt.expiration=86400000
 
 # OpenAI
-openai.api-key=YOUR_OPENAI_API_KEY
+openai.api-key=YOUR_API_KEY
 openai.url=https://api.openai.com/v1/chat/completions
 openai.model=gpt-4o-mini
 
-# Gmail SMTP
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=YOUR_GMAIL
-spring.mail.password=YOUR_GMAIL_APP_PASSWORD
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
+# SendGrid
+sendgrid.api.key=YOUR_SENDGRID_KEY
+sendgrid.from.email=no-reply@yourdomain.com
 
 # App URLs
 app.base-url=http://localhost:3000
 app.backend-url=http://localhost:8080
 ```
 
-> 💡 If Gmail isn't configured, the verification token prints to the IntelliJ console automatically.
+---
+
+# 🚀 Running Locally
+
+## 1️⃣ Start PostgreSQL
+
+```
+docker run -p 5432:5432 \
+-e POSTGRES_DB=resumebuilder \
+-e POSTGRES_USER=postgres \
+-e POSTGRES_PASSWORD=postgres \
+postgres
+```
 
 ---
 
-## 📁 Project Structure
+## 2️⃣ Run Backend
 
 ```
-resumebuilder/
-├── backend/
-│   └── src/main/java/com/resumebuilder/
-│       ├── config/          → SecurityConfig, JacksonConfig
-│       ├── controller/      → AuthController, ResumeController
-│       ├── dto/             → AuthDtos (request/response objects)
-│       ├── llm/             → LlmClient, LlmConfig, PromptBuilder
-│       ├── model/           → User, UserProfile, Resume, Experience...
-│       ├── repository/      → UserRepository, UserProfileRepository
-│       ├── security/        → JwtUtil, JwtAuthFilter
-│       └── service/         → AuthService, EmailService, AtsScoreService,
-│                              ResumeTailoringService, ResumePdfService
-│   └── src/main/resources/
-│       ├── prompts/resume-tailor-prompt.txt
-│       └── fonts/Lato-Regular.ttf, Lato-Bold.ttf
+mvn clean install
+mvn spring-boot:run
+```
+
+Backend runs at:
+
+```
+http://localhost:8080
+```
+
+---
+
+## 3️⃣ Run Frontend
+
+```
+cd frontend
+npm install
+npm start
+```
+
+Frontend runs at:
+
+```
+http://localhost:3000
+```
+
+---
+
+# 📁 Project Structure
+
+```
+com.resumebuilder
 │
-└── frontend/
-    └── src/
-        └── App.js           → Complete React SPA (auth + profile + generator)
+├── config
+│   ├── SecurityConfig
+│   └── JacksonConfig
+│
+├── controller
+│   ├── AuthController
+│   └── ResumeController
+│
+├── dto
+│
+├── llm
+│   ├── LlmClient
+│   ├── LlmConfig
+│   └── PromptBuilder
+│
+├── model
+│
+├── repository
+│
+├── security
+│   ├── JwtAuthFilter
+│   └── JwtUtil
+│
+├── service
+│   ├── AuthService
+│   ├── EmailService
+│   ├── ResumeParserService
+│   ├── ResumePdfService
+│   ├── ResumeTailoringService
+│   ├── ResumeVersionService
+│   └── AtsScoreService
 ```
 
 ---
 
-## 🔐 Security Notes
+# 👤 Author
 
-- `application.properties` is excluded from git via `.gitignore`
-- Never commit API keys — use IntelliJ **Run Configurations → Environment Variables**
-- JWT tokens expire after 24 hours
-
----
-
-## 👤 Author
-
-Avinash Narni — Dallas, TX
+**Avinash Narni**  
+Dallas, Texas  
+Software Engineer
