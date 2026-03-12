@@ -3,7 +3,6 @@
 /workspace.xml
 .env
 *.env
-application-local.properties
 # Maven build output
 backend/target/
 **/target/
