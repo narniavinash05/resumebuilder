@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 // ─── API Layer ────────────────────────────────────────────────────────────────
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = "http://3.142.214.168:8080";
 const getToken = () => localStorage.getItem("ats_token");
 
 const apiFetch = async (path, options = {}) => {
