@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 // ─── API Layer ────────────────────────────────────────────────────────────────
 const BASE_URL = "http://localhost:8080";
@@ -20,7 +20,8 @@ const apiFetch = async (path, options = {}) => {
     window.location.href = "/";
     return;
   }
-  const data = await res.json();
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
   if (!res.ok) throw new Error(data.message || "Request failed");
   return data;
 };
@@ -30,6 +31,10 @@ const api = {
     apiFetch("/api/auth/signup", { method: "POST", body: JSON.stringify({ fullName, email, password }) }),
   login: (email, password) =>
     apiFetch("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  forgotPassword: (email) =>
+    apiFetch("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+  resetPassword: (email, token, password) =>
+    apiFetch("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ email, token, password }) }),
   getProfile: () => apiFetch("/api/auth/profile"),
   saveProfile: (profileJson) =>
     apiFetch("/api/auth/profile", { method: "POST", body: JSON.stringify({ profileJson }) }),
@@ -62,11 +67,11 @@ const api = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const MONTHS = [
-  { value: "01", label: "January" },  { value: "02", label: "February" },
-  { value: "03", label: "March" },    { value: "04", label: "April" },
-  { value: "05", label: "May" },      { value: "06", label: "June" },
-  { value: "07", label: "July" },     { value: "08", label: "August" },
-  { value: "09", label: "September" },{ value: "10", label: "October" },
+  { value: "01", label: "January" }, { value: "02", label: "February" },
+  { value: "03", label: "March" }, { value: "04", label: "April" },
+  { value: "05", label: "May" }, { value: "06", label: "June" },
+  { value: "07", label: "July" }, { value: "08", label: "August" },
+  { value: "09", label: "September" }, { value: "10", label: "October" },
   { value: "11", label: "November" }, { value: "12", label: "December" },
 ];
 const YEARS = (() => {
@@ -110,7 +115,7 @@ const fmtDate = (val) => {
 };
 
 const scoreColor = (s) => s >= 90 ? "var(--success)" : s >= 75 ? "var(--accent)" : s >= 55 ? "#f0a830" : "var(--danger)";
-const scoreBg    = (s) => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
+const scoreBg = (s) => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const css = `
@@ -314,13 +319,13 @@ const css = `
 
 // ─── Skill categories ─────────────────────────────────────────────────────────
 const SKILL_CATEGORIES = {
-  "Programming Languages": ["JavaScript","TypeScript","Python","Java","C++","C#","Go","Rust","Swift","Kotlin","PHP","Ruby","Scala","R"],
-  "Frontend": ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
-  "Backend": ["Node.js","Express.js","Django","FastAPI","Spring Boot","Laravel","Ruby on Rails","REST APIs","Microservices"],
-  "Cloud & DevOps": ["AWS","Azure","GCP","Docker","Kubernetes","Terraform","CI/CD","Jenkins","GitHub Actions","Linux"],
-  "Databases": ["PostgreSQL","MySQL","MongoDB","Redis","DynamoDB","Elasticsearch","SQLite","Cassandra"],
-  "Data & AI": ["Machine Learning","Deep Learning","TensorFlow","PyTorch","Pandas","NumPy","Scikit-learn","Data Analysis","Power BI","Tableau"],
-  "Soft Skills": ["Leadership","Communication","Problem Solving","Team Collaboration","Agile","Scrum","Project Management","Mentoring"],
+  "Programming Languages": ["JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin", "PHP", "Ruby", "Scala", "R"],
+  "Frontend": ["React", "Vue.js", "Angular", "Next.js", "Svelte", "HTML5", "CSS3", "Tailwind CSS", "SASS", "Redux", "GraphQL"],
+  "Backend": ["Node.js", "Express.js", "Django", "FastAPI", "Spring Boot", "Laravel", "Ruby on Rails", "REST APIs", "Microservices"],
+  "Cloud & DevOps": ["AWS", "Azure", "GCP", "Docker", "Kubernetes", "Terraform", "CI/CD", "Jenkins", "GitHub Actions", "Linux"],
+  "Databases": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "DynamoDB", "Elasticsearch", "SQLite", "Cassandra"],
+  "Data & AI": ["Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Scikit-learn", "Data Analysis", "Power BI", "Tableau"],
+  "Soft Skills": ["Leadership", "Communication", "Problem Solving", "Team Collaboration", "Agile", "Scrum", "Project Management", "Mentoring"],
 };
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -347,7 +352,8 @@ function AuthBrand() {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
+// ✅ FIX: Added onForgotPassword to props
+function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -373,8 +379,23 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg }) {
           <p className="auth-sub">Sign in to continue optimizing your career</p>
           {verifiedMsg && <Alert type="success">✓ Email verified! You can now log in.</Alert>}
           {error && <Alert>{error}</Alert>}
-          <div className="field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
-          <div className="field"><label>Password</label><input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} /></div>
+          <div className="field">
+            <label>Email Address</label>
+            <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          </div>
+          {/* ✅ FIX: Uses prop instead of undefined variable, no page reload */}
+          <div style={{ textAlign: "right", marginBottom: 14 }}>
+            <button
+              style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 13 }}
+              onClick={onForgotPassword}
+            >
+              Forgot Password?
+            </button>
+          </div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !email || !password}>
             {loading ? <><Spinner small /> Signing in...</> : "Sign In →"}
           </button>
@@ -434,6 +455,172 @@ function SignupPage({ onSwitch }) {
             {loading ? <><Spinner small /> Creating...</> : "Create Account →"}
           </button>
           <div className="auth-switch">Already have an account? <button onClick={onSwitch}>Sign in</button></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Forgot Password ──────────────────────────────────────────────────────────
+function ForgotPasswordPage({ onBack }) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await api.forgotPassword(email);
+      setSent(true);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  };
+
+  if (sent) {
+    return (
+      <div className="auth-page">
+        <AuthBrand />
+        <div className="auth-form-side">
+          <div className="auth-card">
+            <h1 className="auth-title">Check your email</h1>
+            <Alert type="success">Reset link sent to {email}</Alert>
+            <button className="btn btn-primary" onClick={onBack}>Back to Login</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="auth-page">
+      <AuthBrand />
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <h1 className="auth-title">Forgot Password</h1>
+          <p className="auth-sub">Enter your email to receive a reset link</p>
+          {error && <Alert>{error}</Alert>}
+          <div className="field">
+            <label>Email Address</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && email && submit()}
+            />
+          </div>
+          <button className="btn btn-primary" disabled={!email || loading} onClick={submit}>
+            {loading ? <><Spinner small /> Sending...</> : "Send Reset Link"}
+          </button>
+          <div className="auth-switch">
+            <button onClick={onBack}>← Back to Login</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reset Password Page ──────────────────────────────────────────────────────
+
+function ResetPasswordPage({ onBack }) {
+  // ✅ Read token and email from URL query params
+  // Email link format: http://localhost:3000/?page=reset-password&token=xxx&email=yyy
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  const email = params.get("email");
+
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // ✅ Invalid/missing token — show error with full styled layout
+  if (!token || !email) {
+    return (
+      <div className="auth-page">
+        <AuthBrand />
+        <div className="auth-form-side">
+          <div className="auth-card">
+            <h1 className="auth-title">Invalid Link</h1>
+            <Alert>This reset link is invalid or has expired. Please request a new one.</Alert>
+            <button className="btn btn-primary" onClick={onBack}>Back to Login</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const submit = async () => {
+    if (password !== confirm) { setError("Passwords do not match"); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    setLoading(true);
+    setError("");
+    try {
+      await api.resetPassword(email, token, password);
+      setSuccess(true);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  };
+
+  // ✅ Success state
+  if (success) {
+    return (
+      <div className="auth-page">
+        <AuthBrand />
+        <div className="auth-form-side">
+          <div className="auth-card">
+            <h1 className="auth-title">Password Reset!</h1>
+            <Alert type="success">Your password has been updated successfully.</Alert>
+            <button className="btn btn-primary" onClick={onBack}>Sign In →</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Reset form
+  return (
+    <div className="auth-page">
+      <AuthBrand />
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <h1 className="auth-title">Reset Password</h1>
+          <p className="auth-sub">Choose a new password for <strong>{email}</strong></p>
+          {error && <Alert>{error}</Alert>}
+          <div className="field">
+            <label>New Password</label>
+            <input
+              type="password"
+              placeholder="Min 6 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Confirm Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && password && confirm && submit()}
+            />
+          </div>
+          <button
+            className="btn btn-primary"
+            disabled={!password || !confirm || loading}
+            onClick={submit}
+          >
+            {loading ? <><Spinner small /> Resetting...</> : "Reset Password"}
+          </button>
         </div>
       </div>
     </div>
@@ -700,12 +887,8 @@ function ResumeUploadZone({ onParsed }) {
     return (
       <div style={{ textAlign: "center", padding: "32px 0" }}>
         <div className="spinner" style={{ margin: "0 auto 20px", width: 40, height: 40 }} />
-        <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
-          Analysing your resume…
-        </p>
-        <p style={{ color: "var(--accent)", fontSize: 14, minHeight: 20 }}>
-          {PARSE_STEPS[parseStep]}
-        </p>
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Analysing your resume…</p>
+        <p style={{ color: "var(--accent)", fontSize: 14, minHeight: 20 }}>{PARSE_STEPS[parseStep]}</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 24, maxWidth: 280, margin: "24px auto 0" }}>
           {PARSE_STEPS.map((s, i) => (
             <div key={s} className={`prog-step ${i < parseStep ? "done" : i === parseStep ? "active" : ""}`}>
@@ -731,9 +914,7 @@ function ResumeUploadZone({ onParsed }) {
         <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
         <div style={{ fontSize: 44, marginBottom: 14 }}>📄</div>
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Drop your resume here or click to browse</div>
-        <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>
-          AI will extract all your details and auto-fill the form
-        </div>
+        <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>AI will extract all your details and auto-fill the form</div>
         <div className="upload-formats">
           {["PDF", "DOCX", "DOC", "TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
         </div>
@@ -742,9 +923,8 @@ function ResumeUploadZone({ onParsed }) {
   );
 }
 
-// ─── Profile Builder ────────────────────────────────────────────────
+// ─── Profile Builder ──────────────────────────────────────────────────────────
 function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
-  // phase: "upload" = dedicated upload/skip screen; "steps" = breadcrumb stepper
   const [phase, setPhase] = useState(initialProfile ? "steps" : "upload");
   const [currentStep, setCurrentStep] = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
@@ -812,7 +992,6 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   const FIELD_LABELS = { name: "Name", email: "Email", phone: "Phone", location: "Location", headline: "Headline", summary: "Summary", companies: "Experience", education: "Education", skills: "Skills", certifications: "Certifications" };
   const filledFields = parsedData ? Object.entries(parsedData).filter(([k, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim()).map(([k]) => FIELD_LABELS[k] || k) : [];
 
-  // ── Phase 1: Upload screen ────────────────────────────────────────────
   if (phase === "upload") {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: "40px 20px" }}>
@@ -821,26 +1000,15 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
             <div style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 900, marginBottom: 12 }}>
               Ré<b style={{ color: "var(--accent)" }}>su</b>méAI
             </div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>
-              Build Your Profile
-            </h1>
-            <p style={{ color: "var(--muted)", fontSize: 15, lineHeight: 1.6 }}>
-              Upload your existing resume to auto-fill all fields — or start from scratch.
-            </p>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>Build Your Profile</h1>
+            <p style={{ color: "var(--muted)", fontSize: 15, lineHeight: 1.6 }}>Upload your existing resume to auto-fill all fields — or start from scratch.</p>
           </div>
-
           <div className="card" style={{ marginBottom: 16 }}>
             <ResumeUploadZone onParsed={handleParsed} />
           </div>
-
-          <button
-            className="btn btn-ghost"
-            style={{ width: "100%" }}
-            onClick={() => { setProfile({}); setCurrentStep("personal"); setCompletedSteps([]); setPhase("steps"); }}
-          >
+          <button className="btn btn-ghost" style={{ width: "100%" }} onClick={() => { setProfile({}); setCurrentStep("personal"); setCompletedSteps([]); setPhase("steps"); }}>
             ✏️ Fill in manually instead
           </button>
-
           {onCancel && (
             <div style={{ textAlign: "center", marginTop: 12 }}>
               <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>
@@ -851,7 +1019,6 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
     );
   }
 
-  // ── Phase 2: Stepper ──────────────────────────────────────────────
   return (
     <div className="main-content" style={{ marginLeft: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
@@ -861,9 +1028,7 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {!initialProfile && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setPhase("upload")} title="Go back to upload screen">
-              📄 Re-upload
-            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setPhase("upload")} title="Go back to upload screen">📄 Re-upload</button>
           )}
           {onCancel && <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>}
         </div>
@@ -875,20 +1040,13 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
         <div className="parse-result-banner" style={{ marginBottom: 20 }}>
           <span style={{ fontSize: 28 }}>✅</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, color: "var(--accent2)", marginBottom: 4 }}>
-              Resume parsed — {filledFields.length} fields auto-filled
-            </div>
-            <div style={{ fontSize: 13, color: "var(--muted)" }}>
-              Review and edit each section below, then save your profile.
-            </div>
+            <div style={{ fontWeight: 600, color: "var(--accent2)", marginBottom: 4 }}>Resume parsed — {filledFields.length} fields auto-filled</div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>Review and edit each section below, then save your profile.</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
               {filledFields.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => {
-            setParsedData(null); setProfile({}); setCompletedSteps([]);
-            setCurrentStep("personal"); setPhase("upload");
-          }}>✕ Clear</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setParsedData(null); setProfile({}); setCompletedSteps([]); setCurrentStep("personal"); setPhase("upload"); }}>✕ Clear</button>
         </div>
       )}
 
@@ -903,6 +1061,7 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   );
 }
 
+// ─── Scoring Breakdown ────────────────────────────────────────────────────────
 function ScoringBreakdown({ breakdown }) {
   if (!breakdown) return null;
   const dims = [
@@ -989,8 +1148,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
 
       onSaveResume({
         id: Date.now().toString(),
-        company,
-        position,
+        company, position,
         generatedAt: new Date().toISOString(),
         atsScore: result.atsScore,
         scoreLabel: result.scoreLabel,
@@ -1037,8 +1195,8 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
     const bg = scoreBg(sc);
     const contextMsg = sc >= 90 ? "Outstanding — your resume is highly competitive for this role." :
       sc >= 75 ? "Strong match. Weaving in the missing keywords could push you to Excellent." :
-      sc >= 55 ? "Reasonable fit. Adding the missing skills and regenerating will improve your score." :
-      "Significant skill gap for this role. Focus on building the missing technical skills.";
+        sc >= 55 ? "Reasonable fit. Adding the missing skills and regenerating will improve your score." :
+          "Significant skill gap for this role. Focus on building the missing technical skills.";
 
     return (
       <div>
@@ -1057,9 +1215,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
           </div>
           <div className="score-info" style={{ flex: 1 }}>
             <h3>ATS Score: <span style={{ color: col }}>{atsResult.scoreLabel}</span></h3>
-            <p className="score-desc" style={{ marginBottom: 6 }}>
-              Matched <strong style={{ color: col }}>{atsResult.matchedSkills}</strong> of <strong>{atsResult.totalSkills}</strong> technical keywords.
-            </p>
+            <p className="score-desc" style={{ marginBottom: 6 }}>Matched <strong style={{ color: col }}>{atsResult.matchedSkills}</strong> of <strong>{atsResult.totalSkills}</strong> technical keywords.</p>
             <p className="score-desc">{contextMsg}</p>
           </div>
         </div>
@@ -1082,12 +1238,12 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
           </div>
           {atsResult.matchedKeywords.length > 0 && (
             <><div className="kw-section-title">✓ Found in your resume</div>
-            <div className="skills-match">{atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
+              <div className="skills-match">{atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
           )}
           {atsResult.missingKeywords.length > 0 && (
             <><div className="kw-section-title" style={{ marginTop: 20 }}>✕ Not in your resume</div>
-            <div className="skills-match">{atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div>
-            <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>💡 Add missing skills to your profile and regenerate to improve your score.</p></>
+              <div className="skills-match">{atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div>
+              <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>💡 Add missing skills to your profile and regenerate to improve your score.</p></>
           )}
         </div>
 
@@ -1102,42 +1258,34 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
   return (
     <div>
       {error && <Alert>{error}</Alert>}
-
       <div className="card">
         <div className="card-title"><span>🎯</span> Target Role</div>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>
-          Tell us where you're applying. This lets us tailor the resume specifically for this company and role.
-        </p>
+        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>Tell us where you're applying. This lets us tailor the resume specifically for this company and role.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
           <div className="field"><label>Company Name *</label><input value={company} onChange={e => setCompany(e.target.value)} placeholder="Google, Amazon, Stripe..." /></div>
           <div className="field"><label>Position / Role *</label><input value={position} onChange={e => setPosition(e.target.value)} placeholder="Senior Software Engineer" /></div>
         </div>
       </div>
-
       <div className="card">
         <div className="card-title"><span>📋</span> Job Description</div>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-          Paste the full job description. The AI will extract keywords, build your tailored resume, and calculate a realistic ATS score.
-        </p>
+        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>Paste the full job description. The AI will extract keywords, build your tailored resume, and calculate a realistic ATS score.</p>
         <div className="field">
           <label>Job Description *</label>
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here..." rows={14} />
         </div>
       </div>
-
       <div className="card">
         <div className="card-title"><span>👤</span> Profile Summary</div>
         <div className="profile-grid">
           {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
-            ["Skills", `${(profile.skills || []).length} selected`],
-            ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
-            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
+          ["Skills", `${(profile.skills || []).length} selected`],
+          ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
+          ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
           ].map(([k, v]) => (
             <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
           ))}
         </div>
       </div>
-
       <button
         className="btn btn-primary"
         style={{ width: "auto", padding: "16px 40px", fontSize: 16 }}
@@ -1183,7 +1331,6 @@ function ResumeDetailModal({ resume, onClose }) {
             Generated {new Date(resume.generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
           </div>
         </div>
-
         <div className="score-display" style={{ background: bg, marginBottom: 20 }}>
           <div className="score-ring" style={{ background: `conic-gradient(${col} ${sc * 3.6}deg, var(--surface2) 0)` }}>
             <span className="score-num" style={{ color: col }}>{sc}</span>
@@ -1193,23 +1340,20 @@ function ResumeDetailModal({ resume, onClose }) {
             <p className="score-desc">Matched {resume.matchedKeywords?.length || 0} keywords from the job description.</p>
           </div>
         </div>
-
         <ScoringBreakdown breakdown={resume.scoringBreakdown} />
-
         {(resume.matchedKeywords?.length > 0 || resume.missingKeywords?.length > 0) && (
           <div className="card">
             <div className="card-title"><span>🎯</span> Keywords</div>
             {resume.matchedKeywords?.length > 0 && (
               <><div className="kw-section-title">✓ Matched</div>
-              <div className="skills-match">{resume.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
+                <div className="skills-match">{resume.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
             )}
             {resume.missingKeywords?.length > 0 && (
               <><div className="kw-section-title" style={{ marginTop: 16 }}>✕ Missing</div>
-              <div className="skills-match">{resume.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div></>
+                <div className="skills-match">{resume.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div></>
             )}
           </div>
         )}
-
         <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
           {resume.pdfBase64 && <button className="download-btn" onClick={downloadPdf}>⬇ Download PDF</button>}
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
@@ -1219,7 +1363,7 @@ function ResumeDetailModal({ resume, onClose }) {
   );
 }
 
-// ─── Resume Card (extracted to avoid hook-in-map) ────────────────────────────
+// ─── Resume Card ──────────────────────────────────────────────────────────────
 function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
   const [showDetail, setShowDetail] = useState(false);
   const col = scoreColor(resume.atsScore);
@@ -1365,7 +1509,7 @@ function ProfileOverview({ profile, onEdit }) {
             <div className="card-title"><span>👤</span> Personal</div>
             <div className="profile-grid">
               {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
-                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
+              ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
               ].map(([k, v]) => (
                 <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
               ))}
@@ -1547,8 +1691,11 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
 }
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
+// Replace your entire App() export default function with this:
+
 export default function App() {
   const [authView, setAuthView] = useState("login");
+  const [showForgot, setShowForgot] = useState(false);
   const [session, setSession] = useState(() => {
     const user = localStorage.getItem("ats_user");
     const token = localStorage.getItem("ats_token");
@@ -1558,7 +1705,7 @@ export default function App() {
       if (payload.exp && payload.exp * 1000 < Date.now()) {
         localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user"); return null;
       }
-    } catch {}
+    } catch { }
     return JSON.parse(user);
   });
   const [profile, setProfile] = useState(null);
@@ -1612,7 +1759,7 @@ export default function App() {
     setGeneratedResumes(updated);
     if (profile) {
       const profileWithHistory = { ...profile, _generatedResumes: updated };
-      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch { }
     }
   };
 
@@ -1621,7 +1768,7 @@ export default function App() {
     setGeneratedResumes(updated);
     if (profile) {
       const profileWithHistory = { ...profile, _generatedResumes: updated };
-      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch { }
     }
   };
 
@@ -1631,39 +1778,76 @@ export default function App() {
     setBuildingProfile(false);
   };
 
+  // ✅ Use query param instead of pathname so React SPA loads index.html correctly
+  const urlParams = new URLSearchParams(window.location.search);
+  const isResetPage = urlParams.get("page") === "reset-password";
+
   return (
     <>
       <style>{css}</style>
       <div className="app">
-        {!session && (
-          authView === "login"
-            ? <LoginPage onLogin={handleLogin} onSwitch={() => setAuthView("signup")} verifiedMsg={verifiedMsg} />
-            : <SignupPage onSwitch={() => setAuthView("login")} />
+
+        {/* ✅ Reset password page — triggered via ?page=reset-password in email link */}
+        {isResetPage && (
+          <ResetPasswordPage onBack={() => {
+            // Clear query params and go back to login
+            window.history.pushState({}, "", "/");
+            window.location.reload();
+          }} />
         )}
-        {session && loadingProfile && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
-            <div className="spinner" /><p style={{ color: "var(--muted)" }}>Loading your profile…</p>
-          </div>
+
+        {/* ✅ All normal app routes */}
+        {!isResetPage && (
+          <>
+            {/* Not logged in — show login, signup, or forgot password */}
+            {!session && !showForgot && (
+              authView === "login"
+                ? <LoginPage
+                    onLogin={handleLogin}
+                    onSwitch={() => setAuthView("signup")}
+                    verifiedMsg={verifiedMsg}
+                    onForgotPassword={() => setShowForgot(true)}
+                  />
+                : <SignupPage onSwitch={() => setAuthView("login")} />
+            )}
+
+            {!session && showForgot && (
+              <ForgotPasswordPage onBack={() => setShowForgot(false)} />
+            )}
+
+            {/* Loading profile */}
+            {session && loadingProfile && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
+                <div className="spinner" />
+                <p style={{ color: "var(--muted)" }}>Loading your profile…</p>
+              </div>
+            )}
+
+            {/* Profile builder */}
+            {session && !loadingProfile && buildingProfile && (
+              <ProfileBuilder
+                session={session}
+                initialProfile={profile}
+                onComplete={handleProfileComplete}
+                onCancel={profile ? () => setBuildingProfile(false) : null}
+              />
+            )}
+
+            {/* Main dashboard */}
+            {session && !loadingProfile && !buildingProfile && (
+              <Dashboard
+                session={session}
+                profile={profile}
+                generatedResumes={generatedResumes}
+                onLogout={handleLogout}
+                onEditProfile={() => setBuildingProfile(true)}
+                onSaveResume={handleSaveResume}
+                onDeleteResume={handleDeleteResume}
+              />
+            )}
+          </>
         )}
-        {session && !loadingProfile && buildingProfile && (
-          <ProfileBuilder
-            session={session}
-            initialProfile={profile}
-            onComplete={handleProfileComplete}
-            onCancel={profile ? () => setBuildingProfile(false) : null}
-          />
-        )}
-        {session && !loadingProfile && !buildingProfile && (
-          <Dashboard
-            session={session}
-            profile={profile}
-            generatedResumes={generatedResumes}
-            onLogout={handleLogout}
-            onEditProfile={() => setBuildingProfile(true)}
-            onSaveResume={handleSaveResume}
-            onDeleteResume={handleDeleteResume}
-          />
-        )}
+
       </div>
     </>
   );

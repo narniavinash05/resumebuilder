@@ -56,6 +56,51 @@ public class AuthController {
         }
     }
 
+    // ── POST /api/auth/forgot-password ───────────────────────────────────────────
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            if (email == null || email.isBlank()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Email is required", false));
+            }
+            authService.processForgotPassword(email);
+            // Always return 200 even if email not found (security best practice)
+            return ResponseEntity.ok(new MessageResponse("If that email exists, a reset link has been sent", true));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage(), false));
+        }
+    }
+
+    // ── POST /api/auth/reset-password ────────────────────────────────────────────
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        try {
+            String email    = body.get("email");
+            String token    = body.get("token");
+            String password = body.get("password");
+
+            if (email == null || token == null || password == null) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Email, token, and password are required", false));
+            }
+            authService.resetPassword(email, token, password);
+            return ResponseEntity.ok(new MessageResponse("Password reset successful", true));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage(), false));
+        }
+    }
+
+    // ── GET /api/auth/profile ─────────────────────────────────────────────────────
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Map<String, Object> profile = authService.getProfile(userDetails.getUsername());
+            return ResponseEntity.ok(profile);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage(), false));
+        }
+    }
+
     // ── POST /api/auth/profile ────────────────────────────────────────────────
     @PostMapping("/profile")
     public ResponseEntity<?> saveProfile(@AuthenticationPrincipal UserDetails userDetails,
