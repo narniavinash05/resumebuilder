@@ -1701,7 +1701,9 @@ export default function App() {
     const token = localStorage.getItem("ats_token");
     if (!user || !token) return null;
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(atob(base64));
       if (payload.exp && payload.exp * 1000 < Date.now()) {
         localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user"); return null;
       }
@@ -1803,11 +1805,11 @@ export default function App() {
             {!session && !showForgot && (
               authView === "login"
                 ? <LoginPage
-                    onLogin={handleLogin}
-                    onSwitch={() => setAuthView("signup")}
-                    verifiedMsg={verifiedMsg}
-                    onForgotPassword={() => setShowForgot(true)}
-                  />
+                  onLogin={handleLogin}
+                  onSwitch={() => setAuthView("signup")}
+                  verifiedMsg={verifiedMsg}
+                  onForgotPassword={() => setShowForgot(true)}
+                />
                 : <SignupPage onSwitch={() => setAuthView("login")} />
             )}
 
