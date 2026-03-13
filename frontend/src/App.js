@@ -81,6 +81,69 @@ const YEARS = (() => {
   return arr;
 })();
 
+const validatePassword = (password) => {
+  const checks = {
+    length:   password.length >= 8,
+    upper:    /[A-Z]/.test(password),
+    lower:    /[a-z]/.test(password),
+    number:   /[0-9]/.test(password),
+    special:  /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+  };
+  const passed = Object.values(checks).filter(Boolean).length;
+  const errors = [];
+  if (!checks.length)  errors.push("At least 8 characters");
+  if (!checks.upper)   errors.push("One uppercase letter (A-Z)");
+  if (!checks.lower)   errors.push("One lowercase letter (a-z)");
+  if (!checks.number)  errors.push("One number (0-9)");
+  if (!checks.special) errors.push("One special character (!@#$...)");
+  return { checks, errors, passed, strong: passed === 5 };
+};
+
+function PasswordStrengthMeter({ password }) {
+  if (!password) return null;
+  const { checks, passed } = validatePassword(password);
+  const colors = ["#ff4444", "#ff4444", "#ff8800", "#e8c547", "#4ecdc4"];
+  const labels = ["", "Weak", "Weak", "Fair", "Good", "Strong"];
+  const color = colors[passed - 1] || "var(--border)";
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+        {[1,2,3,4,5].map(i => (
+          <div key={i} style={{
+            flex: 1, height: 4, borderRadius: 2,
+            background: i <= passed ? colors[passed - 1] : "var(--surface3)",
+            transition: "background 0.3s",
+          }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <span style={{ fontSize: 12, color, fontWeight: 600 }}>{labels[passed]}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>{passed}/5</span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {[
+          { key: "length",  label: "8+ chars"   },
+          { key: "upper",   label: "A-Z"         },
+          { key: "lower",   label: "a-z"         },
+          { key: "number",  label: "0-9"         },
+          { key: "special", label: "!@#$"        },
+        ].map(({ key, label }) => (
+          <span key={key} style={{
+            fontSize: 11, padding: "3px 8px", borderRadius: 10, fontWeight: 500,
+            background: checks[key] ? "rgba(78,205,196,0.15)" : "var(--surface2)",
+            color:      checks[key] ? "var(--accent2)"        : "var(--muted)",
+            border:     `1px solid ${checks[key] ? "rgba(78,205,196,0.3)" : "var(--border)"}`,
+            transition: "all 0.2s",
+          }}>
+            {checks[key] ? "✓" : "○"} {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MonthYearPicker({ value, onChange, disabled }) {
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
@@ -503,7 +566,8 @@ function SignupPage({ onSwitch }) {
   const handleSubmit = async () => {
     setError("");
     if (form.password !== form.confirm) { setError("Passwords don't match"); return; }
-    if (form.password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    const { errors, strong } = validatePassword(form.password);
+    if (!strong) { setError("Password must include: " + errors.join(", ")); return; }
     setLoading(true);
     try { await api.signup(form.fullName, form.email, form.password); setSuccess(true); }
     catch (e) { setError(e.message); }
@@ -535,8 +599,21 @@ function SignupPage({ onSwitch }) {
           {error && <Alert>{error}</Alert>}
           <div className="field"><label>Full Name</label><input placeholder="Jane Smith" value={form.fullName} onChange={set("fullName")} /></div>
           <div className="field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} /></div>
-          <div className="field"><label>Password</label><input type="password" placeholder="Min 6 characters" value={form.password} onChange={set("password")} /></div>
-          <div className="field"><label>Confirm Password</label><input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} /></div>
+          <div className="field">
+            <label>Password</label>
+            <input type="password" placeholder="Min 8 characters" value={form.password} onChange={set("password")} />
+            <PasswordStrengthMeter password={form.password} />
+          </div>
+          <div className="field">
+            <label>Confirm Password</label>
+            <input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} />
+            {form.confirm && form.password !== form.confirm && (
+              <div style={{ marginTop: 6, fontSize: 12, color: "var(--danger)" }}>✕ Passwords do not match</div>
+            )}
+            {form.confirm && form.password === form.confirm && (
+              <div style={{ marginTop: 6, fontSize: 12, color: "var(--success)" }}>✓ Passwords match</div>
+            )}
+          </div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !form.fullName || !form.email || !form.password}>
             {loading ? <><Spinner small /> Creating...</> : "Create Account →"}
           </button>
@@ -622,7 +699,8 @@ function ResetPasswordPage({ onBack }) {
 
   const submit = async () => {
     if (password !== confirm) { setError("Passwords do not match"); return; }
-    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    const { errors, strong } = validatePassword(password);
+    if (!strong) { setError("Password must include: " + errors.join(", ")); return; }
     setLoading(true); setError("");
     try { await api.resetPassword(email, token, password); setSuccess(true); }
     catch (e) { setError(e.message); }
@@ -650,8 +728,21 @@ function ResetPasswordPage({ onBack }) {
           <h1 className="auth-title">Reset Password</h1>
           <p className="auth-sub">Choose a new password for <strong>{email}</strong></p>
           {error && <Alert>{error}</Alert>}
-          <div className="field"><label>New Password</label><input type="password" placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} /></div>
-          <div className="field"><label>Confirm Password</label><input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && password && confirm && submit()} /></div>
+          <div className="field">
+            <label>New Password</label>
+            <input type="password" placeholder="Min 8 characters" value={password} onChange={e => setPassword(e.target.value)} />
+            <PasswordStrengthMeter password={password} />
+          </div>
+          <div className="field">
+            <label>Confirm Password</label>
+            <input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && password && confirm && submit()} />
+            {confirm && password !== confirm && (
+              <div style={{ marginTop: 6, fontSize: 12, color: "var(--danger)" }}>✕ Passwords do not match</div>
+            )}
+            {confirm && password === confirm && (
+              <div style={{ marginTop: 6, fontSize: 12, color: "var(--success)" }}>✓ Passwords match</div>
+            )}
+          </div>
           <button className="btn btn-primary" disabled={!password || !confirm || loading} onClick={submit}>
             {loading ? <><Spinner small /> Resetting...</> : "Reset Password"}
           </button>
