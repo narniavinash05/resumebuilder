@@ -3,6 +3,7 @@ package com.resumebuilder.controller;
 import com.resumebuilder.dto.AuthDtos.*;
 import com.resumebuilder.service.AuthService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +16,9 @@ import java.util.*;
 public class AuthController {
 
     private final AuthService authService;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
@@ -38,11 +42,12 @@ public class AuthController {
             authService.verifyEmail(email, token);
 
             return ResponseEntity.status(302)
-                    .header("Location", "http://localhost:3000?verified=true")
+                    .header("Location", baseUrl + "?verified=true")
                     .build();
 
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage(), false));
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse(e.getMessage(), false));
         }
     }
 
