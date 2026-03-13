@@ -184,7 +184,7 @@ const css = `
   .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 500; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: rgba(232,197,71,0.12); color: var(--accent); }
-  .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-icon { display: flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
   .nav-badge { font-size: 11px; font-weight: 700; background: var(--accent); color: #0a0a0f; border-radius: 10px; padding: 2px 7px; }
   .sidebar-user { padding: 16px; border-top: 1px solid var(--border); }
   .user-info { display: flex; align-items: center; gap: 10px; }
@@ -198,7 +198,6 @@ const css = `
 
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 20px; }
   .card-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-  .card-title span { font-size: 18px; }
 
   .home-hero { background: linear-gradient(135deg, rgba(232,197,71,0.08), rgba(78,205,196,0.06)); border: 1px solid rgba(232,197,71,0.15); border-radius: 16px; padding: 40px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
   .home-hero h1 { font-family: var(--font-display); font-size: 32px; font-weight: 900; margin-bottom: 10px; }
@@ -211,7 +210,8 @@ const css = `
   .action-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; cursor: pointer; transition: all 0.2s; }
   .action-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
   .action-card.teal:hover { border-color: var(--accent2); }
-  .action-card-icon { font-size: 32px; margin-bottom: 14px; }
+  .action-card-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(232,197,71,0.12); display: flex; align-items: center; justify-content: center; color: var(--accent); margin-bottom: 14px; }
+  .action-card.teal .action-card-icon { background: rgba(78,205,196,0.12); color: var(--accent2); }
   .action-card-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; font-family: var(--font-display); }
   .action-card-sub { font-size: 14px; color: var(--muted); line-height: 1.5; }
 
@@ -328,6 +328,97 @@ const SKILL_CATEGORIES = {
   "Soft Skills": ["Leadership", "Communication", "Problem Solving", "Team Collaboration", "Agile", "Scrum", "Project Management", "Mentoring"],
 };
 
+// ─── CHANGE 2: SVG Nav Icons (replaces all emoji icons) ──────────────────────
+function NavIcon({ name, size = 16 }) {
+  const icons = {
+    home: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+        <path d="M9 21V12h6v9"/>
+      </svg>
+    ),
+    sparkle: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l2.4 7.6H22l-6.2 4.5 2.4 7.6L12 17.2l-6.2 4.5 2.4-7.6L2 9.6h7.6L12 2z"/>
+      </svg>
+    ),
+    file: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    ),
+    user: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    ),
+    info: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+    ),
+    copy: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2"/>
+        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+      </svg>
+    ),
+    download: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    ),
+    refresh: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+      </svg>
+    ),
+    trash: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+        <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+      </svg>
+    ),
+    upload: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    ),
+    warning: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    ),
+    check: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    ),
+    edit: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+    ),
+  };
+  return icons[name] || null;
+}
+
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 function Alert({ type = "error", children }) {
   return <div className={`alert alert-${type}`}>{children}</div>;
@@ -352,7 +443,6 @@ function AuthBrand() {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-// ✅ FIX: Added onForgotPassword to props
 function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -377,7 +467,7 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
         <div className="auth-card">
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-sub">Sign in to continue optimizing your career</p>
-          {verifiedMsg && <Alert type="success">✓ Email verified! You can now log in.</Alert>}
+          {verifiedMsg && <Alert type="success">Email verified! You can now log in.</Alert>}
           {error && <Alert>{error}</Alert>}
           <div className="field">
             <label>Email Address</label>
@@ -387,12 +477,8 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
             <label>Password</label>
             <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
           </div>
-          {/* ✅ FIX: Uses prop instead of undefined variable, no page reload */}
           <div style={{ textAlign: "right", marginBottom: 14 }}>
-            <button
-              style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 13 }}
-              onClick={onForgotPassword}
-            >
+            <button style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 13 }} onClick={onForgotPassword}>
               Forgot Password?
             </button>
           </div>
@@ -431,8 +517,8 @@ function SignupPage({ onSwitch }) {
         <div className="auth-card">
           <h1 className="auth-title">Check your inbox</h1>
           <p className="auth-sub">Verification email sent to <strong>{form.email}</strong></p>
-          <Alert type="success">✓ Account created! Click the link in your email to verify.</Alert>
-          <Alert type="info">💡 Check spam if not received. Link also appears in Spring Boot logs.</Alert>
+          <Alert type="success">Account created! Click the link in your email to verify.</Alert>
+          <Alert type="info">Check spam if not received.</Alert>
           <div style={{ textAlign: "center", marginTop: 20 }}><button className="btn btn-ghost" onClick={onSwitch}>Back to Sign In</button></div>
         </div>
       </div>
@@ -469,31 +555,24 @@ function ForgotPasswordPage({ onBack }) {
   const [error, setError] = useState("");
 
   const submit = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      await api.forgotPassword(email);
-      setSent(true);
-    } catch (e) {
-      setError(e.message);
-    }
+    setLoading(true); setError("");
+    try { await api.forgotPassword(email); setSent(true); }
+    catch (e) { setError(e.message); }
     setLoading(false);
   };
 
-  if (sent) {
-    return (
-      <div className="auth-page">
-        <AuthBrand />
-        <div className="auth-form-side">
-          <div className="auth-card">
-            <h1 className="auth-title">Check your email</h1>
-            <Alert type="success">Reset link sent to {email}</Alert>
-            <button className="btn btn-primary" onClick={onBack}>Back to Login</button>
-          </div>
+  if (sent) return (
+    <div className="auth-page">
+      <AuthBrand />
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <h1 className="auth-title">Check your email</h1>
+          <Alert type="success">Reset link sent to {email}</Alert>
+          <button className="btn btn-primary" onClick={onBack}>Back to Login</button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="auth-page">
@@ -505,88 +584,64 @@ function ForgotPasswordPage({ onBack }) {
           {error && <Alert>{error}</Alert>}
           <div className="field">
             <label>Email Address</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && email && submit()}
-            />
+            <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && email && submit()} />
           </div>
           <button className="btn btn-primary" disabled={!email || loading} onClick={submit}>
             {loading ? <><Spinner small /> Sending...</> : "Send Reset Link"}
           </button>
-          <div className="auth-switch">
-            <button onClick={onBack}>← Back to Login</button>
-          </div>
+          <div className="auth-switch"><button onClick={onBack}>← Back to Login</button></div>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Reset Password Page ──────────────────────────────────────────────────────
-
+// ─── Reset Password ───────────────────────────────────────────────────────────
 function ResetPasswordPage({ onBack }) {
-  // ✅ Read token and email from URL query params
-  // Email link format: http://localhost:3000/?page=reset-password&token=xxx&email=yyy
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
   const email = params.get("email");
-
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ Invalid/missing token — show error with full styled layout
-  if (!token || !email) {
-    return (
-      <div className="auth-page">
-        <AuthBrand />
-        <div className="auth-form-side">
-          <div className="auth-card">
-            <h1 className="auth-title">Invalid Link</h1>
-            <Alert>This reset link is invalid or has expired. Please request a new one.</Alert>
-            <button className="btn btn-primary" onClick={onBack}>Back to Login</button>
-          </div>
+  if (!token || !email) return (
+    <div className="auth-page">
+      <AuthBrand />
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <h1 className="auth-title">Invalid Link</h1>
+          <Alert>This reset link is invalid or has expired. Please request a new one.</Alert>
+          <button className="btn btn-primary" onClick={onBack}>Back to Login</button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   const submit = async () => {
     if (password !== confirm) { setError("Passwords do not match"); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
-    setLoading(true);
-    setError("");
-    try {
-      await api.resetPassword(email, token, password);
-      setSuccess(true);
-    } catch (e) {
-      setError(e.message);
-    }
+    setLoading(true); setError("");
+    try { await api.resetPassword(email, token, password); setSuccess(true); }
+    catch (e) { setError(e.message); }
     setLoading(false);
   };
 
-  // ✅ Success state
-  if (success) {
-    return (
-      <div className="auth-page">
-        <AuthBrand />
-        <div className="auth-form-side">
-          <div className="auth-card">
-            <h1 className="auth-title">Password Reset!</h1>
-            <Alert type="success">Your password has been updated successfully.</Alert>
-            <button className="btn btn-primary" onClick={onBack}>Sign In →</button>
-          </div>
+  if (success) return (
+    <div className="auth-page">
+      <AuthBrand />
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <h1 className="auth-title">Password Reset!</h1>
+          <Alert type="success">Your password has been updated successfully.</Alert>
+          <button className="btn btn-primary" onClick={onBack}>Sign In →</button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // ✅ Reset form
   return (
     <div className="auth-page">
       <AuthBrand />
@@ -595,30 +650,9 @@ function ResetPasswordPage({ onBack }) {
           <h1 className="auth-title">Reset Password</h1>
           <p className="auth-sub">Choose a new password for <strong>{email}</strong></p>
           {error && <Alert>{error}</Alert>}
-          <div className="field">
-            <label>New Password</label>
-            <input
-              type="password"
-              placeholder="Min 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label>Confirm Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && password && confirm && submit()}
-            />
-          </div>
-          <button
-            className="btn btn-primary"
-            disabled={!password || !confirm || loading}
-            onClick={submit}
-          >
+          <div className="field"><label>New Password</label><input type="password" placeholder="Min 6 characters" value={password} onChange={e => setPassword(e.target.value)} /></div>
+          <div className="field"><label>Confirm Password</label><input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && password && confirm && submit()} /></div>
+          <button className="btn btn-primary" disabled={!password || !confirm || loading} onClick={submit}>
             {loading ? <><Spinner small /> Resetting...</> : "Reset Password"}
           </button>
         </div>
@@ -629,11 +663,11 @@ function ResetPasswordPage({ onBack }) {
 
 // ─── Profile Stepper ──────────────────────────────────────────────────────────
 const STEPS = [
-  { id: "personal", label: "Personal", icon: "👤" },
-  { id: "experience", label: "Experience", icon: "🏢" },
-  { id: "education", label: "Education", icon: "🎓" },
-  { id: "skills", label: "Skills", icon: "⚡" },
-  { id: "certifications", label: "Certifications", icon: "🏅" },
+  { id: "personal", label: "Personal" },
+  { id: "experience", label: "Experience" },
+  { id: "education", label: "Education" },
+  { id: "skills", label: "Skills" },
+  { id: "certifications", label: "Certifications" },
 ];
 
 function StepperBar({ currentStep, completedSteps, onNavigate }) {
@@ -645,7 +679,7 @@ function StepperBar({ currentStep, completedSteps, onNavigate }) {
             className={`step ${currentStep === step.id ? "active" : ""} ${completedSteps.includes(step.id) ? "done" : ""}`}
             onClick={() => (completedSteps.includes(step.id) || currentStep === step.id) && onNavigate(step.id)}
           >
-            <div className="step-num">{completedSteps.includes(step.id) && currentStep !== step.id ? "✓" : i + 1}</div>
+            <div className="step-num">{completedSteps.includes(step.id) && currentStep !== step.id ? <NavIcon name="check" size={12} /> : i + 1}</div>
             <span className="step-label">{step.label}</span>
           </div>
           {i < STEPS.length - 1 && <div className="step-divider" />}
@@ -660,7 +694,7 @@ function PersonalStep({ data, onChange, onNext }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>👤</span> Personal Information</div>
+        <div className="card-title"><NavIcon name="user" size={18} /> Personal Information</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
           <div className="field"><label>Full Name *</label><input value={data.name || ""} onChange={set("name")} placeholder="Jane Smith" /></div>
           <div className="field"><label>Job Title / Headline *</label><input value={data.headline || ""} onChange={set("headline")} placeholder="Senior Software Engineer" /></div>
@@ -688,23 +722,23 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>🏢</span> Work Experience</div>
+        <div className="card-title"><NavIcon name="file" size={18} /> Work Experience</div>
         {companies.map((c, i) => (
           <div key={i} style={{ borderBottom: i < companies.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: 28, marginBottom: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.6px" }}>Position {i + 1}</span>
-              {companies.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
+              {companies.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>Remove</button>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
               <div className="field"><label>Company *</label><input value={c.company} onChange={e => update(i, "company", e.target.value)} placeholder="Acme Corp" /></div>
               <div className="field"><label>Job Title *</label><input value={c.role} onChange={e => update(i, "role", e.target.value)} placeholder="Software Engineer" /></div>
             </div>
-            <div className="field"><label>Location</label><input value={c.location || ""} onChange={e => update(i, "location", e.target.value)} placeholder="Dallas, TX / Remote / New York, NY (Hybrid)" /></div>
+            <div className="field"><label>Location</label><input value={c.location || ""} onChange={e => update(i, "location", e.target.value)} placeholder="Dallas, TX / Remote" /></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", marginBottom: 8 }}>
               <div><span className="date-label">Start Date</span><MonthYearPicker value={c.startDate || ""} onChange={val => update(i, "startDate", val)} /></div>
               <div>
                 <span className="date-label">End Date</span>
-                {c.current ? <div className="present-pill">📌 Currently working here</div> : <MonthYearPicker value={c.endDate || ""} onChange={val => update(i, "endDate", val)} />}
+                {c.current ? <div className="present-pill">Currently working here</div> : <MonthYearPicker value={c.endDate || ""} onChange={val => update(i, "endDate", val)} />}
                 <label style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>
                   <input type="checkbox" checked={!!c.current} onChange={e => update(i, "current", e.target.checked)} style={{ width: 14, height: 14 }} />
                   I currently work here
@@ -713,7 +747,7 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
             </div>
             <div className="field" style={{ marginTop: 8 }}>
               <label>Key Achievements & Responsibilities</label>
-              <textarea value={c.description} onChange={e => update(i, "description", e.target.value)} placeholder={"• Led team of 5 engineers...\n• Built system that improved performance by 40%...\n• Deployed microservices on AWS EKS..."} rows={5} />
+              <textarea value={c.description} onChange={e => update(i, "description", e.target.value)} placeholder={"• Led team of 5 engineers...\n• Built system that improved performance by 40%..."} rows={5} />
             </div>
           </div>
         ))}
@@ -737,12 +771,12 @@ function EducationStep({ data, onChange, onNext, onBack }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>🎓</span> Education</div>
+        <div className="card-title"><NavIcon name="info" size={18} /> Education</div>
         {edu.map((e, i) => (
           <div key={i} style={{ borderBottom: i < edu.length - 1 ? "1px solid var(--border)" : "none", paddingBottom: 20, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>Degree {i + 1}</span>
-              {edu.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>✕ Remove</button>}
+              {edu.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>Remove</button>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
               <div className="field"><label>Institution *</label><input value={e.institution} onChange={ev => update(i, "institution", ev.target.value)} placeholder="MIT" /></div>
@@ -761,7 +795,7 @@ function EducationStep({ data, onChange, onNext, onBack }) {
                 </select>
               </div>
               <div className="field"><label>Field of Study</label><input value={e.field} onChange={ev => update(i, "field", ev.target.value)} placeholder="Computer Science" /></div>
-              <div className="field"><label>Location (City, ST)</label><input value={e.location || ""} onChange={ev => update(i, "location", ev.target.value)} placeholder="Cambridge, MA" /></div>
+              <div className="field"><label>Location</label><input value={e.location || ""} onChange={ev => update(i, "location", ev.target.value)} placeholder="Cambridge, MA" /></div>
               <div className="field"><label>Graduation Year</label><input type="number" value={e.year} onChange={ev => update(i, "year", ev.target.value)} placeholder="2020" /></div>
               <div className="field"><label>GPA (Optional)</label><input value={e.gpa || ""} onChange={ev => update(i, "gpa", ev.target.value)} placeholder="3.8 / 4.0" /></div>
             </div>
@@ -787,7 +821,7 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>⚡</span> Technical & Professional Skills</div>
+        <div className="card-title"><NavIcon name="sparkle" size={18} /> Technical & Professional Skills</div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>Select all applicable skills. These will be matched against job descriptions.</p>
         <div className="tab-bar">
           {Object.keys(SKILL_CATEGORIES).map(cat => <button key={cat} className={`tab ${activeTab === cat ? "active" : ""}`} onClick={() => setActiveTab(cat)}>{cat}</button>)}
@@ -827,7 +861,7 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
   return (
     <div>
       <div className="card">
-        <div className="card-title"><span>🏅</span> Certifications & Licenses</div>
+        <div className="card-title"><NavIcon name="check" size={18} /> Certifications & Licenses</div>
         {certs.map((c, i) => (
           <div key={i} className="cert-row">
             <div className="field" style={{ margin: 0 }}><label>Certification Name</label><input value={c.name} onChange={e => update(i, "name", e.target.value)} placeholder="AWS Solutions Architect" /></div>
@@ -843,7 +877,7 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
       <div style={{ display: "flex", gap: 12 }}>
         <button className="btn btn-ghost" onClick={onBack}>← Back</button>
         <button className="btn btn-teal" style={{ padding: "14px 32px" }} onClick={onSave} disabled={saving}>
-          {saving ? <><Spinner small /> Saving...</> : "✓ Save Profile & Continue"}
+          {saving ? <><Spinner small /> Saving...</> : "Save Profile & Continue"}
         </button>
       </div>
     </div>
@@ -912,7 +946,7 @@ function ResumeUploadZone({ onParsed }) {
         onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
       >
         <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
-        <div style={{ fontSize: 44, marginBottom: 14 }}>📄</div>
+        <div style={{ color: "var(--accent)", marginBottom: 14, display: "flex", justifyContent: "center" }}><NavIcon name="upload" size={40} /></div>
         <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Drop your resume here or click to browse</div>
         <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>AI will extract all your details and auto-fill the form</div>
         <div className="upload-formats">
@@ -923,7 +957,7 @@ function ResumeUploadZone({ onParsed }) {
   );
 }
 
-// ─── Profile Builder ──────────────────────────────────────────────────────────
+// ─── CHANGE 3: Profile Builder with sidebar on upload screen ─────────────────
 function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   const [phase, setPhase] = useState(initialProfile ? "steps" : "upload");
   const [currentStep, setCurrentStep] = useState("personal");
@@ -992,28 +1026,64 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   const FIELD_LABELS = { name: "Name", email: "Email", phone: "Phone", location: "Location", headline: "Headline", summary: "Summary", companies: "Experience", education: "Education", skills: "Skills", certifications: "Certifications" };
   const filledFields = parsedData ? Object.entries(parsedData).filter(([k, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim()).map(([k]) => FIELD_LABELS[k] || k) : [];
 
+  const SIDEBAR_NAV = [
+    { label: "Dashboard",       icon: "home"    },
+    { label: "Generate Resume", icon: "sparkle" },
+    { label: "My Resumes",      icon: "file"    },
+    { label: "My Profile",      icon: "user"    },
+    { label: "About",           icon: "info"    },
+  ];
+
+  // CHANGE 3: Upload phase now shows sidebar when user is logged in (onCancel exists)
   if (phase === "upload") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: "40px 20px" }}>
-        <div style={{ width: "100%", maxWidth: 560 }}>
-          <div style={{ textAlign: "center", marginBottom: 36 }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 900, marginBottom: 12 }}>
-              Ré<b style={{ color: "var(--accent)" }}>su</b>méAI
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        {onCancel && (
+          <div className="sidebar" style={{ position: "fixed" }}>
+            <div className="sidebar-logo" onClick={onCancel} title="Back to Dashboard">
+              <div className="logo-text">Résumé<b>AI</b></div>
+              <span className="home-hint">↩ Back to dashboard</span>
             </div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>Build Your Profile</h1>
-            <p style={{ color: "var(--muted)", fontSize: 15, lineHeight: 1.6 }}>Upload your existing resume to auto-fill all fields — or start from scratch.</p>
+            <nav className="sidebar-nav">
+              {SIDEBAR_NAV.map(item => (
+                <button key={item.label} className="nav-item" onClick={onCancel}>
+                  <span className="nav-icon"><NavIcon name={item.icon} /></span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
           </div>
-          <div className="card" style={{ marginBottom: 16 }}>
-            <ResumeUploadZone onParsed={handleParsed} />
-          </div>
-          <button className="btn btn-ghost" style={{ width: "100%" }} onClick={() => { setProfile({}); setCurrentStep("personal"); setCompletedSteps([]); setPhase("steps"); }}>
-            ✏️ Fill in manually instead
-          </button>
-          {onCancel && (
-            <div style={{ textAlign: "center", marginTop: 12 }}>
-              <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>
+        )}
+        <div style={{
+          marginLeft: onCancel ? 240 : 0,
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg)",
+          padding: "40px 20px",
+          minHeight: "100vh",
+        }}>
+          <div style={{ width: "100%", maxWidth: 560 }}>
+            <div style={{ textAlign: "center", marginBottom: 36 }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 900, marginBottom: 12 }}>
+                Ré<b style={{ color: "var(--accent)" }}>su</b>méAI
+              </div>
+              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>Build Your Profile</h1>
+              <p style={{ color: "var(--muted)", fontSize: 15, lineHeight: 1.6 }}>Upload your existing resume to auto-fill all fields — or start from scratch.</p>
             </div>
-          )}
+            <div className="card" style={{ marginBottom: 16 }}>
+              <ResumeUploadZone onParsed={handleParsed} />
+            </div>
+            <button className="btn btn-ghost" style={{ width: "100%" }} onClick={() => { setProfile({}); setCurrentStep("personal"); setCompletedSteps([]); setPhase("steps"); }}>
+              Fill in manually instead
+            </button>
+            {onCancel && (
+              <div style={{ textAlign: "center", marginTop: 12 }}>
+                <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1028,9 +1098,9 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {!initialProfile && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setPhase("upload")} title="Go back to upload screen">📄 Re-upload</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setPhase("upload")}>Re-upload Resume</button>
           )}
-          {onCancel && <button className="btn btn-ghost btn-sm" onClick={onCancel}>✕ Cancel</button>}
+          {onCancel && <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>}
         </div>
       </div>
 
@@ -1038,7 +1108,7 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
 
       {parsedData && (
         <div className="parse-result-banner" style={{ marginBottom: 20 }}>
-          <span style={{ fontSize: 28 }}>✅</span>
+          <div style={{ color: "var(--accent2)" }}><NavIcon name="check" size={24} /></div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, color: "var(--accent2)", marginBottom: 4 }}>Resume parsed — {filledFields.length} fields auto-filled</div>
             <div style={{ fontSize: 13, color: "var(--muted)" }}>Review and edit each section below, then save your profile.</div>
@@ -1046,7 +1116,7 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
               {filledFields.map(f => <span key={f} className="parse-field-pill">✓ {f}</span>)}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setParsedData(null); setProfile({}); setCompletedSteps([]); setCurrentStep("personal"); setPhase("upload"); }}>✕ Clear</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setParsedData(null); setProfile({}); setCompletedSteps([]); setCurrentStep("personal"); setPhase("upload"); }}>Clear</button>
         </div>
       )}
 
@@ -1072,7 +1142,7 @@ function ScoringBreakdown({ breakdown }) {
   ];
   return (
     <div className="card">
-      <div className="card-title"><span>📊</span> Score Breakdown</div>
+      <div className="card-title">Score Breakdown</div>
       <div className="breakdown-grid">
         {dims.map(d => {
           const val = breakdown[d.key] || 0;
@@ -1088,7 +1158,7 @@ function ScoringBreakdown({ breakdown }) {
       </div>
       {breakdown.notes && (
         <div style={{ marginTop: 14, padding: "12px 16px", background: "var(--surface2)", borderRadius: 8, fontSize: 13, color: "var(--muted)", lineHeight: 1.6, borderLeft: "3px solid var(--accent)" }}>
-          💬 {breakdown.notes}
+          {breakdown.notes}
         </div>
       )}
     </div>
@@ -1128,7 +1198,9 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
       clearInterval(intervalId);
       setGenStep(GEN_STEPS_LIST.length);
 
-      const binaryStr = atob(result.pdfBase64);
+      const base64Url = result.pdfBase64;
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const binaryStr = atob(base64);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       const blob = new Blob([bytes], { type: "application/pdf" });
@@ -1202,7 +1274,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
       <div>
         {company && position && (
           <div style={{ marginBottom: 20, padding: "12px 20px", background: "var(--surface2)", borderRadius: 10, display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 20 }}>🎯</span>
+            <div style={{ color: "var(--accent)" }}><NavIcon name="sparkle" size={20} /></div>
             <div>
               <div style={{ fontWeight: 600 }}>{position}</div>
               <div style={{ fontSize: 13, color: "var(--muted)" }}>{company}</div>
@@ -1223,7 +1295,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
         <ScoringBreakdown breakdown={atsResult.scoringBreakdown} />
 
         <div className="card">
-          <div className="card-title"><span>🎯</span> Keyword Match Analysis</div>
+          <div className="card-title">Keyword Match Analysis</div>
           <div style={{ display: "flex", gap: 28, marginBottom: 20, flexWrap: "wrap" }}>
             {[
               { label: "Matched", val: atsResult.matchedKeywords.length, col: "var(--success)" },
@@ -1237,18 +1309,18 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
             ))}
           </div>
           {atsResult.matchedKeywords.length > 0 && (
-            <><div className="kw-section-title">✓ Found in your resume</div>
+            <><div className="kw-section-title">Found in your resume</div>
               <div className="skills-match">{atsResult.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
           )}
           {atsResult.missingKeywords.length > 0 && (
-            <><div className="kw-section-title" style={{ marginTop: 20 }}>✕ Not in your resume</div>
+            <><div className="kw-section-title" style={{ marginTop: 20 }}>Not in your resume</div>
               <div className="skills-match">{atsResult.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div>
-              <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>💡 Add missing skills to your profile and regenerate to improve your score.</p></>
+              <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>Add missing skills to your profile and regenerate to improve your score.</p></>
           )}
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="download-btn" onClick={downloadPdf}>⬇ Download ATS-Optimized PDF</button>
+          <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={18} /> Download ATS-Optimized PDF</button>
           <button className="btn btn-ghost" onClick={reset}>Try Another Job</button>
         </div>
       </div>
@@ -1259,7 +1331,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
     <div>
       {error && <Alert>{error}</Alert>}
       <div className="card">
-        <div className="card-title"><span>🎯</span> Target Role</div>
+        <div className="card-title">Target Role</div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>Tell us where you're applying. This lets us tailor the resume specifically for this company and role.</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
           <div className="field"><label>Company Name *</label><input value={company} onChange={e => setCompany(e.target.value)} placeholder="Google, Amazon, Stripe..." /></div>
@@ -1267,7 +1339,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
         </div>
       </div>
       <div className="card">
-        <div className="card-title"><span>📋</span> Job Description</div>
+        <div className="card-title">Job Description</div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>Paste the full job description. The AI will extract keywords, build your tailored resume, and calculate a realistic ATS score.</p>
         <div className="field">
           <label>Job Description *</label>
@@ -1275,7 +1347,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
         </div>
       </div>
       <div className="card">
-        <div className="card-title"><span>👤</span> Profile Summary</div>
+        <div className="card-title">Profile Summary</div>
         <div className="profile-grid">
           {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
           ["Skills", `${(profile.skills || []).length} selected`],
@@ -1292,7 +1364,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
         disabled={!jd.trim() || !company.trim() || !position.trim()}
         onClick={startGenerate}
       >
-        🤖 Generate ATS-Optimized Resume
+        Generate ATS-Optimized Resume
       </button>
       {(!jd.trim() || !company.trim() || !position.trim()) && (
         <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 10 }}>Fill in company name, position, and job description to continue</p>
@@ -1308,7 +1380,8 @@ function ResumeDetailModal({ resume, onClose }) {
   const bg = scoreBg(sc);
 
   const downloadPdf = () => {
-    const binaryStr = atob(resume.pdfBase64);
+    const base64 = resume.pdfBase64.replace(/-/g, "+").replace(/_/g, "/");
+    const binaryStr = atob(base64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
     const blob = new Blob([bytes], { type: "application/pdf" });
@@ -1343,19 +1416,19 @@ function ResumeDetailModal({ resume, onClose }) {
         <ScoringBreakdown breakdown={resume.scoringBreakdown} />
         {(resume.matchedKeywords?.length > 0 || resume.missingKeywords?.length > 0) && (
           <div className="card">
-            <div className="card-title"><span>🎯</span> Keywords</div>
+            <div className="card-title">Keywords</div>
             {resume.matchedKeywords?.length > 0 && (
-              <><div className="kw-section-title">✓ Matched</div>
+              <><div className="kw-section-title">Matched</div>
                 <div className="skills-match">{resume.matchedKeywords.map(s => <span key={s} className="match-chip hit">✓ {s}</span>)}</div></>
             )}
             {resume.missingKeywords?.length > 0 && (
-              <><div className="kw-section-title" style={{ marginTop: 16 }}>✕ Missing</div>
+              <><div className="kw-section-title" style={{ marginTop: 16 }}>Missing</div>
                 <div className="skills-match">{resume.missingKeywords.map(s => <span key={s} className="match-chip miss">{s}</span>)}</div></>
             )}
           </div>
         )}
         <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-          {resume.pdfBase64 && <button className="download-btn" onClick={downloadPdf}>⬇ Download PDF</button>}
+          {resume.pdfBase64 && <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={16} /> Download PDF</button>}
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
         </div>
       </div>
@@ -1370,12 +1443,17 @@ function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
 
   const downloadPdf = (e) => {
     e.stopPropagation();
-    const s = atob(resume.pdfBase64); const b = new Uint8Array(s.length);
+    const base64 = resume.pdfBase64.replace(/-/g, "+").replace(/_/g, "/");
+    const s = atob(base64);
+    const b = new Uint8Array(s.length);
     for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
     const blob = new Blob([b], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
     a.download = `Resume_${resume.company}_${resume.position}.pdf`.replace(/\s+/g, "_");
-    a.click(); URL.revokeObjectURL(url);
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -1405,9 +1483,17 @@ function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
           </span>
         </div>
         <div className="resume-card-actions" onClick={e => e.stopPropagation()}>
-          {resume.pdfBase64 && <button className="btn btn-ghost btn-sm" onClick={downloadPdf}>⬇ PDF</button>}
-          <button className="btn btn-ghost btn-sm" onClick={() => onNavigate("generate", { company: resume.company, position: resume.position })}>↻ Redo</button>
-          <button className="btn btn-danger btn-sm" onClick={() => onDelete(resume.id)}>🗑</button>
+          {resume.pdfBase64 && (
+            <button className="btn btn-ghost btn-sm" onClick={downloadPdf} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <NavIcon name="download" size={13} /> PDF
+            </button>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={() => onNavigate("generate", { company: resume.company, position: resume.position })} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <NavIcon name="refresh" size={13} /> Redo
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={() => onDelete(resume.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <NavIcon name="trash" size={13} /> Delete
+          </button>
         </div>
       </div>
     </div>
@@ -1432,7 +1518,7 @@ function HomeDashboard({ profile, generatedResumes, onNavigate, onDeleteResume }
         </div>
         <div style={{ display: "flex", gap: 12, flexShrink: 0, flexWrap: "wrap" }}>
           {profile
-            ? <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("generate")}>✨ Generate Resume</button>
+            ? <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("generate")}>Generate Resume</button>
             : <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("profile")}>Complete Profile →</button>
           }
         </div>
@@ -1457,12 +1543,12 @@ function HomeDashboard({ profile, generatedResumes, onNavigate, onDeleteResume }
 
       <div className="home-actions">
         <div className="action-card" onClick={() => onNavigate("generate")}>
-          <div className="action-card-icon">✨</div>
+          <div className="action-card-icon"><NavIcon name="sparkle" size={22} /></div>
           <div className="action-card-title">Generate ATS Resume</div>
           <div className="action-card-sub">Paste a job description, enter company details, and let AI craft a perfectly tailored resume with ATS score analysis.</div>
         </div>
         <div className="action-card teal" onClick={() => onNavigate("profile")}>
-          <div className="action-card-icon">👤</div>
+          <div className="action-card-icon"><NavIcon name="user" size={22} /></div>
           <div className="action-card-title">{profile ? "Edit Profile" : "Build Profile"}</div>
           <div className="action-card-sub">{profile ? "Update your work history, skills, education, and certifications to improve future resume quality." : "Build your professional profile with your work history, skills, and education."}</div>
         </div>
@@ -1485,10 +1571,10 @@ function HomeDashboard({ profile, generatedResumes, onNavigate, onDeleteResume }
 
       {generatedResumes.length === 0 && profile && (
         <div className="card" style={{ textAlign: "center", padding: "60px 40px" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+          <div style={{ color: "var(--muted)", display: "flex", justifyContent: "center", marginBottom: 16 }}><NavIcon name="file" size={48} /></div>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 8 }}>No resumes generated yet</h3>
           <p style={{ color: "var(--muted)", marginBottom: 24 }}>Generate your first ATS-optimized resume for a specific job posting</p>
-          <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("generate")}>✨ Generate Your First Resume</button>
+          <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => onNavigate("generate")}>Generate Your First Resume</button>
         </div>
       )}
     </div>
@@ -1500,13 +1586,15 @@ function ProfileOverview({ profile, onEdit }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <span className={`complete-badge ${profile ? "done" : "pending"}`}>{profile ? "✓ Profile Complete" : "⚠ Profile Incomplete"}</span>
-        <button className="btn btn-ghost btn-sm" onClick={onEdit}>{profile ? "✏ Edit Profile" : "Complete Profile"}</button>
+        <span className={`complete-badge ${profile ? "done" : "pending"}`}>{profile ? "Profile Complete" : "Profile Incomplete"}</span>
+        <button className="btn btn-ghost btn-sm" onClick={onEdit} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <NavIcon name="edit" size={13} /> {profile ? "Edit Profile" : "Complete Profile"}
+        </button>
       </div>
       {profile ? (
         <>
           <div className="card">
-            <div className="card-title"><span>👤</span> Personal</div>
+            <div className="card-title"><NavIcon name="user" size={18} /> Personal</div>
             <div className="profile-grid">
               {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
               ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
@@ -1517,19 +1605,19 @@ function ProfileOverview({ profile, onEdit }) {
             {profile.summary && <div style={{ marginTop: 16, padding: "12px 16px", background: "var(--surface2)", borderRadius: 8, fontSize: 14, lineHeight: 1.7, color: "var(--muted)" }}>{profile.summary}</div>}
           </div>
           <div className="card">
-            <div className="card-title"><span>🏢</span> Experience ({(profile.companies || []).filter(c => c.company).length} positions)</div>
+            <div className="card-title"><NavIcon name="file" size={18} /> Experience ({(profile.companies || []).filter(c => c.company).length} positions)</div>
             {(profile.companies || []).filter(c => c.company).map((c, i) => (
               <div key={i} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 12, marginBottom: 12 }}>
                 <div style={{ fontWeight: 600 }}>{c.role} @ {c.company}</div>
                 <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
-                  {c.location && <span style={{ marginRight: 8 }}>📍 {c.location}</span>}
+                  {c.location && <span style={{ marginRight: 8 }}>{c.location}</span>}
                   {fmtDate(c.startDate)} – {c.current ? "Present" : fmtDate(c.endDate)}
                 </div>
               </div>
             ))}
           </div>
           <div className="card">
-            <div className="card-title"><span>🎓</span> Education</div>
+            <div className="card-title"><NavIcon name="info" size={18} /> Education</div>
             {(profile.education || []).filter(e => e.institution).map((e, i) => (
               <div key={i} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 12, marginBottom: 12 }}>
                 <div style={{ fontWeight: 600 }}>{e.degree} {e.field ? `in ${e.field}` : ""}</div>
@@ -1540,12 +1628,12 @@ function ProfileOverview({ profile, onEdit }) {
             ))}
           </div>
           <div className="card">
-            <div className="card-title"><span>⚡</span> Skills ({(profile.skills || []).length})</div>
+            <div className="card-title"><NavIcon name="sparkle" size={18} /> Skills ({(profile.skills || []).length})</div>
             <div className="skills-grid">{(profile.skills || []).map(s => <span key={s} className="skill-chip selected">{s}</span>)}</div>
           </div>
           {(profile.certifications || []).filter(c => c.name).length > 0 && (
             <div className="card">
-              <div className="card-title"><span>🏅</span> Certifications</div>
+              <div className="card-title"><NavIcon name="check" size={18} /> Certifications</div>
               {(profile.certifications || []).filter(c => c.name).map((c, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
                   <span style={{ fontWeight: 500 }}>{c.name}</span>
@@ -1557,12 +1645,101 @@ function ProfileOverview({ profile, onEdit }) {
         </>
       ) : (
         <div className="card" style={{ textAlign: "center", padding: "60px 40px" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+          <div style={{ color: "var(--muted)", display: "flex", justifyContent: "center", marginBottom: 16 }}><NavIcon name="user" size={48} /></div>
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 8 }}>No profile yet</h3>
           <p style={{ color: "var(--muted)", marginBottom: 24 }}>Complete your profile to start generating ATS-optimized resumes</p>
           <button className="btn btn-primary" style={{ width: "auto" }} onClick={onEdit}>Complete Your Profile</button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── CHANGE 4: About Page ─────────────────────────────────────────────────────
+function AboutPage() {
+  const [copied, setCopied] = useState("");
+  const copy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(""), 2000);
+  };
+
+  return (
+    <div>
+      <div className="card" style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: "50%", flexShrink: 0,
+          background: "linear-gradient(135deg, var(--accent), var(--accent2))",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 32, fontWeight: 900, color: "#0a0a0f", fontFamily: "var(--font-display)",
+        }}>A</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Avinash Narni</div>
+          <div style={{ color: "var(--accent)", fontSize: 13, fontWeight: 600, marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.8px" }}>
+            Developer &amp; Designer
+          </div>
+          <p style={{ color: "var(--muted)", fontSize: 15, lineHeight: 1.75, maxWidth: 540 }}>
+            Full-stack engineer passionate about building tools that make a real difference in people's careers.
+            RésuméAI was built to help candidates cut through the noise of ATS filters and land more interviews.
+          </p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title" style={{ marginBottom: 4 }}>Contact</div>
+        {[
+          { label: "Email", value: "narniavinash05@gmail.com", href: "mailto:narniavinash05@gmail.com", key: "email" },
+          { label: "Location", value: "Dallas, TX", href: null, key: "loc" },
+        ].map(({ label, value, href, key }) => (
+          <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
+            <div>
+              <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--muted)", marginBottom: 5 }}>{label}</div>
+              {href
+                ? <a href={href} style={{ color: "var(--accent)", textDecoration: "none", fontSize: 15, fontWeight: 500 }}>{value}</a>
+                : <span style={{ fontSize: 15, fontWeight: 500 }}>{value}</span>
+              }
+            </div>
+            {href && (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => copy(value, key)}
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <NavIcon name="copy" size={13} />
+                {copied === key ? "Copied!" : "Copy"}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title" style={{ marginBottom: 16 }}>Tech Stack</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+          {[
+            ["Backend",    "Java 17 · Spring Boot 3.2"],
+            ["AI / LLM",   "OpenAI GPT-4o-mini"],
+            ["Database",   "PostgreSQL · Flyway"],
+            ["Auth",       "Spring Security · JWT"],
+            ["Email",      "SendGrid"],
+            ["PDF",        "OpenPDF (LibrePDF)"],
+            ["Frontend",   "React 18"],
+            ["Deployment", "AWS EC2"],
+          ].map(([k, v]) => (
+            <div key={k} style={{ background: "var(--surface2)", borderRadius: 10, padding: "14px 16px" }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--muted)", marginBottom: 6 }}>{k}</div>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{
+        textAlign: "center", padding: "24px 0", color: "var(--muted)",
+        fontSize: 13, borderTop: "1px solid var(--border)", marginTop: 8,
+      }}>
+        © {new Date().getFullYear()} RésuméAI · Built by Avinash Narni · All rights reserved
+      </div>
     </div>
   );
 }
@@ -1577,11 +1754,13 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
     setActivePage(page);
   };
 
+  // CHANGE 2: SVG icon names replace emoji strings; About page added
   const NAV = [
-    { id: "home", label: "Dashboard", icon: "🏠" },
-    { id: "generate", label: "Generate Resume", icon: "✨" },
-    { id: "resumes", label: "My Resumes", icon: "📄", badge: generatedResumes.length || null },
-    { id: "profile", label: "My Profile", icon: "👤" },
+    { id: "home",     label: "Dashboard",      icon: "home"    },
+    { id: "generate", label: "Generate Resume", icon: "sparkle" },
+    { id: "resumes",  label: "My Resumes",      icon: "file",   badge: generatedResumes.length || null },
+    { id: "profile",  label: "My Profile",      icon: "user"    },
+    { id: "about",    label: "About",           icon: "info"    },
   ];
 
   return (
@@ -1594,7 +1773,7 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
         <nav className="sidebar-nav">
           {NAV.map(item => (
             <button key={item.id} className={`nav-item ${activePage === item.id ? "active" : ""}`} onClick={() => navigate(item.id)}>
-              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-icon"><NavIcon name={item.icon} /></span>
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge ? <span className="nav-badge">{item.badge}</span> : null}
             </button>
@@ -1631,7 +1810,7 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
             </div>
             {!profile ? (
               <div className="card" style={{ textAlign: "center", padding: "60px" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+                <div style={{ color: "var(--muted)", display: "flex", justifyContent: "center", marginBottom: 16 }}><NavIcon name="warning" size={48} /></div>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 8 }}>Complete your profile first</h3>
                 <p style={{ color: "var(--muted)", marginBottom: 24 }}>We need your details to generate a personalized resume</p>
                 <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => { navigate("profile"); onEditProfile(); }}>Complete Profile</button>
@@ -1656,15 +1835,15 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
                   <h1 className="page-title">My Resumes</h1>
                   <p className="page-sub">{generatedResumes.length} resume{generatedResumes.length !== 1 ? "s" : ""} generated</p>
                 </div>
-                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => navigate("generate")}>✨ New Resume</button>
+                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => navigate("generate")}>New Resume</button>
               </div>
             </div>
             {generatedResumes.length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: "60px 40px" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+                <div style={{ color: "var(--muted)", display: "flex", justifyContent: "center", marginBottom: 16 }}><NavIcon name="file" size={48} /></div>
                 <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, marginBottom: 8 }}>No resumes yet</h3>
                 <p style={{ color: "var(--muted)", marginBottom: 24 }}>Generate your first ATS-optimized resume tailored to a job posting</p>
-                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => navigate("generate")}>✨ Generate First Resume</button>
+                <button className="btn btn-primary" style={{ width: "auto" }} onClick={() => navigate("generate")}>Generate First Resume</button>
               </div>
             ) : (
               <div className="resumes-grid">
@@ -1685,14 +1864,23 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
             <ProfileOverview profile={profile} onEdit={onEditProfile} />
           </>
         )}
+
+        {/* CHANGE 4: About page route */}
+        {activePage === "about" && (
+          <>
+            <div className="page-header">
+              <h1 className="page-title">About</h1>
+              <p className="page-sub">The team and technology behind RésuméAI</p>
+            </div>
+            <AboutPage />
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
-// Replace your entire App() export default function with this:
-
 export default function App() {
   const [authView, setAuthView] = useState("login");
   const [showForgot, setShowForgot] = useState(false);
@@ -1701,6 +1889,7 @@ export default function App() {
     const token = localStorage.getItem("ats_token");
     if (!user || !token) return null;
     try {
+      // CHANGE 1 (frontend fix): decode Base64URL correctly
       const base64Url = token.split(".")[1];
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
       const payload = JSON.parse(atob(base64));
@@ -1729,9 +1918,11 @@ export default function App() {
       setLoadingProfile(true);
       api.getProfile()
         .then(data => {
-          if (data.profileComplete && data.profile) {
+          if (data && data.profileJson) {
             try {
-              const parsed = JSON.parse(data.profile);
+              const parsed = typeof data.profileJson === "string"
+                ? JSON.parse(data.profileJson)
+                : data.profileJson;
               setProfile(parsed);
               if (parsed._generatedResumes) {
                 setGeneratedResumes(parsed._generatedResumes);
@@ -1780,7 +1971,6 @@ export default function App() {
     setBuildingProfile(false);
   };
 
-  // ✅ Use query param instead of pathname so React SPA loads index.html correctly
   const urlParams = new URLSearchParams(window.location.search);
   const isResetPage = urlParams.get("page") === "reset-password";
 
@@ -1788,28 +1978,23 @@ export default function App() {
     <>
       <style>{css}</style>
       <div className="app">
-
-        {/* ✅ Reset password page — triggered via ?page=reset-password in email link */}
         {isResetPage && (
           <ResetPasswordPage onBack={() => {
-            // Clear query params and go back to login
             window.history.pushState({}, "", "/");
             window.location.reload();
           }} />
         )}
 
-        {/* ✅ All normal app routes */}
         {!isResetPage && (
           <>
-            {/* Not logged in — show login, signup, or forgot password */}
             {!session && !showForgot && (
               authView === "login"
                 ? <LoginPage
-                  onLogin={handleLogin}
-                  onSwitch={() => setAuthView("signup")}
-                  verifiedMsg={verifiedMsg}
-                  onForgotPassword={() => setShowForgot(true)}
-                />
+                    onLogin={handleLogin}
+                    onSwitch={() => setAuthView("signup")}
+                    verifiedMsg={verifiedMsg}
+                    onForgotPassword={() => setShowForgot(true)}
+                  />
                 : <SignupPage onSwitch={() => setAuthView("login")} />
             )}
 
@@ -1817,7 +2002,6 @@ export default function App() {
               <ForgotPasswordPage onBack={() => setShowForgot(false)} />
             )}
 
-            {/* Loading profile */}
             {session && loadingProfile && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 16 }}>
                 <div className="spinner" />
@@ -1825,7 +2009,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Profile builder */}
             {session && !loadingProfile && buildingProfile && (
               <ProfileBuilder
                 session={session}
@@ -1835,7 +2018,6 @@ export default function App() {
               />
             )}
 
-            {/* Main dashboard */}
             {session && !loadingProfile && !buildingProfile && (
               <Dashboard
                 session={session}
@@ -1849,7 +2031,6 @@ export default function App() {
             )}
           </>
         )}
-
       </div>
     </>
   );
