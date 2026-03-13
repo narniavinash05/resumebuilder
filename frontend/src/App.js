@@ -1758,12 +1758,23 @@ function AboutPage() {
   return (
     <div>
       <div className="card" style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: "50%", flexShrink: 0,
-          background: "linear-gradient(135deg, var(--accent), var(--accent2))",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 32, fontWeight: 900, color: "#0a0a0f", fontFamily: "var(--font-display)",
-        }}>A</div>
+        <img
+          src="avinash.jpeg"
+          alt="Avinash Narni"
+          width="240"
+          height="240"
+          style={{
+            width: 120,
+            height: 120,
+            borderRadius: "50%",
+            objectFit: "cover",
+            objectPosition: "center top",
+            display: "block",
+            imageRendering: "auto",
+            border: "3px solid var(--accent)",
+            boxShadow: "0 0 0 4px rgba(232,197,71,0.15)"
+          }}
+        />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Avinash Narni</div>
           <div style={{ color: "var(--accent)", fontSize: 13, fontWeight: 600, marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.8px" }}>
