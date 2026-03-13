@@ -391,91 +391,110 @@ const SKILL_CATEGORIES = {
   "Soft Skills": ["Leadership", "Communication", "Problem Solving", "Team Collaboration", "Agile", "Scrum", "Project Management", "Mentoring"],
 };
 
-// ─── CHANGE 2: SVG Nav Icons (replaces all emoji icons) ──────────────────────
+// ─── SVG Nav Icons — polished duotone style ───────────────────────────────────
 function NavIcon({ name, size = 16 }) {
+  const s = size;
   const icons = {
     home: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
-        <path d="M9 21V12h6v9"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 01-1.5 1.5h-4.75V15a.75.75 0 00-.75-.75h-4a.75.75 0 00-.75.75v6.5H4.5A1.5 1.5 0 013 20V10.5z" fill="currentColor" fillOpacity="0.18"/>
+        <path d="M3 10.5L12 3l9 7.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M19.5 8.75V4.5h-2.25v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <rect x="9.25" y="14.75" width="5.5" height="6.75" rx="0.75" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M4.5 10.75V20.5h15V10.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
     sparkle: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2l2.4 7.6H22l-6.2 4.5 2.4 7.6L12 17.2l-6.2 4.5 2.4-7.6L2 9.6h7.6L12 2z"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2.5c0 0 1.2 4.3 2.8 5.9C16.4 10 20.5 11 20.5 11s-4.1 1.1-5.7 2.7C13.2 15.3 12 19.5 12 19.5s-1.2-4.2-2.8-5.8C7.6 12.1 3.5 11 3.5 11s4.1-.9 5.7-2.6C10.8 6.8 12 2.5 12 2.5z" fill="currentColor" fillOpacity="0.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+        <path d="M19.5 3.5c0 0 .55 1.5 1.1 2.1.6.6 2.1 1.1 2.1 1.1s-1.5.5-2.1 1.1c-.6.6-1.1 2.1-1.1 2.1s-.55-1.5-1.1-2.1c-.6-.6-2.1-1.1-2.1-1.1s1.5-.5 2.1-1.1c.6-.6 1.1-2.1 1.1-2.1z" fill="currentColor" fillOpacity="0.7"/>
       </svg>
     ),
     file: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/>
-        <line x1="16" y1="17" x2="8" y2="17"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" fill="currentColor" fillOpacity="0.15"/>
+        <path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+        <path d="M13.5 2v5.5a1 1 0 001 1H20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+        <line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="8" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <line x1="8" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
     ),
     user: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="7.5" r="3.75" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.6"/>
+        <path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+        <path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" fillOpacity="0.1"/>
       </svg>
     ),
     info: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="16" x2="12" y2="12"/>
-        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth="1.6"/>
+        <circle cx="12" cy="8" r="1.1" fill="currentColor"/>
+        <line x1="12" y1="11.5" x2="12" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
       </svg>
     ),
     copy: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="9" y="9" width="13" height="13" rx="2"/>
-        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="8" width="12" height="13" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6"/>
+        <path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+        <line x1="11.5" y1="12.5" x2="16.5" y2="12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <line x1="11.5" y1="15.5" x2="16.5" y2="15.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
     download: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-        <polyline points="7 10 12 15 17 10"/>
-        <line x1="12" y1="15" x2="12" y2="3"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/>
+        <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+        <path d="M12 3v11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+        <path d="M7.5 10.5L12 15.5l4.5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
     refresh: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 4 23 10 17 10"/>
-        <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4.5 12a7.5 7.5 0 0113.5-4.5H15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M19.5 12a7.5 7.5 0 01-13.5 4.5H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M18 4.5l1.5 3-3 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M6 19.5l-1.5-3 3-.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
     trash: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-        <path d="M10 11v6M14 11v6"/>
-        <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 7.5h14l-1.2 12a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 7.5z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+        <path d="M3 7.5h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+        <path d="M9.5 4.5h5a1 1 0 011 1V7.5h-7V5.5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5"/>
+        <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       </svg>
     ),
     upload: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/>
+        <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+        <path d="M12 15V4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+        <path d="M7.5 8.5L12 3.5l4.5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
     warning: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/>
-        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10.5 3.75L2 19.5h20L13.5 3.75a1.732 1.732 0 00-3 0z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+        <line x1="12" y1="10" x2="12" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+        <circle cx="12" cy="17.5" r="1" fill="currentColor"/>
       </svg>
     ),
     check: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="9.5" fill="currentColor" fillOpacity="0.12"/>
+        <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M7.5 12.5l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
     edit: (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 20h4l9.5-9.5-4-4L4 16v4z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+        <path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+        <path d="M16.5 3.5a2 2 0 012.83 0l1.17 1.17a2 2 0 010 2.83L19 9 15 5l1.5-1.5z" fill="currentColor" fillOpacity="0.3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+        <line x1="3" y1="21" x2="21" y2="21" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeOpacity="0.3"/>
       </svg>
     ),
   };
@@ -566,8 +585,7 @@ function SignupPage({ onSwitch }) {
   const handleSubmit = async () => {
     setError("");
     if (form.password !== form.confirm) { setError("Passwords don't match"); return; }
-    const { errors, strong } = validatePassword(form.password);
-    if (!strong) { setError("Password must include: " + errors.join(", ")); return; }
+    if (form.password.length < 6) { setError("Password must be at least 6 characters"); return; }
     setLoading(true);
     try { await api.signup(form.fullName, form.email, form.password); setSuccess(true); }
     catch (e) { setError(e.message); }
@@ -599,21 +617,8 @@ function SignupPage({ onSwitch }) {
           {error && <Alert>{error}</Alert>}
           <div className="field"><label>Full Name</label><input placeholder="Jane Smith" value={form.fullName} onChange={set("fullName")} /></div>
           <div className="field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} /></div>
-          <div className="field">
-            <label>Password</label>
-            <input type="password" placeholder="Min 8 characters" value={form.password} onChange={set("password")} />
-            <PasswordStrengthMeter password={form.password} />
-          </div>
-          <div className="field">
-            <label>Confirm Password</label>
-            <input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} />
-            {form.confirm && form.password !== form.confirm && (
-              <div style={{ marginTop: 6, fontSize: 12, color: "var(--danger)" }}>✕ Passwords do not match</div>
-            )}
-            {form.confirm && form.password === form.confirm && (
-              <div style={{ marginTop: 6, fontSize: 12, color: "var(--success)" }}>✓ Passwords match</div>
-            )}
-          </div>
+          <div className="field"><label>Password</label><input type="password" placeholder="Min 6 characters" value={form.password} onChange={set("password")} /></div>
+          <div className="field"><label>Confirm Password</label><input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} /></div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !form.fullName || !form.email || !form.password}>
             {loading ? <><Spinner small /> Creating...</> : "Create Account →"}
           </button>
@@ -672,6 +677,8 @@ function ForgotPasswordPage({ onBack }) {
     </div>
   );
 }
+
+// ─── Reset Password ───────────────────────────────────────────────────────────
 
 // ─── Reset Password ───────────────────────────────────────────────────────────
 function ResetPasswordPage({ onBack }) {
@@ -1759,7 +1766,7 @@ function AboutPage() {
     <div>
       <div className="card" style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
         <img
-          src="avinash.jpeg"
+          src="/avinash.jpeg"
           alt="Avinash Narni"
           width="240"
           height="240"
@@ -1772,7 +1779,8 @@ function AboutPage() {
             display: "block",
             imageRendering: "auto",
             border: "3px solid var(--accent)",
-            boxShadow: "0 0 0 4px rgba(232,197,71,0.15)"
+            boxShadow: "0 0 0 4px rgba(232,197,71,0.15)",
+            flexShrink: 0,
           }}
         />
         <div style={{ flex: 1 }}>
