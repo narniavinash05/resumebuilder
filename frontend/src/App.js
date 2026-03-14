@@ -1,8 +1,43 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+
+// ─── Session Management ───────────────────────────────────────────────────────
+// Uses sessionStorage so tokens are cleared when the tab/browser is closed.
+// An inactivity timer also forces logout after 30 minutes of no user activity.
+
+const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
+
+const sessionStorage_ = {
+  getToken: () => sessionStorage.getItem("ats_token"),
+  getUser:  () => sessionStorage.getItem("ats_user"),
+  save: (token, user) => {
+    sessionStorage.setItem("ats_token", token);
+    sessionStorage.setItem("ats_user", JSON.stringify(user));
+  },
+  clear: () => {
+    sessionStorage.removeItem("ats_token");
+    sessionStorage.removeItem("ats_user");
+  },
+  readSession: () => {
+    const user  = sessionStorage.getItem("ats_user");
+    const token = sessionStorage.getItem("ats_token");
+    if (!user || !token) return null;
+    try {
+      const base64Url = token.split(".")[1];
+      const base64    = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const payload   = JSON.parse(atob(base64));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        sessionStorage.removeItem("ats_token");
+        sessionStorage.removeItem("ats_user");
+        return null;
+      }
+    } catch { return null; }
+    try { return JSON.parse(user); } catch { return null; }
+  },
+};
 
 // ─── API Layer ────────────────────────────────────────────────────────────────
 const BASE_URL = "https://api.resumebuild.it.com";
-const getToken = () => localStorage.getItem("ats_token");
+const getToken = () => sessionStorage_.getToken();
 
 const apiFetch = async (path, options = {}) => {
   const token = getToken();
@@ -15,8 +50,7 @@ const apiFetch = async (path, options = {}) => {
     },
   });
   if (res.status === 401) {
-    localStorage.removeItem("ats_token");
-    localStorage.removeItem("ats_user");
+    sessionStorage_.clear();
     window.location.href = "/";
     return;
   }
@@ -53,8 +87,7 @@ const api = {
       body: formData,
     }).then(async (res) => {
       if (res.status === 401) {
-        localStorage.removeItem("ats_token");
-        localStorage.removeItem("ats_user");
+        sessionStorage_.clear();
         window.location.href = "/";
         return;
       }
@@ -371,6 +404,18 @@ const css = `
   .modal-close { position: absolute; top: 16px; right: 16px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 16px; transition: all 0.15s; }
   .modal-close:hover { color: var(--text); border-color: var(--accent); }
 
+  /* Inactivity warning banner */
+  .inactivity-banner {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1a1a26; border: 1px solid rgba(232,197,71,0.4);
+    border-radius: 12px; padding: 16px 24px; z-index: 9999;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: slideUp 0.3s ease;
+    white-space: nowrap;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(16px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
   @media (max-width: 900px) {
     .auth-page { grid-template-columns: 1fr; }
     .auth-brand { display: none; }
@@ -391,7 +436,7 @@ const SKILL_CATEGORIES = {
   "Soft Skills": ["Leadership", "Communication", "Problem Solving", "Team Collaboration", "Agile", "Scrum", "Project Management", "Mentoring"],
 };
 
-// ─── SVG Nav Icons — polished duotone style ───────────────────────────────────
+// ─── SVG Nav Icons ────────────────────────────────────────────────────────────
 function NavIcon({ name, size = 16 }) {
   const s = size;
   const icons = {
@@ -535,8 +580,8 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
     setError(""); setLoading(true);
     try {
       const data = await api.login(email, password);
-      localStorage.setItem("ats_token", data.token || data.accessToken);
-      localStorage.setItem("ats_user", JSON.stringify({ email: data.email, fullName: data.fullName }));
+      // ── Save token + user into sessionStorage (not localStorage) ──
+      sessionStorage_.save(data.token || data.accessToken, { email: data.email, fullName: data.fullName });
       onLogin(data);
     } catch (e) { setError(e.message); }
     setLoading(false);
@@ -691,8 +736,6 @@ function ForgotPasswordPage({ onBack }) {
     </div>
   );
 }
-
-// ─── Reset Password ───────────────────────────────────────────────────────────
 
 // ─── Reset Password ───────────────────────────────────────────────────────────
 function ResetPasswordPage({ onBack }) {
@@ -1069,7 +1112,7 @@ function ResumeUploadZone({ onParsed }) {
   );
 }
 
-// ─── CHANGE 3: Profile Builder with sidebar on upload screen ─────────────────
+// ─── Profile Builder ──────────────────────────────────────────────────────────
 function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   const [phase, setPhase] = useState(initialProfile ? "steps" : "upload");
   const [currentStep, setCurrentStep] = useState("personal");
@@ -1146,7 +1189,6 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
     { label: "About",           icon: "info"    },
   ];
 
-  // CHANGE 3: Upload phase now shows sidebar when user is logged in (onCancel exists)
   if (phase === "upload") {
     return (
       <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -1767,7 +1809,7 @@ function ProfileOverview({ profile, onEdit }) {
   );
 }
 
-// ─── CHANGE 4: About Page ─────────────────────────────────────────────────────
+// ─── About Page ───────────────────────────────────────────────────────────────
 function AboutPage() {
   const [copied, setCopied] = useState("");
   const copy = (text, key) => {
@@ -1878,7 +1920,6 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
     setActivePage(page);
   };
 
-  // CHANGE 2: SVG icon names replace emoji strings; About page added
   const NAV = [
     { id: "home",     label: "Dashboard",      icon: "home"    },
     { id: "generate", label: "Generate Resume", icon: "sparkle" },
@@ -1989,7 +2030,6 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
           </>
         )}
 
-        {/* CHANGE 4: About page route */}
         {activePage === "about" && (
           <>
             <div className="page-header">
@@ -2004,31 +2044,130 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
   );
 }
 
+// ─── Inactivity Warning Banner ────────────────────────────────────────────────
+// Shows a 60-second countdown before auto-logout fires.
+const WARNING_BEFORE_MS = 60 * 1000; // warn 1 minute before logout
+
+function InactivityWarningBanner({ secondsLeft, onStayLoggedIn }) {
+  return (
+    <div className="inactivity-banner">
+      <span style={{ fontSize: 20 }}>⚠️</span>
+      <span style={{ fontSize: 14, color: "var(--text)" }}>
+        You'll be logged out in <strong style={{ color: "var(--accent)" }}>{secondsLeft}s</strong> due to inactivity.
+      </span>
+      <button className="btn btn-primary btn-sm" style={{ width: "auto", padding: "8px 18px" }} onClick={onStayLoggedIn}>
+        Stay Logged In
+      </button>
+    </div>
+  );
+}
+
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [authView, setAuthView] = useState("login");
   const [showForgot, setShowForgot] = useState(false);
-  const [session, setSession] = useState(() => {
-    const user = localStorage.getItem("ats_user");
-    const token = localStorage.getItem("ats_token");
-    if (!user || !token) return null;
-    try {
-      // CHANGE 1 (frontend fix): decode Base64URL correctly
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const payload = JSON.parse(atob(base64));
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user"); return null;
-      }
-    } catch { }
-    return JSON.parse(user);
-  });
+
+  // ── Read session from sessionStorage on mount.
+  // sessionStorage is cleared automatically when the tab/browser is closed,
+  // so the user must log in again on every fresh session.
+  const [session, setSession] = useState(() => sessionStorage_.readSession());
+
   const [profile, setProfile] = useState(null);
   const [buildingProfile, setBuildingProfile] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [verifiedMsg, setVerifiedMsg] = useState(false);
   const [generatedResumes, setGeneratedResumes] = useState([]);
 
+  // ── Inactivity timer state ────────────────────────────────────────────────
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningSecondsLeft, setWarningSecondsLeft] = useState(60);
+  const inactivityTimerRef  = useRef(null);
+  const warningTimerRef     = useRef(null);
+  const countdownIntervalRef = useRef(null);
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+  const handleLogout = useCallback(() => {
+    // Clear all timers
+    clearTimeout(inactivityTimerRef.current);
+    clearTimeout(warningTimerRef.current);
+    clearInterval(countdownIntervalRef.current);
+    setShowWarning(false);
+
+    sessionStorage_.clear();
+    setSession(null);
+    setProfile(null);
+    setBuildingProfile(false);
+    setGeneratedResumes([]);
+  }, []);
+
+  // ── Inactivity detection: reset the logout timer on any user activity ─────
+  useEffect(() => {
+    if (!session) return;
+
+    const resetInactivityTimer = () => {
+      // Hide warning banner and clear countdown if user is active
+      if (showWarning) {
+        setShowWarning(false);
+        clearInterval(countdownIntervalRef.current);
+        clearTimeout(warningTimerRef.current);
+      }
+
+      // Reset the main inactivity timer
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = setTimeout(() => {
+        // Show warning banner 60s before logout
+        setWarningSecondsLeft(60);
+        setShowWarning(true);
+
+        let secs = 60;
+        countdownIntervalRef.current = setInterval(() => {
+          secs -= 1;
+          setWarningSecondsLeft(secs);
+          if (secs <= 0) clearInterval(countdownIntervalRef.current);
+        }, 1000);
+
+        // Final logout after the warning period
+        warningTimerRef.current = setTimeout(() => {
+          handleLogout();
+        }, WARNING_BEFORE_MS);
+
+      }, INACTIVITY_LIMIT_MS - WARNING_BEFORE_MS);
+    };
+
+    const ACTIVITY_EVENTS = ["mousemove", "keydown", "mousedown", "touchstart", "scroll", "click"];
+    ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }));
+    resetInactivityTimer(); // Start the timer immediately
+
+    return () => {
+      ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, resetInactivityTimer));
+      clearTimeout(inactivityTimerRef.current);
+      clearTimeout(warningTimerRef.current);
+      clearInterval(countdownIntervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, handleLogout]);
+
+  // ── "Stay Logged In" handler — resets the inactivity clock ───────────────
+  const handleStayLoggedIn = useCallback(() => {
+    setShowWarning(false);
+    clearInterval(countdownIntervalRef.current);
+    clearTimeout(warningTimerRef.current);
+    // Dispatching a synthetic event causes the activity listener to reset the main timer
+    window.dispatchEvent(new MouseEvent("mousemove"));
+  }, []);
+
+  // ── JWT expiry check on tab regain focus ─────────────────────────────────
+  useEffect(() => {
+    const onFocus = () => {
+      if (session && !sessionStorage_.readSession()) {
+        handleLogout();
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [session, handleLogout]);
+
+  // ── Verified email query param ────────────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "true") {
@@ -2037,6 +2176,7 @@ export default function App() {
     }
   }, []);
 
+  // ── Load profile after login ──────────────────────────────────────────────
   useEffect(() => {
     if (session) {
       setLoadingProfile(true);
@@ -2057,18 +2197,17 @@ export default function App() {
           }
         })
         .catch(() => {
-          localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user");
+          sessionStorage_.clear();
           setSession(null); setProfile(null); setBuildingProfile(false);
         })
         .finally(() => setLoadingProfile(false));
     }
   }, [session]);
 
-  const handleLogin = data => setSession({ email: data.email, fullName: data.fullName });
-
-  const handleLogout = () => {
-    localStorage.removeItem("ats_token"); localStorage.removeItem("ats_user");
-    setSession(null); setProfile(null); setBuildingProfile(false); setGeneratedResumes([]);
+  // ── Login handler — saves to sessionStorage ───────────────────────────────
+  const handleLogin = (data) => {
+    sessionStorage_.save(data.token || data.accessToken, { email: data.email, fullName: data.fullName });
+    setSession({ email: data.email, fullName: data.fullName });
   };
 
   const handleSaveResume = async (resume) => {
@@ -2102,6 +2241,15 @@ export default function App() {
     <>
       <style>{css}</style>
       <div className="app">
+
+        {/* ── Inactivity warning banner (shown to logged-in users) ── */}
+        {session && showWarning && (
+          <InactivityWarningBanner
+            secondsLeft={warningSecondsLeft}
+            onStayLoggedIn={handleStayLoggedIn}
+          />
+        )}
+
         {isResetPage && (
           <ResetPasswordPage onBack={() => {
             window.history.pushState({}, "", "/");
@@ -2155,6 +2303,7 @@ export default function App() {
             )}
           </>
         )}
+
       </div>
     </>
   );
