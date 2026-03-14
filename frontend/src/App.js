@@ -585,7 +585,8 @@ function SignupPage({ onSwitch }) {
   const handleSubmit = async () => {
     setError("");
     if (form.password !== form.confirm) { setError("Passwords don't match"); return; }
-    if (form.password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    const { errors, strong } = validatePassword(form.password);
+    if (!strong) { setError("Password must include: " + errors.join(", ")); return; }
     setLoading(true);
     try { await api.signup(form.fullName, form.email, form.password); setSuccess(true); }
     catch (e) { setError(e.message); }
@@ -617,8 +618,21 @@ function SignupPage({ onSwitch }) {
           {error && <Alert>{error}</Alert>}
           <div className="field"><label>Full Name</label><input placeholder="Jane Smith" value={form.fullName} onChange={set("fullName")} /></div>
           <div className="field"><label>Email Address</label><input type="email" placeholder="you@example.com" value={form.email} onChange={set("email")} /></div>
-          <div className="field"><label>Password</label><input type="password" placeholder="Min 6 characters" value={form.password} onChange={set("password")} /></div>
-          <div className="field"><label>Confirm Password</label><input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} /></div>
+          <div className="field">
+            <label>Password</label>
+            <input type="password" placeholder="Min 8 characters" value={form.password} onChange={set("password")} />
+            <PasswordStrengthMeter password={form.password} />
+          </div>
+          <div className="field">
+            <label>Confirm Password</label>
+            <input type="password" placeholder="••••••••" value={form.confirm} onChange={set("confirm")} />
+            {form.confirm && form.password !== form.confirm && (
+              <div style={{ marginTop: 6, fontSize: 12, color: "var(--danger)" }}>✕ Passwords do not match</div>
+            )}
+            {form.confirm && form.password === form.confirm && (
+              <div style={{ marginTop: 6, fontSize: 12, color: "var(--success)" }}>✓ Passwords match</div>
+            )}
+          </div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !form.fullName || !form.email || !form.password}>
             {loading ? <><Spinner small /> Creating...</> : "Create Account →"}
           </button>
