@@ -4,6 +4,7 @@ import com.resumebuilder.dto.AuthDtos.AtsScoreResponse;
 import com.resumebuilder.model.Resume;
 import com.resumebuilder.model.TailorRequest;
 import com.resumebuilder.service.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,8 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+
+@Slf4j
 @RestController
 @RequestMapping("/api/resume")
 public class ResumeController {
@@ -98,14 +101,32 @@ public class ResumeController {
     @PostMapping(value = "/parse", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> parseUploadedResume(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam("file") MultipartFile file) throws Exception {
+            @RequestParam("file") MultipartFile file) {
 
-        if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "No file uploaded"));
+        log.info("/parse API called");
+
+        try {
+            if (file == null || file.isEmpty()) {
+                log.warn("Empty file received");
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "No file uploaded"));
+            }
+
+            log.info("📄 File received: name={}, size={} bytes, type={}",
+                    file.getOriginalFilename(),
+                    file.getSize(),
+                    file.getContentType());
+
+            Map<String, Object> profileData = resumeParserService.parseResume(file);
+
+            log.info("Resume parsed successfully");
+
+            return ResponseEntity.ok(profileData);
+
+        } catch (Exception e) {
+            log.error("Error parsing resume", e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", e.getMessage()));
         }
-
-        Map<String, Object> profileData = resumeParserService.parseResume(file);
-        return ResponseEntity.ok(profileData);
     }
 }

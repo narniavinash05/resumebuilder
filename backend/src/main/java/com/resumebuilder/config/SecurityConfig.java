@@ -85,21 +85,11 @@ public class SecurityConfig {
                 "https://app.resumebuild.it.com"
         ));
 
-        config.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "DELETE",
-                "OPTIONS"
-        ));
+        config.setAllowedMethods(List.of("*"));
 
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Cache-Control"
-        ));
+        config.setAllowedHeaders(List.of("*"));
 
-        config.setExposedHeaders(List.of("Authorization"));
+        config.setExposedHeaders(List.of("*"));
 
         config.setAllowCredentials(true);
 

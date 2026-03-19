@@ -2,13 +2,14 @@ package com.resumebuilder.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resumebuilder.llm.LlmClient;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +29,7 @@ import java.util.Optional;
  * This replaces the previous regex/heuristic-based parser with an LLM call,
  * dramatically improving accuracy for varied resume formats.
  */
+@Slf4j
 @Service
 public class ResumeParserService {
 
@@ -44,15 +46,13 @@ public class ResumeParserService {
     // ═══════════════════════════════════════════════════════════════════════
 
     public Map<String, Object> parseResume(MultipartFile file) throws Exception {
+        log.info("Starting resume parsing");
         String rawText = extractText(file);
-        if (rawText == null || rawText.isBlank()) {
-            throw new RuntimeException("Could not extract text from the uploaded file.");
-        }
-
-        String prompt      = buildExtractionPrompt(rawText);
+        log.info("Extracted text length: {}", rawText.length());
+        String prompt = buildExtractionPrompt(rawText);
+        log.info("Sending to LLM...");
         String llmResponse = llmClient.callLLM(prompt);
-        llmResponse        = sanitize(llmResponse);
-
+        log.info("LLM response received");
         return objectMapper.readValue(llmResponse, Map.class);
     }
 
