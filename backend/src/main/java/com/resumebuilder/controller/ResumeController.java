@@ -20,20 +20,23 @@ import java.util.Map;
 @RequestMapping("/api/resume")
 public class ResumeController {
 
-    private final ResumeTailoringService tailoringService;
-    private final ResumePdfService       resumePdfService;
-    private final AtsScoreService        atsScoreService;
-    private final ResumeParserService    resumeParserService;
-    private final ResumeVersionService resumeVersionService;
+    private final ResumeTailoringService  tailoringService;
+    private final ResumePdfService        resumePdfService;
+    private final ResumeDocxService       resumeDocxService;   // ← NEW
+    private final AtsScoreService         atsScoreService;
+    private final ResumeParserService     resumeParserService;
+    private final ResumeVersionService    resumeVersionService;
 
     public ResumeController(ResumeTailoringService tailoringService,
                             ResumePdfService       resumePdfService,
+                            ResumeDocxService      resumeDocxService,   // ← NEW
                             AtsScoreService        atsScoreService,
-                            ResumeParserService resumeParserService,
-                            ResumeVersionService resumeVersionService) {
-        this.tailoringService   = tailoringService;
-        this.resumePdfService   = resumePdfService;
-        this.atsScoreService    = atsScoreService;
+                            ResumeParserService    resumeParserService,
+                            ResumeVersionService   resumeVersionService) {
+        this.tailoringService    = tailoringService;
+        this.resumePdfService    = resumePdfService;
+        this.resumeDocxService   = resumeDocxService;           // ← NEW
+        this.atsScoreService     = atsScoreService;
         this.resumeParserService = resumeParserService;
         this.resumeVersionService = resumeVersionService;
     }
@@ -48,29 +51,9 @@ public class ResumeController {
                 .body(pdf);
     }
 
-    // ── POST /api/resume/tailor-and-generate ──────────────────────────────────
-    @PostMapping("/tailor-and-generate")
-    public ResponseEntity<byte[]> tailorAndGenerate(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody TailorRequest request) throws Exception {
-
-        Resume resume = tailoringService.tailorResume(
-                request.getResumeMetaData(), request.getJobDescription());
-        byte[] pdf = resumePdfService.generateResume(resume);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=tailored_resume.pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
-    }
-
     // ── POST /api/resume/tailor-generate-score ────────────────────────────────
-    // PRIMARY endpoint — single LLM call handles everything:
-    //   1. Extract technical keywords from JD
-    //   2. Generate tailored resume (freely enrich skills/experience)
-    //   3. Return matchedKeywords, missingKeywords
-    //   4. Return holistic atsScore (keyword match 40% + fit 25% + completeness 20% + density 15%)
-    //
-    // Java does ZERO scoring logic — pure pass-through from LLM judgment.
+    // PRIMARY endpoint — single LLM call handles everything.
+    // Now also returns docxBase64 alongside pdfBase64.
     @PostMapping("/tailor-generate-score")
     public ResponseEntity<Map<String, Object>> tailorGenerateWithScore(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -83,34 +66,35 @@ public class ResumeController {
         resumeVersionService.saveResumeVersion(
                 userDetails.getUsername(),
                 request.getJobDescription(),
-                tailoredResume
-        );
+                tailoredResume);
 
-        // 2. Map LLM scoring onto DTO (zero Java logic, pure pass-through)
+        // 2. Map LLM scoring onto DTO
         AtsScoreResponse atsScore = atsScoreService.buildFromResume(tailoredResume);
 
         // 3. Render PDF
         byte[] pdf       = resumePdfService.generateResume(tailoredResume);
         String pdfBase64 = Base64.getEncoder().encodeToString(pdf);
 
-        // 4. Build unified response
+        // 4. Render DOCX  ← NEW
+        byte[] docx       = resumeDocxService.generateResume(tailoredResume);
+        String docxBase64 = Base64.getEncoder().encodeToString(docx);
+
+        // 5. Build unified response
         Map<String, Object> result = new HashMap<>();
-        result.put("atsScore",          atsScore.getAtsScore());
-        result.put("scoreLabel",        atsScore.getScoreLabel());
-        result.put("matchedSkills",     atsScore.getMatchedSkills());
-        result.put("totalSkills",       atsScore.getTotalSkills());
-        result.put("matchedKeywords",   atsScore.getMatchedKeywords());
-        result.put("missingKeywords",   atsScore.getMissingKeywords());
-        result.put("scoringBreakdown",  tailoredResume.getScoringBreakdown());
-        result.put("pdfBase64",         pdfBase64);
+        result.put("atsScore",         atsScore.getAtsScore());
+        result.put("scoreLabel",       atsScore.getScoreLabel());
+        result.put("matchedSkills",    atsScore.getMatchedSkills());
+        result.put("totalSkills",      atsScore.getTotalSkills());
+        result.put("matchedKeywords",  atsScore.getMatchedKeywords());
+        result.put("missingKeywords",  atsScore.getMissingKeywords());
+        result.put("scoringBreakdown", tailoredResume.getScoringBreakdown());
+        result.put("pdfBase64",        pdfBase64);
+        result.put("docxBase64",       docxBase64);   // ← NEW
 
         return ResponseEntity.ok(result);
     }
 
     // ── POST /api/resume/parse ────────────────────────────────────────────────
-    // Resume auto-fill feature (Workday-style):
-    //   Upload PDF/DOCX/TXT → LLM extracts all sections → returns structured
-    //   profile JSON → frontend pre-fills all form fields for review/editing.
     @PostMapping(value = "/parse", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> parseUploadedResume(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -124,5 +108,4 @@ public class ResumeController {
         Map<String, Object> profileData = resumeParserService.parseResume(file);
         return ResponseEntity.ok(profileData);
     }
-
 }

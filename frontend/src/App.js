@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── Session Management ───────────────────────────────────────────────────────
-// Uses sessionStorage so tokens are cleared when the tab/browser is closed.
-// An inactivity timer also forces logout after 30 minutes of no user activity.
-
-const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
+const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
 
 const sessionStorage_ = {
   getToken: () => sessionStorage.getItem("ats_token"),
@@ -138,7 +135,6 @@ function PasswordStrengthMeter({ password }) {
   const colors = ["#ff4444", "#ff4444", "#ff8800", "#e8c547", "#4ecdc4"];
   const labels = ["", "Weak", "Weak", "Fair", "Good", "Strong"];
   const color = colors[passed - 1] || "var(--border)";
-
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
@@ -156,11 +152,11 @@ function PasswordStrengthMeter({ password }) {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
-          { key: "length",  label: "8+ chars"   },
-          { key: "upper",   label: "A-Z"         },
-          { key: "lower",   label: "a-z"         },
-          { key: "number",  label: "0-9"         },
-          { key: "special", label: "!@#$"        },
+          { key: "length",  label: "8+ chars" },
+          { key: "upper",   label: "A-Z" },
+          { key: "lower",   label: "a-z" },
+          { key: "number",  label: "0-9" },
+          { key: "special", label: "!@#$" },
         ].map(({ key, label }) => (
           <span key={key} style={{
             fontSize: 11, padding: "3px 8px", borderRadius: 10, fontWeight: 500,
@@ -186,9 +182,16 @@ function MonthYearPicker({ value, onChange, disabled }) {
       setYear(y || ""); setMonth(m || "");
     } else { setYear(""); setMonth(""); }
   }, [value]);
-  const handleYear = (v) => { setYear(v); if (v && month) onChange(`${v}-${month}`); else onChange(""); };
-  const handleMonth = (v) => { setMonth(v); if (year && v) onChange(`${year}-${v}`); else onChange(""); };
-  const sel = { width: "100%", padding: "14px 12px", background: disabled ? "rgba(255,255,255,0.03)" : "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", color: disabled ? "var(--muted)" : "var(--text)", fontFamily: "var(--font-body)", fontSize: 14, outline: "none", opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "pointer" };
+  const handleYear  = (v) => { setYear(v);  if (v && month) onChange(`${v}-${month}`); else onChange(""); };
+  const handleMonth = (v) => { setMonth(v); if (year && v) onChange(`${year}-${v}`);  else onChange(""); };
+  const sel = {
+    width: "100%", padding: "14px 12px",
+    background: disabled ? "rgba(255,255,255,0.03)" : "var(--surface)",
+    border: "1px solid var(--border)", borderRadius: "var(--radius)",
+    color: disabled ? "var(--muted)" : "var(--text)",
+    fontFamily: "var(--font-body)", fontSize: 14, outline: "none",
+    opacity: disabled ? 0.5 : 1, cursor: disabled ? "not-allowed" : "pointer",
+  };
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       <select value={month} onChange={e => handleMonth(e.target.value)} disabled={disabled} style={sel}>
@@ -211,7 +214,7 @@ const fmtDate = (val) => {
 };
 
 const scoreColor = (s) => s >= 90 ? "var(--success)" : s >= 75 ? "var(--accent)" : s >= 55 ? "#f0a830" : "var(--danger)";
-const scoreBg = (s) => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
+const scoreBg    = (s) => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const css = `
@@ -229,7 +232,7 @@ const css = `
   .auth-page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
   .auth-brand { background: var(--surface); display: flex; flex-direction: column; justify-content: center; padding: 60px; position: relative; overflow: hidden; border-right: 1px solid var(--border); }
   .auth-brand::before { content: ''; position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(232,197,71,0.15), transparent 70%); }
-  .auth-brand::after { content: ''; position: absolute; bottom: -80px; right: -80px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(78,205,196,0.1), transparent 70%); }
+  .auth-brand::after  { content: ''; position: absolute; bottom: -80px; right: -80px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(78,205,196,0.1), transparent 70%); }
   .brand-logo { font-family: var(--font-display); font-size: 48px; font-weight: 900; line-height: 1; position: relative; z-index: 1; }
   .brand-logo span { color: var(--accent); }
   .brand-tagline { margin-top: 20px; font-size: 18px; color: var(--muted); line-height: 1.6; max-width: 340px; position: relative; z-index: 1; }
@@ -251,6 +254,14 @@ const css = `
   .field textarea { resize: vertical; min-height: 100px; }
   select option { background: #1a1a26; color: var(--text); }
 
+  /* Google Places autocomplete dropdown styling */
+  .pac-container { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-family: var(--font-body); margin-top: 4px; }
+  .pac-item { padding: 10px 14px; cursor: pointer; color: var(--text); font-size: 14px; border-top: 1px solid var(--border); }
+  .pac-item:first-child { border-top: none; }
+  .pac-item:hover, .pac-item-selected { background: var(--surface3); }
+  .pac-item-query { color: var(--accent); font-weight: 600; }
+  .pac-matched { color: var(--accent2); }
+
   .btn { padding: 14px 24px; border-radius: var(--radius); border: none; cursor: pointer; font-family: var(--font-body); font-size: 15px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
   .btn-primary { background: var(--accent); color: #0a0a0f; width: 100%; justify-content: center; }
   .btn-primary:hover { background: #f0d055; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,197,71,0.3); }
@@ -265,9 +276,9 @@ const css = `
   .btn-icon { padding: 10px; border-radius: 8px; }
 
   .alert { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
-  .alert-error { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff9999; }
-  .alert-success { background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.3); color: var(--accent2); }
-  .alert-info { background: rgba(232,197,71,0.1); border: 1px solid rgba(232,197,71,0.3); color: var(--accent); }
+  .alert-error   { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff9999; }
+  .alert-success { background: rgba(78,205,196,0.1);  border: 1px solid rgba(78,205,196,0.3);  color: var(--accent2); }
+  .alert-info    { background: rgba(232,197,71,0.1);  border: 1px solid rgba(232,197,71,0.3);  color: var(--accent); }
 
   .dashboard { display: flex; min-height: 100vh; }
   .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 0; position: fixed; height: 100vh; z-index: 10; }
@@ -285,7 +296,7 @@ const css = `
   .sidebar-user { padding: 16px; border-top: 1px solid var(--border); }
   .user-info { display: flex; align-items: center; gap: 10px; }
   .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #0a0a0f; flex-shrink: 0; }
-  .user-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-name  { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .user-email { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .main-content { margin-left: 240px; flex: 1; padding: 40px; min-height: 100vh; }
   .page-header { margin-bottom: 32px; }
@@ -321,7 +332,7 @@ const css = `
   .resume-card-score-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; text-align: right; }
   .resume-card-meta { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
   .resume-card-chip { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
-  .resume-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .resume-card-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 
   .stepper { display: flex; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 4px; }
   .step { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 16px; border-radius: 24px; transition: all 0.2s; }
@@ -357,7 +368,7 @@ const css = `
   .score-desc { color: var(--muted); font-size: 14px; line-height: 1.6; }
   .skills-match { display: flex; flex-wrap: wrap; gap: 8px; }
   .match-chip { padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; }
-  .match-chip.hit { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
+  .match-chip.hit  { background: rgba(78,205,196,0.15); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
   .match-chip.miss { background: rgba(255,107,107,0.1); color: #ff9999; border: 1px solid rgba(255,107,107,0.2); }
   .kw-section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 16px 0 10px; }
   .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
@@ -382,13 +393,15 @@ const css = `
 
   .download-btn { display: flex; align-items: center; gap: 10px; padding: 16px 32px; background: linear-gradient(135deg, var(--accent), #d4aa30); color: #0a0a0f; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
   .download-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(232,197,71,0.4); }
+  .download-btn.docx { background: linear-gradient(135deg, var(--accent2), #2bbdb4); }
+  .download-btn.docx:hover { box-shadow: 0 12px 32px rgba(78,205,196,0.4); }
 
   .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .info-row { display: flex; flex-direction: column; gap: 4px; }
   .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
   .info-val { font-size: 15px; font-weight: 500; }
   .complete-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-  .complete-badge.done { background: rgba(78,205,196,0.15); color: var(--accent2); }
+  .complete-badge.done    { background: rgba(78,205,196,0.15); color: var(--accent2); }
   .complete-badge.pending { background: rgba(232,197,71,0.15); color: var(--accent); }
 
   .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface2); position: relative; }
@@ -404,7 +417,6 @@ const css = `
   .modal-close { position: absolute; top: 16px; right: 16px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 16px; transition: all 0.15s; }
   .modal-close:hover { color: var(--text); border-color: var(--accent); }
 
-  /* Inactivity warning banner */
   .inactivity-banner {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
     background: #1a1a26; border: 1px solid rgba(232,197,71,0.4);
@@ -416,6 +428,7 @@ const css = `
   }
   @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(16px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
+  /* ── Tablet ── */
   @media (max-width: 900px) {
     .auth-page { grid-template-columns: 1fr; }
     .auth-brand { display: none; }
@@ -423,125 +436,125 @@ const css = `
     .sidebar { width: 200px; }
     .main-content { margin-left: 200px; padding: 24px; }
   }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    /* Auth */
+    .auth-form-side { padding: 24px 16px; align-items: flex-start; min-height: 100vh; }
+    .auth-card { max-width: 100%; }
+    .auth-title { font-size: 26px; }
+    .auth-sub { margin-bottom: 20px; }
+
+    /* Sidebar → bottom tab bar */
+    .dashboard { flex-direction: column; }
+    .sidebar {
+      position: fixed; bottom: 0; top: auto; left: 0; right: 0;
+      width: 100% !important; height: auto; border-right: none;
+      border-top: 1px solid var(--border);
+      flex-direction: row; z-index: 100; background: var(--surface);
+    }
+    .sidebar-logo { display: none; }
+    .sidebar-nav {
+      flex-direction: row; padding: 6px 4px; gap: 0;
+      justify-content: space-around; overflow-x: auto; flex: 1;
+    }
+    .nav-item {
+      flex-direction: column; gap: 3px; padding: 6px 8px;
+      font-size: 10px; align-items: center; min-width: 52px;
+      border-radius: 8px;
+    }
+    .nav-icon { width: auto; }
+    .nav-badge { font-size: 9px; padding: 1px 5px; }
+    .sidebar-user { display: none; }
+
+    /* Main content gets bottom padding to clear the tab bar */
+    .main-content {
+      margin-left: 0 !important;
+      padding: 16px 14px 90px !important;
+    }
+
+    /* Page headers */
+    .page-title { font-size: 22px; }
+    .page-sub   { font-size: 13px; }
+
+    /* Cards */
+    .card { padding: 16px 14px; }
+    .card-title { font-size: 14px; }
+
+    /* Hero */
+    .home-hero { padding: 20px 16px; flex-direction: column; gap: 14px; }
+    .home-hero h1 { font-size: 22px; }
+    .home-hero p  { font-size: 13px; }
+
+    /* Grids → single column */
+    .home-actions, .home-stats-row, .breakdown-grid,
+    .profile-grid, .cert-row, .resumes-grid { grid-template-columns: 1fr !important; }
+
+    /* Stepper: scroll horizontally */
+    .stepper { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; gap: 0; -webkit-overflow-scrolling: touch; }
+    .step { padding: 6px 10px; }
+    .step-label { font-size: 11px; }
+    .step-divider { min-width: 10px; max-width: 16px; }
+
+    /* Experience / Education 2-col grids */
+    .exp-grid, .edu-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
+
+    /* Score display */
+    .score-display { flex-direction: column; align-items: flex-start; gap: 16px; padding: 18px; }
+
+    /* Download buttons */
+    .download-btn { width: 100%; justify-content: center; font-size: 14px; padding: 14px 20px; }
+
+    /* Modal → bottom sheet */
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal { border-radius: 16px 16px 0 0; max-height: 92vh; padding: 24px 18px; }
+
+    /* Inactivity banner */
+    .inactivity-banner {
+      flex-direction: column; text-align: center;
+      bottom: 80px; left: 12px; right: 12px;
+      transform: none; white-space: normal;
+      padding: 14px 16px; gap: 10px;
+      border-radius: 12px;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Upload zone */
+    .upload-zone { padding: 28px 14px; }
+
+    /* MonthYearPicker on mobile */
+    .month-year-grid { grid-template-columns: 1fr !important; }
+  }
 `;
 
 // ─── Skill categories ─────────────────────────────────────────────────────────
 const SKILL_CATEGORIES = {
-  "Programming Languages": ["JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin", "PHP", "Ruby", "Scala", "R"],
-  "Frontend": ["React", "Vue.js", "Angular", "Next.js", "Svelte", "HTML5", "CSS3", "Tailwind CSS", "SASS", "Redux", "GraphQL"],
-  "Backend": ["Node.js", "Express.js", "Django", "FastAPI", "Spring Boot", "Laravel", "Ruby on Rails", "REST APIs", "Microservices"],
-  "Cloud & DevOps": ["AWS", "Azure", "GCP", "Docker", "Kubernetes", "Terraform", "CI/CD", "Jenkins", "GitHub Actions", "Linux"],
-  "Databases": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "DynamoDB", "Elasticsearch", "SQLite", "Cassandra"],
-  "Data & AI": ["Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Scikit-learn", "Data Analysis", "Power BI", "Tableau"],
-  "Soft Skills": ["Leadership", "Communication", "Problem Solving", "Team Collaboration", "Agile", "Scrum", "Project Management", "Mentoring"],
+  "Programming Languages": ["JavaScript","TypeScript","Python","Java","C++","C#","Go","Rust","Swift","Kotlin","PHP","Ruby","Scala","R"],
+  "Frontend":              ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
+  "Backend":               ["Node.js","Express.js","Django","FastAPI","Spring Boot","Laravel","Ruby on Rails","REST APIs","Microservices"],
+  "Cloud & DevOps":        ["AWS","Azure","GCP","Docker","Kubernetes","Terraform","CI/CD","Jenkins","GitHub Actions","Linux"],
+  "Databases":             ["PostgreSQL","MySQL","MongoDB","Redis","DynamoDB","Elasticsearch","SQLite","Cassandra"],
+  "Data & AI":             ["Machine Learning","Deep Learning","TensorFlow","PyTorch","Pandas","NumPy","Scikit-learn","Data Analysis","Power BI","Tableau"],
+  "Soft Skills":           ["Leadership","Communication","Problem Solving","Team Collaboration","Agile","Scrum","Project Management","Mentoring"],
 };
 
 // ─── SVG Nav Icons ────────────────────────────────────────────────────────────
 function NavIcon({ name, size = 16 }) {
   const s = size;
   const icons = {
-    home: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 01-1.5 1.5h-4.75V15a.75.75 0 00-.75-.75h-4a.75.75 0 00-.75.75v6.5H4.5A1.5 1.5 0 013 20V10.5z" fill="currentColor" fillOpacity="0.18"/>
-        <path d="M3 10.5L12 3l9 7.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M19.5 8.75V4.5h-2.25v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <rect x="9.25" y="14.75" width="5.5" height="6.75" rx="0.75" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M4.5 10.75V20.5h15V10.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    sparkle: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2.5c0 0 1.2 4.3 2.8 5.9C16.4 10 20.5 11 20.5 11s-4.1 1.1-5.7 2.7C13.2 15.3 12 19.5 12 19.5s-1.2-4.2-2.8-5.8C7.6 12.1 3.5 11 3.5 11s4.1-.9 5.7-2.6C10.8 6.8 12 2.5 12 2.5z" fill="currentColor" fillOpacity="0.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-        <path d="M19.5 3.5c0 0 .55 1.5 1.1 2.1.6.6 2.1 1.1 2.1 1.1s-1.5.5-2.1 1.1c-.6.6-1.1 2.1-1.1 2.1s-.55-1.5-1.1-2.1c-.6-.6-2.1-1.1-2.1-1.1s1.5-.5 2.1-1.1c.6-.6 1.1-2.1 1.1-2.1z" fill="currentColor" fillOpacity="0.7"/>
-      </svg>
-    ),
-    file: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" fill="currentColor" fillOpacity="0.15"/>
-        <path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
-        <path d="M13.5 2v5.5a1 1 0 001 1H20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-        <line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="8" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="8" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    user: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="7.5" r="3.75" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.6"/>
-        <path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-        <path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" fillOpacity="0.1"/>
-      </svg>
-    ),
-    info: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth="1.6"/>
-        <circle cx="12" cy="8" r="1.1" fill="currentColor"/>
-        <line x1="12" y1="11.5" x2="12" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-      </svg>
-    ),
-    copy: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="8" y="8" width="12" height="13" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6"/>
-        <path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-        <line x1="11.5" y1="12.5" x2="16.5" y2="12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        <line x1="11.5" y1="15.5" x2="16.5" y2="15.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      </svg>
-    ),
-    download: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/>
-        <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
-        <path d="M12 3v11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
-        <path d="M7.5 10.5L12 15.5l4.5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    refresh: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4.5 12a7.5 7.5 0 0113.5-4.5H15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M19.5 12a7.5 7.5 0 01-13.5 4.5H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M18 4.5l1.5 3-3 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M6 19.5l-1.5-3 3-.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    trash: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 7.5h14l-1.2 12a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 7.5z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
-        <path d="M3 7.5h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
-        <path d="M9.5 4.5h5a1 1 0 011 1V7.5h-7V5.5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      </svg>
-    ),
-    upload: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/>
-        <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
-        <path d="M12 15V4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
-        <path d="M7.5 8.5L12 3.5l4.5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    warning: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10.5 3.75L2 19.5h20L13.5 3.75a1.732 1.732 0 00-3 0z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
-        <line x1="12" y1="10" x2="12" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-        <circle cx="12" cy="17.5" r="1" fill="currentColor"/>
-      </svg>
-    ),
-    check: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="9.5" fill="currentColor" fillOpacity="0.12"/>
-        <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M7.5 12.5l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-    edit: (
-      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 20h4l9.5-9.5-4-4L4 16v4z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
-        <path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-        <path d="M16.5 3.5a2 2 0 012.83 0l1.17 1.17a2 2 0 010 2.83L19 9 15 5l1.5-1.5z" fill="currentColor" fillOpacity="0.3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-        <line x1="3" y1="21" x2="21" y2="21" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeOpacity="0.3"/>
-      </svg>
-    ),
+    home: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 01-1.5 1.5h-4.75V15a.75.75 0 00-.75-.75h-4a.75.75 0 00-.75.75v6.5H4.5A1.5 1.5 0 013 20V10.5z" fill="currentColor" fillOpacity="0.18"/><path d="M3 10.5L12 3l9 7.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/><path d="M19.5 8.75V4.5h-2.25v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><rect x="9.25" y="14.75" width="5.5" height="6.75" rx="0.75" stroke="currentColor" strokeWidth="1.5"/><path d="M4.5 10.75V20.5h15V10.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+    sparkle: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 2.5c0 0 1.2 4.3 2.8 5.9C16.4 10 20.5 11 20.5 11s-4.1 1.1-5.7 2.7C13.2 15.3 12 19.5 12 19.5s-1.2-4.2-2.8-5.8C7.6 12.1 3.5 11 3.5 11s4.1-.9 5.7-2.6C10.8 6.8 12 2.5 12 2.5z" fill="currentColor" fillOpacity="0.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M19.5 3.5c0 0 .55 1.5 1.1 2.1.6.6 2.1 1.1 2.1 1.1s-1.5.5-2.1 1.1c-.6.6-1.1 2.1-1.1 2.1s-.55-1.5-1.1-2.1c-.6-.6-2.1-1.1-2.1-1.1s1.5-.5 2.1-1.1c.6-.6 1.1-2.1 1.1-2.1z" fill="currentColor" fillOpacity="0.7"/></svg>),
+    file: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" fill="currentColor" fillOpacity="0.15"/><path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M13.5 2v5.5a1 1 0 001 1H20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
+    user: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7.5" r="3.75" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.6"/><path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" fillOpacity="0.1"/></svg>),
+    info: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth="1.6"/><circle cx="12" cy="8" r="1.1" fill="currentColor"/><line x1="12" y1="11.5" x2="12" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>),
+    copy: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="13" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><line x1="11.5" y1="12.5" x2="16.5" y2="12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="11.5" y1="15.5" x2="16.5" y2="15.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>),
+    download: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M12 3v11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M7.5 10.5L12 15.5l4.5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+    refresh: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4.5 12a7.5 7.5 0 0113.5-4.5H15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M19.5 12a7.5 7.5 0 01-13.5 4.5H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M18 4.5l1.5 3-3 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 19.5l-1.5-3 3-.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+    trash: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M5 7.5h14l-1.2 12a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 7.5z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M3 7.5h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M9.5 4.5h5a1 1 0 011 1V7.5h-7V5.5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5"/><line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>),
+    upload: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M12 15V4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M7.5 8.5L12 3.5l4.5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+    warning: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M10.5 3.75L2 19.5h20L13.5 3.75a1.732 1.732 0 00-3 0z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><line x1="12" y1="10" x2="12" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="17.5" r="1" fill="currentColor"/></svg>),
+    check: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" fill="currentColor" fillOpacity="0.12"/><circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.5"/><path d="M7.5 12.5l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+    edit: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4 20h4l9.5-9.5-4-4L4 16v4z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><path d="M16.5 3.5a2 2 0 012.83 0l1.17 1.17a2 2 0 010 2.83L19 9 15 5l1.5-1.5z" fill="currentColor" fillOpacity="0.3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><line x1="3" y1="21" x2="21" y2="21" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeOpacity="0.3"/></svg>),
   };
   return icons[name] || null;
 }
@@ -552,6 +565,49 @@ function Alert({ type = "error", children }) {
 }
 function Spinner({ small }) {
   return <span className={`spinner${small ? " spinner-sm" : ""}`} style={small ? { display: "inline-block" } : {}} />;
+}
+
+// ─── FIX 1: Location Autocomplete (Google Places) ────────────────────────────
+// Requires: <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places" async defer></script>
+// in public/index.html
+function LocationAutocomplete({ value, onChange, placeholder = "San Francisco, CA" }) {
+  const inputRef = useRef(null);
+  const autocompleteRef = useRef(null);
+
+  useEffect(() => {
+    if (!window.google?.maps?.places) return;
+    if (autocompleteRef.current) return;
+
+    autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+      types: ["(cities)"],
+      fields: ["formatted_address"],
+    });
+
+    autocompleteRef.current.addListener("place_changed", () => {
+      const place = autocompleteRef.current.getPlace();
+      if (place?.formatted_address) onChange(place.formatted_address);
+    });
+  }, [onChange]);
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      autoComplete="off"
+      style={{
+        width: "100%", padding: "14px 16px",
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: "var(--radius)", color: "var(--text)",
+        fontFamily: "var(--font-body)", fontSize: 15, outline: "none",
+        transition: "border-color 0.2s",
+      }}
+      onFocus={e => { e.target.style.borderColor = "var(--accent)"; e.target.style.boxShadow = "0 0 0 3px rgba(232,197,71,0.1)"; }}
+      onBlur={e =>  { e.target.style.borderColor = ""; e.target.style.boxShadow = ""; }}
+    />
+  );
 }
 
 // ─── Auth Brand ───────────────────────────────────────────────────────────────
@@ -580,7 +636,6 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
     setError(""); setLoading(true);
     try {
       const data = await api.login(email, password);
-      // ── Save token + user into sessionStorage (not localStorage) ──
       sessionStorage_.save(data.token || data.accessToken, { email: data.email, fullName: data.fullName });
       onLogin(data);
     } catch (e) { setError(e.message); }
@@ -800,12 +855,8 @@ function ResetPasswordPage({ onBack }) {
           <div className="field">
             <label>Confirm Password</label>
             <input type="password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && password && confirm && submit()} />
-            {confirm && password !== confirm && (
-              <div style={{ marginTop: 6, fontSize: 12, color: "var(--danger)" }}>✕ Passwords do not match</div>
-            )}
-            {confirm && password === confirm && (
-              <div style={{ marginTop: 6, fontSize: 12, color: "var(--success)" }}>✓ Passwords match</div>
-            )}
+            {confirm && password !== confirm && (<div style={{ marginTop: 6, fontSize: 12, color: "var(--danger)" }}>✕ Passwords do not match</div>)}
+            {confirm && password === confirm && (<div style={{ marginTop: 6, fontSize: 12, color: "var(--success)" }}>✓ Passwords match</div>)}
           </div>
           <button className="btn btn-primary" disabled={!password || !confirm || loading} onClick={submit}>
             {loading ? <><Spinner small /> Resetting...</> : "Reset Password"}
@@ -818,10 +869,10 @@ function ResetPasswordPage({ onBack }) {
 
 // ─── Profile Stepper ──────────────────────────────────────────────────────────
 const STEPS = [
-  { id: "personal", label: "Personal" },
-  { id: "experience", label: "Experience" },
-  { id: "education", label: "Education" },
-  { id: "skills", label: "Skills" },
+  { id: "personal",       label: "Personal"       },
+  { id: "experience",     label: "Experience"     },
+  { id: "education",      label: "Education"      },
+  { id: "skills",         label: "Skills"         },
   { id: "certifications", label: "Certifications" },
 ];
 
@@ -844,18 +895,23 @@ function StepperBar({ currentStep, completedSteps, onNavigate }) {
   );
 }
 
+// ─── Personal Step ────────────────────────────────────────────────────────────
 function PersonalStep({ data, onChange, onNext }) {
   const set = k => e => onChange({ ...data, [k]: e.target.value });
   return (
     <div>
       <div className="card">
         <div className="card-title"><NavIcon name="user" size={18} /> Personal Information</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+        <div className="exp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
           <div className="field"><label>Full Name *</label><input value={data.name || ""} onChange={set("name")} placeholder="Jane Smith" /></div>
           <div className="field"><label>Job Title / Headline *</label><input value={data.headline || ""} onChange={set("headline")} placeholder="Senior Software Engineer" /></div>
           <div className="field"><label>Email *</label><input type="email" value={data.email || ""} onChange={set("email")} placeholder="jane@example.com" /></div>
           <div className="field"><label>Phone *</label><input value={data.phone || ""} onChange={set("phone")} placeholder="+1 (555) 000-0000" /></div>
-          <div className="field"><label>Location *</label><input value={data.location || ""} onChange={set("location")} placeholder="San Francisco, CA" /></div>
+          {/* FIX 1: Location autocomplete */}
+          <div className="field">
+            <label>Location *</label>
+            <LocationAutocomplete value={data.location || ""} onChange={v => onChange({ ...data, location: v })} />
+          </div>
           <div className="field"><label>LinkedIn URL</label><input value={data.linkedin || ""} onChange={set("linkedin")} placeholder="linkedin.com/in/janesmith" /></div>
           <div className="field"><label>GitHub / Portfolio</label><input value={data.github || ""} onChange={set("github")} placeholder="github.com/janesmith" /></div>
           <div className="field"><label>Website</label><input value={data.website || ""} onChange={set("website")} placeholder="janesmith.dev" /></div>
@@ -867,12 +923,13 @@ function PersonalStep({ data, onChange, onNext }) {
   );
 }
 
+// ─── Experience Step ──────────────────────────────────────────────────────────
 function ExperienceStep({ data, onChange, onNext, onBack }) {
   const empty = () => ({ company: "", role: "", location: "", startDate: "", endDate: "", current: false, description: "" });
   const companies = data.companies?.length ? data.companies : [empty()];
   const update = (i, field, val) => onChange({ ...data, companies: companies.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add = () => onChange({ ...data, companies: [...companies, empty()] });
-  const remove = i => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
+  const add    = () => onChange({ ...data, companies: [...companies, empty()] });
+  const remove = i  => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -884,12 +941,16 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.6px" }}>Position {i + 1}</span>
               {companies.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>Remove</button>}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+            <div className="exp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
               <div className="field"><label>Company *</label><input value={c.company} onChange={e => update(i, "company", e.target.value)} placeholder="Acme Corp" /></div>
               <div className="field"><label>Job Title *</label><input value={c.role} onChange={e => update(i, "role", e.target.value)} placeholder="Software Engineer" /></div>
             </div>
-            <div className="field"><label>Location</label><input value={c.location || ""} onChange={e => update(i, "location", e.target.value)} placeholder="Dallas, TX / Remote" /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", marginBottom: 8 }}>
+            {/* FIX 1: location autocomplete in experience */}
+            <div className="field">
+              <label>Location</label>
+              <LocationAutocomplete value={c.location || ""} onChange={v => update(i, "location", v)} placeholder="Dallas, TX / Remote" />
+            </div>
+            <div className="exp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px", marginBottom: 8 }}>
               <div><span className="date-label">Start Date</span><MonthYearPicker value={c.startDate || ""} onChange={val => update(i, "startDate", val)} /></div>
               <div>
                 <span className="date-label">End Date</span>
@@ -916,12 +977,13 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
   );
 }
 
+// ─── Education Step ───────────────────────────────────────────────────────────
 function EducationStep({ data, onChange, onNext, onBack }) {
   const empty = () => ({ institution: "", degree: "", field: "", location: "", year: "", gpa: "" });
-  const edu = data.education?.length ? data.education : [empty()];
+  const edu    = data.education?.length ? data.education : [empty()];
   const update = (i, field, val) => onChange({ ...data, education: edu.map((e, idx) => idx === i ? { ...e, [field]: val } : e) });
-  const add = () => onChange({ ...data, education: [...edu, empty()] });
-  const remove = i => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
+  const add    = () => onChange({ ...data, education: [...edu, empty()] });
+  const remove = i  => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -933,24 +995,24 @@ function EducationStep({ data, onChange, onNext, onBack }) {
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>Degree {i + 1}</span>
               {edu.length > 1 && <button className="btn btn-ghost btn-sm" onClick={() => remove(i)}>Remove</button>}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+            <div className="edu-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
               <div className="field"><label>Institution *</label><input value={e.institution} onChange={ev => update(i, "institution", ev.target.value)} placeholder="MIT" /></div>
               <div className="field">
                 <label>Degree</label>
                 <select value={e.degree} onChange={ev => update(i, "degree", ev.target.value)}>
                   <option value="">Select degree</option>
-                  <option>Bachelor of Science</option>
-                  <option>Bachelor of Arts</option>
-                  <option>Master of Science</option>
-                  <option>Master of Arts</option>
-                  <option>MBA</option>
-                  <option>PhD</option>
-                  <option>Associate Degree</option>
-                  <option>Diploma</option>
+                  <option>Bachelor of Science</option><option>Bachelor of Arts</option>
+                  <option>Master of Science</option><option>Master of Arts</option>
+                  <option>MBA</option><option>PhD</option>
+                  <option>Associate Degree</option><option>Diploma</option>
                 </select>
               </div>
               <div className="field"><label>Field of Study</label><input value={e.field} onChange={ev => update(i, "field", ev.target.value)} placeholder="Computer Science" /></div>
-              <div className="field"><label>Location</label><input value={e.location || ""} onChange={ev => update(i, "location", ev.target.value)} placeholder="Cambridge, MA" /></div>
+              {/* FIX 1: location autocomplete in education */}
+              <div className="field">
+                <label>Location</label>
+                <LocationAutocomplete value={e.location || ""} onChange={v => update(i, "location", v)} placeholder="Cambridge, MA" />
+              </div>
               <div className="field"><label>Graduation Year</label><input type="number" value={e.year} onChange={ev => update(i, "year", ev.target.value)} placeholder="2020" /></div>
               <div className="field"><label>GPA (Optional)</label><input value={e.gpa || ""} onChange={ev => update(i, "gpa", ev.target.value)} placeholder="3.8 / 4.0" /></div>
             </div>
@@ -966,11 +1028,12 @@ function EducationStep({ data, onChange, onNext, onBack }) {
   );
 }
 
+// ─── Skills Step ──────────────────────────────────────────────────────────────
 function SkillsStep({ data, onChange, onNext, onBack }) {
   const selected = data.skills || [];
   const [activeTab, setActiveTab] = useState(Object.keys(SKILL_CATEGORIES)[0]);
   const [custom, setCustom] = useState("");
-  const toggle = skill => onChange({ ...data, skills: selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill] });
+  const toggle    = skill => onChange({ ...data, skills: selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill] });
   const addCustom = () => { if (custom.trim() && !selected.includes(custom.trim())) { onChange({ ...data, skills: [...selected, custom.trim()] }); setCustom(""); } };
 
   return (
@@ -1007,11 +1070,12 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
   );
 }
 
+// ─── Certifications Step ──────────────────────────────────────────────────────
 function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
   const certs = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
   const update = (i, field, val) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
-  const remove = i => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
+  const add    = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
+  const remove = i  => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -1042,9 +1106,9 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
 // ─── Resume Upload Zone ───────────────────────────────────────────────────────
 function ResumeUploadZone({ onParsed }) {
   const [dragging, setDragging] = useState(false);
-  const [parsing, setParsing] = useState(false);
+  const [parsing, setParsing]   = useState(false);
   const [parseStep, setParseStep] = useState(0);
-  const [error, setError] = useState("");
+  const [error, setError]       = useState("");
 
   const PARSE_STEPS = [
     "Reading your resume…",
@@ -1053,6 +1117,7 @@ function ResumeUploadZone({ onParsed }) {
     "Finalising profile fields…",
   ];
 
+  // FIX 5: retry once, then offer manual path
   const handleFile = async (file) => {
     if (!file) return;
     const ext = file.name.split(".").pop().toLowerCase();
@@ -1061,14 +1126,27 @@ function ResumeUploadZone({ onParsed }) {
     }
     setParsing(true); setParseStep(0); setError("");
     const ticker = setInterval(() => setParseStep(p => Math.min(p + 1, PARSE_STEPS.length - 1)), 1800);
-    try {
-      const data = await api.parseResume(file);
-      clearInterval(ticker);
-      onParsed(data);
-    } catch (e) {
-      clearInterval(ticker);
-      setError(e.message || "Failed to parse resume. You can fill the form manually instead.");
-      setParsing(false);
+
+    const tryParse = async () => {
+      try {
+        const data = await api.parseResume(file);
+        clearInterval(ticker);
+        onParsed(data);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const ok = await tryParse();
+    if (!ok) {
+      await new Promise(r => setTimeout(r, 1500));
+      const ok2 = await tryParse();
+      if (!ok2) {
+        clearInterval(ticker);
+        setParsing(false);
+        setError("PARSE_FAILED");
+      }
     }
   };
 
@@ -1092,66 +1170,100 @@ function ResumeUploadZone({ onParsed }) {
 
   return (
     <div>
-      {error && <Alert>{error}</Alert>}
-      <div
-        className={`upload-zone ${dragging ? "drag-over" : ""}`}
-        style={{ padding: "48px 32px" }}
-        onDragOver={e => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
-      >
-        <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
-        <div style={{ color: "var(--accent)", marginBottom: 14, display: "flex", justifyContent: "center" }}><NavIcon name="upload" size={40} /></div>
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Drop your resume here or click to browse</div>
-        <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>AI will extract all your details and auto-fill the form</div>
-        <div className="upload-formats">
-          {["PDF", "DOCX", "DOC", "TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
+      {/* FIX 5: parse failed UI with retry/manual options */}
+      {error === "PARSE_FAILED" ? (
+        <div style={{ padding: "20px", background: "rgba(255,107,107,0.07)", border: "1px solid rgba(255,107,107,0.25)", borderRadius: "var(--radius)", marginBottom: 16 }}>
+          <p style={{ color: "#ff9999", fontWeight: 600, marginBottom: 8 }}>⚠ Couldn't extract your resume automatically.</p>
+          <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
+            This can happen with scanned PDFs or heavily formatted files. You can fill in your details manually — it only takes a few minutes.
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button className="btn btn-primary btn-sm" style={{ width: "auto" }} onClick={() => { setError(""); onParsed({}); }}>
+              Continue Manually →
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setError("")}>Try Another File</button>
+          </div>
         </div>
-      </div>
+      ) : error ? (
+        <Alert>{error}</Alert>
+      ) : null}
+
+      {error !== "PARSE_FAILED" && (
+        <div
+          className={`upload-zone ${dragging ? "drag-over" : ""}`}
+          style={{ padding: "48px 32px" }}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+        >
+          <input type="file" accept=".pdf,.docx,.doc,.txt" onChange={e => handleFile(e.target.files[0])} />
+          <div style={{ color: "var(--accent)", marginBottom: 14, display: "flex", justifyContent: "center" }}><NavIcon name="upload" size={40} /></div>
+          <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Drop your resume here or click to browse</div>
+          <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>AI will extract all your details and auto-fill the form</div>
+          <div className="upload-formats">
+            {["PDF","DOCX","DOC","TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Profile Builder ──────────────────────────────────────────────────────────
 function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
-  const [phase, setPhase] = useState(initialProfile ? "steps" : "upload");
-  const [currentStep, setCurrentStep] = useState("personal");
+  const [phase, setPhase]               = useState(initialProfile ? "steps" : "upload");
+  const [currentStep, setCurrentStep]   = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
-  const [profile, setProfile] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [parsedData, setParsedData] = useState(null);
+  const [profile, setProfile]           = useState({});
+  const [saving, setSaving]             = useState(false);
+  const [error, setError]               = useState("");
+  const [parsedData, setParsedData]     = useState(null);
 
   useEffect(() => {
     if (initialProfile) {
       setProfile(initialProfile);
       setPhase("steps");
       const completed = [];
-      if (initialProfile.name) completed.push("personal");
-      if (initialProfile.companies?.length) completed.push("experience");
-      if (initialProfile.education?.length) completed.push("education");
-      if (initialProfile.skills?.length) completed.push("skills");
+      if (initialProfile.name)               completed.push("personal");
+      if (initialProfile.companies?.length)  completed.push("experience");
+      if (initialProfile.education?.length)  completed.push("education");
+      if (initialProfile.skills?.length)     completed.push("skills");
       if (initialProfile.certifications?.length) completed.push("certifications");
       setCompletedSteps(completed);
     }
   }, [initialProfile]);
 
+  // FIX 2: sort experiences most-recent first
   const handleParsed = (data) => {
     setParsedData(data);
     setProfile(prev => ({
       ...prev,
-      name: data.name || prev.name || "",
-      headline: data.headline || prev.headline || "",
-      email: data.email || prev.email || "",
-      phone: data.phone || prev.phone || "",
-      location: data.location || prev.location || "",
-      linkedin: data.linkedin || prev.linkedin || "",
-      github: data.github || prev.github || "",
-      website: data.website || prev.website || "",
-      summary: data.summary || prev.summary || "",
-      companies: (data.companies?.length ? data.companies : null) || prev.companies || [],
-      education: (data.education?.length ? data.education : null) || prev.education || [],
-      skills: (data.skills?.length ? data.skills : null) || prev.skills || [],
+      name:           data.name           || prev.name           || "",
+      headline:       data.headline       || prev.headline       || "",
+      email:          data.email          || prev.email          || "",
+      phone:          data.phone          || prev.phone          || "",
+      location:       data.location       || prev.location       || "",
+      linkedin:       data.linkedin       || prev.linkedin       || "",
+      github:         data.github         || prev.github         || "",
+      website:        data.website        || prev.website        || "",
+      summary:        data.summary        || prev.summary        || "",
+      companies: (() => {
+        const raw = (data.companies?.length ? data.companies : null) || prev.companies || [];
+        return [...raw].sort((a, b) => {
+          const toMs = d => {
+            if (!d) return Date.now();
+            const [y, m] = d.split("-");
+            return new Date(Number(y), Number(m || 1) - 1).getTime();
+          };
+          const aEnd = a.current ? null : a.endDate;
+          const bEnd = b.current ? null : b.endDate;
+          if (!aEnd && bEnd)  return -1;
+          if (aEnd  && !bEnd) return  1;
+          return toMs(bEnd || b.startDate) - toMs(aEnd || a.startDate);
+        });
+      })(),
+      education:      (data.education?.length     ? data.education     : null) || prev.education     || [],
+      skills:         (data.skills?.length         ? data.skills         : null) || prev.skills         || [],
       certifications: (data.certifications?.length ? data.certifications : null) || prev.certifications || [],
     }));
     setCurrentStep("personal");
@@ -1210,13 +1322,8 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
         )}
         <div style={{
           marginLeft: onCancel ? 240 : 0,
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--bg)",
-          padding: "40px 20px",
-          minHeight: "100vh",
+          flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+          background: "var(--bg)", padding: "40px 20px", minHeight: "100vh",
         }}>
           <div style={{ width: "100%", maxWidth: 560 }}>
             <div style={{ textAlign: "center", marginBottom: 36 }}>
@@ -1251,9 +1358,7 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
           <p className="page-sub">Complete your profile to unlock AI-powered resume generation</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {!initialProfile && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setPhase("upload")}>Re-upload Resume</button>
-          )}
+          {!initialProfile && <button className="btn btn-ghost btn-sm" onClick={() => setPhase("upload")}>Re-upload Resume</button>}
           {onCancel && <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>}
         </div>
       </div>
@@ -1276,10 +1381,10 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
 
       <StepperBar currentStep={currentStep} completedSteps={completedSteps} onNavigate={setCurrentStep} />
 
-      {currentStep === "personal" && <PersonalStep data={profile} onChange={setProfile} onNext={goNext} />}
-      {currentStep === "experience" && <ExperienceStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "education" && <EducationStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "skills" && <SkillsStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "personal"       && <PersonalStep       data={profile} onChange={setProfile} onNext={goNext} />}
+      {currentStep === "experience"     && <ExperienceStep     data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "education"      && <EducationStep      data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "skills"         && <SkillsStep         data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
       {currentStep === "certifications" && <CertificationsStep data={profile} onChange={setProfile} onSave={saveProfile} onBack={goBack} saving={saving} />}
     </div>
   );
@@ -1289,10 +1394,10 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
 function ScoringBreakdown({ breakdown }) {
   if (!breakdown) return null;
   const dims = [
-    { label: "Keyword Match", key: "keywordMatch", weight: "40%" },
-    { label: "Candidate Fit", key: "candidateFit", weight: "25%" },
-    { label: "Resume Completeness", key: "resumeCompleteness", weight: "20%" },
-    { label: "Keyword Density", key: "keywordDensity", weight: "15%" },
+    { label: "Keyword Match",        key: "keywordMatch",       weight: "40%" },
+    { label: "Candidate Fit",        key: "candidateFit",       weight: "25%" },
+    { label: "Resume Completeness",  key: "resumeCompleteness", weight: "20%" },
+    { label: "Keyword Density",      key: "keywordDensity",     weight: "15%" },
   ];
   return (
     <div className="card">
@@ -1326,22 +1431,23 @@ const GEN_STEPS_LIST = [
   "Generating tailored resume content...",
   "Enriching skills and experience bullets...",
   "Calculating holistic ATS score...",
-  "Rendering PDF...",
+  "Rendering PDF & DOCX...",
 ];
 
 function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPosition = "" }) {
-  const [company, setCompany] = useState(prefillCompany);
+  const [company,  setCompany]  = useState(prefillCompany);
   const [position, setPosition] = useState(prefillPosition);
-  const [jd, setJd] = useState("");
-  const [step, setStep] = useState("meta");
-  const [genStep, setGenStep] = useState(0);
+  const [jd, setJd]             = useState("");
+  const [step, setStep]         = useState("meta");
+  const [genStep, setGenStep]   = useState(0);
   const [atsResult, setAtsResult] = useState(null);
-  const [pdfBlob, setPdfBlob] = useState(null);
-  const [error, setError] = useState("");
+  const [pdfBlob,  setPdfBlob]  = useState(null);
+  const [docxBlob, setDocxBlob] = useState(null); // FIX 4
+  const [error, setError]       = useState("");
 
   const startGenerate = async () => {
     if (!jd.trim()) return;
-    setStep("generate"); setGenStep(0); setError(""); setAtsResult(null); setPdfBlob(null);
+    setStep("generate"); setGenStep(0); setError(""); setAtsResult(null); setPdfBlob(null); setDocxBlob(null);
     try {
       const intervalId = setInterval(() => {
         setGenStep(prev => prev < GEN_STEPS_LIST.length - 1 ? prev + 1 : prev);
@@ -1352,36 +1458,47 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
       clearInterval(intervalId);
       setGenStep(GEN_STEPS_LIST.length);
 
-      const base64Url = result.pdfBase64;
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      // ── PDF blob ──
+      const base64 = result.pdfBase64.replace(/-/g, "+").replace(/_/g, "/");
       const binaryStr = atob(base64);
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
       const blob = new Blob([bytes], { type: "application/pdf" });
 
-      const ats = {
-        atsScore: result.atsScore,
-        scoreLabel: result.scoreLabel,
-        matchedSkills: result.matchedSkills,
-        totalSkills: result.totalSkills,
+      // FIX 4: DOCX blob
+      let dBlob = null;
+      if (result.docxBase64) {
+        const db64 = result.docxBase64.replace(/-/g, "+").replace(/_/g, "/");
+        const dStr = atob(db64);
+        const dBytes = new Uint8Array(dStr.length);
+        for (let i = 0; i < dStr.length; i++) dBytes[i] = dStr.charCodeAt(i);
+        dBlob = new Blob([dBytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      }
+
+      setAtsResult({
+        atsScore:        result.atsScore,
+        scoreLabel:      result.scoreLabel,
+        matchedSkills:   result.matchedSkills,
+        totalSkills:     result.totalSkills,
         matchedKeywords: result.matchedKeywords || [],
         missingKeywords: result.missingKeywords || [],
         scoringBreakdown: result.scoringBreakdown || null,
-      };
-      setAtsResult(ats);
+      });
       setPdfBlob(blob);
+      setDocxBlob(dBlob);
       setStep("done");
 
       onSaveResume({
         id: Date.now().toString(),
         company, position,
-        generatedAt: new Date().toISOString(),
-        atsScore: result.atsScore,
-        scoreLabel: result.scoreLabel,
+        generatedAt:     new Date().toISOString(),
+        atsScore:        result.atsScore,
+        scoreLabel:      result.scoreLabel,
         matchedKeywords: result.matchedKeywords || [],
         missingKeywords: result.missingKeywords || [],
         scoringBreakdown: result.scoringBreakdown || null,
-        pdfBase64: result.pdfBase64,
+        pdfBase64:       result.pdfBase64,
+        docxBase64:      result.docxBase64 || null, // FIX 4
       });
     } catch (e) { setError(e.message); setStep("meta"); }
   };
@@ -1395,7 +1512,18 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
     URL.revokeObjectURL(url);
   };
 
-  const reset = () => { setStep("meta"); setAtsResult(null); setPdfBlob(null); setJd(""); setGenStep(0); setError(""); setCompany(""); setPosition(""); };
+  // FIX 4: download DOCX
+  const downloadDocx = () => {
+    if (!docxBlob) return;
+    const url = URL.createObjectURL(docxBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(profile.name || "Resume").replace(/\s+/g, "_")}_${company || "ATS"}_Optimized.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const reset = () => { setStep("meta"); setAtsResult(null); setPdfBlob(null); setDocxBlob(null); setJd(""); setGenStep(0); setError(""); setCompany(""); setPosition(""); };
 
   if (step === "generate") {
     return (
@@ -1418,7 +1546,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
   if (step === "done" && atsResult) {
     const sc = atsResult.atsScore;
     const col = scoreColor(sc);
-    const bg = scoreBg(sc);
+    const bg  = scoreBg(sc);
     const contextMsg = sc >= 90 ? "Outstanding — your resume is highly competitive for this role." :
       sc >= 75 ? "Strong match. Weaving in the missing keywords could push you to Excellent." :
         sc >= 55 ? "Reasonable fit. Adding the missing skills and regenerating will improve your score." :
@@ -1452,9 +1580,9 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
           <div className="card-title">Keyword Match Analysis</div>
           <div style={{ display: "flex", gap: 28, marginBottom: 20, flexWrap: "wrap" }}>
             {[
-              { label: "Matched", val: atsResult.matchedKeywords.length, col: "var(--success)" },
-              { label: "Missing", val: atsResult.missingKeywords.length, col: "var(--danger)" },
-              { label: "Total in JD", val: atsResult.totalSkills, col: "var(--accent)" },
+              { label: "Matched",    val: atsResult.matchedKeywords.length, col: "var(--success)" },
+              { label: "Missing",    val: atsResult.missingKeywords.length, col: "var(--danger)"  },
+              { label: "Total in JD",val: atsResult.totalSkills,            col: "var(--accent)"  },
             ].map(({ label, val, col: c }) => (
               <div key={label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: c }}>{val}</div>
@@ -1473,8 +1601,12 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
           )}
         </div>
 
+        {/* FIX 4: PDF + DOCX download buttons */}
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={18} /> Download ATS-Optimized PDF</button>
+          <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={18} /> Download PDF</button>
+          {docxBlob && (
+            <button className="download-btn docx" onClick={downloadDocx}><NavIcon name="download" size={18} /> Download Word (.docx)</button>
+          )}
           <button className="btn btn-ghost" onClick={reset}>Try Another Job</button>
         </div>
       </div>
@@ -1487,7 +1619,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
       <div className="card">
         <div className="card-title">Target Role</div>
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>Tell us where you're applying. This lets us tailor the resume specifically for this company and role.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
+        <div className="exp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 20px" }}>
           <div className="field"><label>Company Name *</label><input value={company} onChange={e => setCompany(e.target.value)} placeholder="Google, Amazon, Stripe..." /></div>
           <div className="field"><label>Position / Role *</label><input value={position} onChange={e => setPosition(e.target.value)} placeholder="Senior Software Engineer" /></div>
         </div>
@@ -1504,9 +1636,9 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
         <div className="card-title">Profile Summary</div>
         <div className="profile-grid">
           {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
-          ["Skills", `${(profile.skills || []).length} selected`],
-          ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
-          ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
+            ["Skills", `${(profile.skills || []).length} selected`],
+            ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
+            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
           ].map(([k, v]) => (
             <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
           ))}
@@ -1529,9 +1661,9 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
 
 // ─── Resume Detail Modal ──────────────────────────────────────────────────────
 function ResumeDetailModal({ resume, onClose }) {
-  const sc = resume.atsScore;
+  const sc  = resume.atsScore;
   const col = scoreColor(sc);
-  const bg = scoreBg(sc);
+  const bg  = scoreBg(sc);
 
   const downloadPdf = () => {
     const base64 = resume.pdfBase64.replace(/-/g, "+").replace(/_/g, "/");
@@ -1541,9 +1673,20 @@ function ResumeDetailModal({ resume, onClose }) {
     const blob = new Blob([bytes], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `Resume_${resume.company}_${resume.position}.pdf`.replace(/\s+/g, "_");
-    a.click();
+    a.href = url; a.download = `Resume_${resume.company}_${resume.position}.pdf`.replace(/\s+/g, "_"); a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // FIX 4: DOCX download in modal
+  const downloadDocx = () => {
+    if (!resume.docxBase64) return;
+    const base64 = resume.docxBase64.replace(/-/g, "+").replace(/_/g, "/");
+    const s = atob(base64); const b = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+    const blob = new Blob([b], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `Resume_${resume.company}_${resume.position}.docx`.replace(/\s+/g, "_"); a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -1581,8 +1724,9 @@ function ResumeDetailModal({ resume, onClose }) {
             )}
           </div>
         )}
-        <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-          {resume.pdfBase64 && <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={16} /> Download PDF</button>}
+        <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+          {resume.pdfBase64  && <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={16} /> Download PDF</button>}
+          {resume.docxBase64 && <button className="download-btn docx" onClick={downloadDocx}><NavIcon name="download" size={16} /> Download Word (.docx)</button>}
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
         </div>
       </div>
@@ -1598,15 +1742,26 @@ function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
   const downloadPdf = (e) => {
     e.stopPropagation();
     const base64 = resume.pdfBase64.replace(/-/g, "+").replace(/_/g, "/");
-    const s = atob(base64);
-    const b = new Uint8Array(s.length);
+    const s = atob(base64); const b = new Uint8Array(s.length);
     for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
     const blob = new Blob([b], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `Resume_${resume.company}_${resume.position}.pdf`.replace(/\s+/g, "_");
-    a.click();
+    a.href = url; a.download = `Resume_${resume.company}_${resume.position}.pdf`.replace(/\s+/g, "_"); a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // FIX 4: DOCX download from card
+  const downloadDocx = (e) => {
+    e.stopPropagation();
+    if (!resume.docxBase64) return;
+    const base64 = resume.docxBase64.replace(/-/g, "+").replace(/_/g, "/");
+    const s = atob(base64); const b = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+    const blob = new Blob([b], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `Resume_${resume.company}_${resume.position}.docx`.replace(/\s+/g, "_"); a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -1637,17 +1792,10 @@ function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
           </span>
         </div>
         <div className="resume-card-actions" onClick={e => e.stopPropagation()}>
-          {resume.pdfBase64 && (
-            <button className="btn btn-ghost btn-sm" onClick={downloadPdf} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <NavIcon name="download" size={13} /> PDF
-            </button>
-          )}
-          <button className="btn btn-ghost btn-sm" onClick={() => onNavigate("generate", { company: resume.company, position: resume.position })} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <NavIcon name="refresh" size={13} /> Redo
-          </button>
-          <button className="btn btn-danger btn-sm" onClick={() => onDelete(resume.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <NavIcon name="trash" size={13} /> Delete
-          </button>
+          {resume.pdfBase64  && <button className="btn btn-ghost btn-sm" onClick={downloadPdf}  style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="download" size={13} /> PDF</button>}
+          {resume.docxBase64 && <button className="btn btn-ghost btn-sm" onClick={downloadDocx} style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="download" size={13} /> DOCX</button>}
+          <button className="btn btn-ghost btn-sm" onClick={() => onNavigate("generate", { company: resume.company, position: resume.position })} style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="refresh" size={13} /> Redo</button>
+          <button className="btn btn-danger btn-sm" onClick={() => onDelete(resume.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="trash" size={13} /> Delete</button>
         </div>
       </div>
     </div>
@@ -1656,10 +1804,9 @@ function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
 
 // ─── Home Dashboard ───────────────────────────────────────────────────────────
 function HomeDashboard({ profile, generatedResumes, onNavigate, onDeleteResume }) {
-  const avgScore = generatedResumes.length > 0
-    ? Math.round(generatedResumes.reduce((s, r) => s + r.atsScore, 0) / generatedResumes.length) : null;
+  const avgScore  = generatedResumes.length > 0 ? Math.round(generatedResumes.reduce((s, r) => s + r.atsScore, 0) / generatedResumes.length) : null;
   const bestScore = generatedResumes.length > 0 ? Math.max(...generatedResumes.map(r => r.atsScore)) : null;
-  const sorted = [...generatedResumes].sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
+  const sorted    = [...generatedResumes].sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
 
   return (
     <div>
@@ -1751,7 +1898,7 @@ function ProfileOverview({ profile, onEdit }) {
             <div className="card-title"><NavIcon name="user" size={18} /> Personal</div>
             <div className="profile-grid">
               {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
-              ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
+                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
               ].map(([k, v]) => (
                 <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
               ))}
@@ -1822,22 +1969,10 @@ function AboutPage() {
     <div>
       <div className="card" style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
         <img
-          src="/avinash.jpeg"
-          alt="Avinash Narni"
-          width="240"
-          height="240"
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: "50%",
-            objectFit: "cover",
-            objectPosition: "center top",
-            display: "block",
-            imageRendering: "auto",
-            border: "3px solid var(--accent)",
-            boxShadow: "0 0 0 4px rgba(232,197,71,0.15)",
-            flexShrink: 0,
-          }}
+          src="/avinash.jpeg" alt="Avinash Narni" width="240" height="240"
+          style={{ width: 120, height: 120, borderRadius: "50%", objectFit: "cover", objectPosition: "center top",
+            display: "block", imageRendering: "auto", border: "3px solid var(--accent)",
+            boxShadow: "0 0 0 4px rgba(232,197,71,0.15)", flexShrink: 0 }}
         />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Avinash Narni</div>
@@ -1854,23 +1989,17 @@ function AboutPage() {
       <div className="card">
         <div className="card-title" style={{ marginBottom: 4 }}>Contact</div>
         {[
-          { label: "Email", value: "narniavinash05@gmail.com", href: "mailto:narniavinash05@gmail.com", key: "email" },
+          { label: "Email",    value: "narniavinash05@gmail.com", href: "mailto:narniavinash05@gmail.com", key: "email" },
           { label: "Location", value: "Dallas, TX", href: null, key: "loc" },
         ].map(({ label, value, href, key }) => (
           <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
             <div>
               <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--muted)", marginBottom: 5 }}>{label}</div>
-              {href
-                ? <a href={href} style={{ color: "var(--accent)", textDecoration: "none", fontSize: 15, fontWeight: 500 }}>{value}</a>
-                : <span style={{ fontSize: 15, fontWeight: 500 }}>{value}</span>
-              }
+              {href ? <a href={href} style={{ color: "var(--accent)", textDecoration: "none", fontSize: 15, fontWeight: 500 }}>{value}</a>
+                    : <span style={{ fontSize: 15, fontWeight: 500 }}>{value}</span>}
             </div>
             {href && (
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => copy(value, key)}
-                style={{ display: "flex", alignItems: "center", gap: 6 }}
-              >
+              <button className="btn btn-ghost btn-sm" onClick={() => copy(value, key)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <NavIcon name="copy" size={13} />
                 {copied === key ? "Copied!" : "Copy"}
               </button>
@@ -1889,6 +2018,7 @@ function AboutPage() {
             ["Auth",       "Spring Security · JWT"],
             ["Email",      "SendGrid"],
             ["PDF",        "OpenPDF (LibrePDF)"],
+            ["DOCX",       "Apache POI"],
             ["Frontend",   "React 18"],
             ["Deployment", "AWS EC2"],
           ].map(([k, v]) => (
@@ -1900,10 +2030,7 @@ function AboutPage() {
         </div>
       </div>
 
-      <div style={{
-        textAlign: "center", padding: "24px 0", color: "var(--muted)",
-        fontSize: 13, borderTop: "1px solid var(--border)", marginTop: 8,
-      }}>
+      <div style={{ textAlign: "center", padding: "24px 0", color: "var(--muted)", fontSize: 13, borderTop: "1px solid var(--border)", marginTop: 8 }}>
         © {new Date().getFullYear()} RésuméAI · Built by Avinash Narni · All rights reserved
       </div>
     </div>
@@ -1912,7 +2039,7 @@ function AboutPage() {
 
 // ─── Main Dashboard Shell ─────────────────────────────────────────────────────
 function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile, onSaveResume, onDeleteResume }) {
-  const [activePage, setActivePage] = useState("home");
+  const [activePage,      setActivePage]      = useState("home");
   const [generatePrefill, setGeneratePrefill] = useState(null);
 
   const navigate = (page, prefill = null) => {
@@ -2045,8 +2172,7 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
 }
 
 // ─── Inactivity Warning Banner ────────────────────────────────────────────────
-// Shows a 60-second countdown before auto-logout fires.
-const WARNING_BEFORE_MS = 60 * 1000; // warn 1 minute before logout
+const WARNING_BEFORE_MS = 60 * 1000;
 
 function InactivityWarningBanner({ secondsLeft, onStayLoggedIn }) {
   return (
@@ -2064,82 +2190,56 @@ function InactivityWarningBanner({ secondsLeft, onStayLoggedIn }) {
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [authView, setAuthView] = useState("login");
-  const [showForgot, setShowForgot] = useState(false);
-
-  // ── Read session from sessionStorage on mount.
-  // sessionStorage is cleared automatically when the tab/browser is closed,
-  // so the user must log in again on every fresh session.
-  const [session, setSession] = useState(() => sessionStorage_.readSession());
-
-  const [profile, setProfile] = useState(null);
+  const [authView,    setAuthView]    = useState("login");
+  const [showForgot,  setShowForgot]  = useState(false);
+  const [session,     setSession]     = useState(() => sessionStorage_.readSession());
+  const [profile,     setProfile]     = useState(null);
   const [buildingProfile, setBuildingProfile] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingProfile,  setLoadingProfile]  = useState(false);
   const [verifiedMsg, setVerifiedMsg] = useState(false);
   const [generatedResumes, setGeneratedResumes] = useState([]);
 
-  // ── Inactivity timer state ────────────────────────────────────────────────
-  const [showWarning, setShowWarning] = useState(false);
-  const [warningSecondsLeft, setWarningSecondsLeft] = useState(60);
-  const inactivityTimerRef  = useRef(null);
-  const warningTimerRef     = useRef(null);
+  const [showWarning,       setShowWarning]       = useState(false);
+  const [warningSecondsLeft,setWarningSecondsLeft] = useState(60);
+  const inactivityTimerRef   = useRef(null);
+  const warningTimerRef      = useRef(null);
   const countdownIntervalRef = useRef(null);
 
-  // ── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = useCallback(() => {
-    // Clear all timers
     clearTimeout(inactivityTimerRef.current);
     clearTimeout(warningTimerRef.current);
     clearInterval(countdownIntervalRef.current);
     setShowWarning(false);
-
     sessionStorage_.clear();
-    setSession(null);
-    setProfile(null);
-    setBuildingProfile(false);
-    setGeneratedResumes([]);
+    setSession(null); setProfile(null); setBuildingProfile(false); setGeneratedResumes([]);
   }, []);
 
-  // ── Inactivity detection: reset the logout timer on any user activity ─────
   useEffect(() => {
     if (!session) return;
-
     const resetInactivityTimer = () => {
-      // Hide warning banner and clear countdown if user is active
       if (showWarning) {
         setShowWarning(false);
         clearInterval(countdownIntervalRef.current);
         clearTimeout(warningTimerRef.current);
       }
-
-      // Reset the main inactivity timer
       clearTimeout(inactivityTimerRef.current);
       inactivityTimerRef.current = setTimeout(() => {
-        // Show warning banner 60s before logout
         setWarningSecondsLeft(60);
         setShowWarning(true);
-
         let secs = 60;
         countdownIntervalRef.current = setInterval(() => {
           secs -= 1;
           setWarningSecondsLeft(secs);
           if (secs <= 0) clearInterval(countdownIntervalRef.current);
         }, 1000);
-
-        // Final logout after the warning period
-        warningTimerRef.current = setTimeout(() => {
-          handleLogout();
-        }, WARNING_BEFORE_MS);
-
+        warningTimerRef.current = setTimeout(() => { handleLogout(); }, WARNING_BEFORE_MS);
       }, INACTIVITY_LIMIT_MS - WARNING_BEFORE_MS);
     };
-
-    const ACTIVITY_EVENTS = ["mousemove", "keydown", "mousedown", "touchstart", "scroll", "click"];
-    ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }));
-    resetInactivityTimer(); // Start the timer immediately
-
+    const EVENTS = ["mousemove","keydown","mousedown","touchstart","scroll","click"];
+    EVENTS.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }));
+    resetInactivityTimer();
     return () => {
-      ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, resetInactivityTimer));
+      EVENTS.forEach(evt => window.removeEventListener(evt, resetInactivityTimer));
       clearTimeout(inactivityTimerRef.current);
       clearTimeout(warningTimerRef.current);
       clearInterval(countdownIntervalRef.current);
@@ -2147,27 +2247,19 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, handleLogout]);
 
-  // ── "Stay Logged In" handler — resets the inactivity clock ───────────────
   const handleStayLoggedIn = useCallback(() => {
     setShowWarning(false);
     clearInterval(countdownIntervalRef.current);
     clearTimeout(warningTimerRef.current);
-    // Dispatching a synthetic event causes the activity listener to reset the main timer
     window.dispatchEvent(new MouseEvent("mousemove"));
   }, []);
 
-  // ── JWT expiry check on tab regain focus ─────────────────────────────────
   useEffect(() => {
-    const onFocus = () => {
-      if (session && !sessionStorage_.readSession()) {
-        handleLogout();
-      }
-    };
+    const onFocus = () => { if (session && !sessionStorage_.readSession()) handleLogout(); };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [session, handleLogout]);
 
-  // ── Verified email query param ────────────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "true") {
@@ -2176,7 +2268,6 @@ export default function App() {
     }
   }, []);
 
-  // ── Load profile after login ──────────────────────────────────────────────
   useEffect(() => {
     if (session) {
       setLoadingProfile(true);
@@ -2184,27 +2275,17 @@ export default function App() {
         .then(data => {
           if (data && data.profileJson) {
             try {
-              const parsed = typeof data.profileJson === "string"
-                ? JSON.parse(data.profileJson)
-                : data.profileJson;
+              const parsed = typeof data.profileJson === "string" ? JSON.parse(data.profileJson) : data.profileJson;
               setProfile(parsed);
-              if (parsed._generatedResumes) {
-                setGeneratedResumes(parsed._generatedResumes);
-              }
+              if (parsed._generatedResumes) setGeneratedResumes(parsed._generatedResumes);
             } catch { setProfile(null); setBuildingProfile(true); }
-          } else {
-            setBuildingProfile(true);
-          }
+          } else { setBuildingProfile(true); }
         })
-        .catch(() => {
-          sessionStorage_.clear();
-          setSession(null); setProfile(null); setBuildingProfile(false);
-        })
+        .catch(() => { sessionStorage_.clear(); setSession(null); setProfile(null); setBuildingProfile(false); })
         .finally(() => setLoadingProfile(false));
     }
   }, [session]);
 
-  // ── Login handler — saves to sessionStorage ───────────────────────────────
   const handleLogin = (data) => {
     sessionStorage_.save(data.token || data.accessToken, { email: data.email, fullName: data.fullName });
     setSession({ email: data.email, fullName: data.fullName });
@@ -2215,7 +2296,7 @@ export default function App() {
     setGeneratedResumes(updated);
     if (profile) {
       const profileWithHistory = { ...profile, _generatedResumes: updated };
-      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch { }
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
     }
   };
 
@@ -2224,7 +2305,7 @@ export default function App() {
     setGeneratedResumes(updated);
     if (profile) {
       const profileWithHistory = { ...profile, _generatedResumes: updated };
-      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch { }
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
     }
   };
 
@@ -2234,39 +2315,26 @@ export default function App() {
     setBuildingProfile(false);
   };
 
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams   = new URLSearchParams(window.location.search);
   const isResetPage = urlParams.get("page") === "reset-password";
 
   return (
     <>
       <style>{css}</style>
       <div className="app">
-
-        {/* ── Inactivity warning banner (shown to logged-in users) ── */}
         {session && showWarning && (
-          <InactivityWarningBanner
-            secondsLeft={warningSecondsLeft}
-            onStayLoggedIn={handleStayLoggedIn}
-          />
+          <InactivityWarningBanner secondsLeft={warningSecondsLeft} onStayLoggedIn={handleStayLoggedIn} />
         )}
 
         {isResetPage && (
-          <ResetPasswordPage onBack={() => {
-            window.history.pushState({}, "", "/");
-            window.location.reload();
-          }} />
+          <ResetPasswordPage onBack={() => { window.history.pushState({}, "", "/"); window.location.reload(); }} />
         )}
 
         {!isResetPage && (
           <>
             {!session && !showForgot && (
               authView === "login"
-                ? <LoginPage
-                    onLogin={handleLogin}
-                    onSwitch={() => setAuthView("signup")}
-                    verifiedMsg={verifiedMsg}
-                    onForgotPassword={() => setShowForgot(true)}
-                  />
+                ? <LoginPage onLogin={handleLogin} onSwitch={() => setAuthView("signup")} verifiedMsg={verifiedMsg} onForgotPassword={() => setShowForgot(true)} />
                 : <SignupPage onSwitch={() => setAuthView("login")} />
             )}
 
@@ -2303,7 +2371,6 @@ export default function App() {
             )}
           </>
         )}
-
       </div>
     </>
   );
