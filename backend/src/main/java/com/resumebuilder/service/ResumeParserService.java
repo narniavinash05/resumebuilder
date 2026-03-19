@@ -20,12 +20,12 @@ import java.util.Optional;
 
 /**
  * LLM-powered resume parser.
- *
+ * <p>
  * Flow:
- *   1. Extract raw text from the uploaded file (PDF, DOCX, DOC, TXT)
- *   2. Send raw text to the LLM with a structured extraction prompt
- *   3. LLM returns profile JSON → passed back to frontend for review/edit before saving
- *
+ * 1. Extract raw text from the uploaded file (PDF, DOCX, DOC, TXT)
+ * 2. Send raw text to the LLM with a structured extraction prompt
+ * 3. LLM returns profile JSON → passed back to frontend for review/edit before saving
+ * <p>
  * This replaces the previous regex/heuristic-based parser with an LLM call,
  * dramatically improving accuracy for varied resume formats.
  */
@@ -33,11 +33,11 @@ import java.util.Optional;
 @Service
 public class ResumeParserService {
 
-    private final LlmClient    llmClient;
+    private final LlmClient llmClient;
     private final ObjectMapper objectMapper;
 
     public ResumeParserService(LlmClient llmClient, ObjectMapper objectMapper) {
-        this.llmClient    = llmClient;
+        this.llmClient = llmClient;
         this.objectMapper = objectMapper;
     }
 
@@ -124,64 +124,64 @@ public class ResumeParserService {
 
     private String buildExtractionPrompt(String rawText) {
         return """
-You are a precise resume parser. Extract all information from the resume text below and return it
-as a single strict JSON object matching the schema shown. Fill every field you can find.
-Return ONLY raw JSON — no markdown fences, no explanations, no commentary.
-
-RESUME TEXT:
-""" + rawText + """
-
-OUTPUT SCHEMA:
-{
-  "name": "full name",
-  "headline": "job title or professional headline",
-  "email": "email address",
-  "phone": "phone number",
-  "location": "city, state or country",
-  "linkedin": "linkedin URL or blank",
-  "github": "github URL or portfolio URL or blank",
-  "website": "personal website URL or blank",
-  "summary": "professional summary paragraph or blank",
-  "companies": [
-    {
-      "company": "company name",
-      "role": "job title",
-      "location": "city, state or Remote",
-      "startDate": "YYYY-MM",
-      "endDate": "YYYY-MM or blank if current",
-      "current": false,
-      "description": "bullet points joined with newlines, each starting with a bullet character"
-    }
-  ],
-  "education": [
-    {
-      "institution": "university or school name",
-      "degree": "degree type e.g. Bachelor of Science",
-      "field": "field of study e.g. Computer Science",
-      "location": "city, state or blank",
-      "year": "graduation year as 4-digit string",
-      "gpa": "GPA if present else blank"
-    }
-  ],
-  "skills": ["skill1", "skill2"],
-  "certifications": [
-    {
-      "name": "certification name",
-      "issuer": "issuing organization",
-      "year": "year obtained"
-    }
-  ]
-}
-
-RULES:
-- Extract EVERY work experience entry found, ordered oldest to newest
-- skills[] must be a flat list of individual skill names with no category labels
-- Dates must be YYYY-MM format; if only a year is found use YYYY-01
-- For current roles set "current": true and leave "endDate" as blank string
-- If a field is not present in the resume, return a blank string or empty array
-- description should preserve all bullet points from the original resume
-- Return raw JSON only — no markdown, no preamble, no explanation
-""";
+                You are a precise resume parser. Extract all information from the resume text below and return it
+                as a single strict JSON object matching the schema shown. Fill every field you can find.
+                Return ONLY raw JSON — no markdown fences, no explanations, no commentary.
+                
+                RESUME TEXT:
+                """ + rawText + """
+                
+                OUTPUT SCHEMA:
+                {
+                  "name": "full name",
+                  "headline": "job title or professional headline",
+                  "email": "email address",
+                  "phone": "phone number",
+                  "location": "city, state or country",
+                  "linkedin": "linkedin URL or blank",
+                  "github": "github URL or portfolio URL or blank",
+                  "website": "personal website URL or blank",
+                  "summary": "professional summary paragraph or blank",
+                  "companies": [
+                    {
+                      "company": "company name",
+                      "role": "job title",
+                      "location": "city, state or Remote",
+                      "startDate": "YYYY-MM",
+                      "endDate": "YYYY-MM or blank if current",
+                      "current": false,
+                      "description": "bullet points joined with newlines, each starting with a bullet character"
+                    }
+                  ],
+                  "education": [
+                    {
+                      "institution": "university or school name",
+                      "degree": "degree type e.g. Bachelor of Science",
+                      "field": "field of study e.g. Computer Science",
+                      "location": "city, state or blank",
+                      "year": "graduation year as 4-digit string",
+                      "gpa": "GPA if present else blank"
+                    }
+                  ],
+                  "skills": ["skill1", "skill2"],
+                  "certifications": [
+                    {
+                      "name": "certification name",
+                      "issuer": "issuing organization",
+                      "year": "year obtained"
+                    }
+                  ]
+                }
+                
+                RULES:
+                - Extract EVERY work experience entry found, ordered oldest to newest
+                - skills[] must be a flat list of individual skill names with no category labels
+                - Dates must be YYYY-MM format; if only a year is found use YYYY-01
+                - For current roles set "current": true and leave "endDate" as blank string
+                - If a field is not present in the resume, return a blank string or empty array
+                - description should preserve all bullet points from the original resume
+                - Return raw JSON only — no markdown, no preamble, no explanation
+                """;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

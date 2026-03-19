@@ -55,7 +55,8 @@ public class LlmClient {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(30))
+                    .timeout(Duration.ofSeconds(90))
+                    .retry(2)
                     .block();
 
             long timeTaken = System.currentTimeMillis() - start;
