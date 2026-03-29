@@ -5,7 +5,7 @@ const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
 
 const sessionStorage_ = {
   getToken: () => sessionStorage.getItem("ats_token"),
-  getUser:  () => sessionStorage.getItem("ats_user"),
+  getUser: () => sessionStorage.getItem("ats_user"),
   save: (token, user) => {
     sessionStorage.setItem("ats_token", token);
     sessionStorage.setItem("ats_user", JSON.stringify(user));
@@ -15,13 +15,13 @@ const sessionStorage_ = {
     sessionStorage.removeItem("ats_user");
   },
   readSession: () => {
-    const user  = sessionStorage.getItem("ats_user");
+    const user = sessionStorage.getItem("ats_user");
     const token = sessionStorage.getItem("ats_token");
     if (!user || !token) return null;
     try {
       const base64Url = token.split(".")[1];
-      const base64    = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const payload   = JSON.parse(atob(base64));
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(atob(base64));
       if (payload.exp && payload.exp * 1000 < Date.now()) {
         sessionStorage.removeItem("ats_token");
         sessionStorage.removeItem("ats_user");
@@ -113,18 +113,18 @@ const YEARS = (() => {
 
 const validatePassword = (password) => {
   const checks = {
-    length:   password.length >= 8,
-    upper:    /[A-Z]/.test(password),
-    lower:    /[a-z]/.test(password),
-    number:   /[0-9]/.test(password),
-    special:  /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
   };
   const passed = Object.values(checks).filter(Boolean).length;
   const errors = [];
-  if (!checks.length)  errors.push("At least 8 characters");
-  if (!checks.upper)   errors.push("One uppercase letter (A-Z)");
-  if (!checks.lower)   errors.push("One lowercase letter (a-z)");
-  if (!checks.number)  errors.push("One number (0-9)");
+  if (!checks.length) errors.push("At least 8 characters");
+  if (!checks.upper) errors.push("One uppercase letter (A-Z)");
+  if (!checks.lower) errors.push("One lowercase letter (a-z)");
+  if (!checks.number) errors.push("One number (0-9)");
   if (!checks.special) errors.push("One special character (!@#$...)");
   return { checks, errors, passed, strong: passed === 5 };
 };
@@ -138,7 +138,7 @@ function PasswordStrengthMeter({ password }) {
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-        {[1,2,3,4,5].map(i => (
+        {[1, 2, 3, 4, 5].map(i => (
           <div key={i} style={{
             flex: 1, height: 4, borderRadius: 2,
             background: i <= passed ? colors[passed - 1] : "var(--surface3)",
@@ -152,17 +152,17 @@ function PasswordStrengthMeter({ password }) {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {[
-          { key: "length",  label: "8+ chars" },
-          { key: "upper",   label: "A-Z" },
-          { key: "lower",   label: "a-z" },
-          { key: "number",  label: "0-9" },
+          { key: "length", label: "8+ chars" },
+          { key: "upper", label: "A-Z" },
+          { key: "lower", label: "a-z" },
+          { key: "number", label: "0-9" },
           { key: "special", label: "!@#$" },
         ].map(({ key, label }) => (
           <span key={key} style={{
             fontSize: 11, padding: "3px 8px", borderRadius: 10, fontWeight: 500,
             background: checks[key] ? "rgba(78,205,196,0.15)" : "var(--surface2)",
-            color:      checks[key] ? "var(--accent2)"        : "var(--muted)",
-            border:     `1px solid ${checks[key] ? "rgba(78,205,196,0.3)" : "var(--border)"}`,
+            color: checks[key] ? "var(--accent2)" : "var(--muted)",
+            border: `1px solid ${checks[key] ? "rgba(78,205,196,0.3)" : "var(--border)"}`,
             transition: "all 0.2s",
           }}>
             {checks[key] ? "✓" : "○"} {label}
@@ -182,8 +182,8 @@ function MonthYearPicker({ value, onChange, disabled }) {
       setYear(y || ""); setMonth(m || "");
     } else { setYear(""); setMonth(""); }
   }, [value]);
-  const handleYear  = (v) => { setYear(v);  if (v && month) onChange(`${v}-${month}`); else onChange(""); };
-  const handleMonth = (v) => { setMonth(v); if (year && v) onChange(`${year}-${v}`);  else onChange(""); };
+  const handleYear = (v) => { setYear(v); if (v && month) onChange(`${v}-${month}`); else onChange(""); };
+  const handleMonth = (v) => { setMonth(v); if (year && v) onChange(`${year}-${v}`); else onChange(""); };
   const sel = {
     width: "100%", padding: "14px 12px",
     background: disabled ? "rgba(255,255,255,0.03)" : "var(--surface)",
@@ -214,7 +214,7 @@ const fmtDate = (val) => {
 };
 
 const scoreColor = (s) => s >= 90 ? "var(--success)" : s >= 75 ? "var(--accent)" : s >= 55 ? "#f0a830" : "var(--danger)";
-const scoreBg    = (s) => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
+const scoreBg = (s) => s >= 90 ? "rgba(78,205,196,0.08)" : s >= 75 ? "rgba(232,197,71,0.08)" : s >= 55 ? "rgba(240,168,48,0.08)" : "rgba(255,107,107,0.08)";
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
 const css = `
@@ -529,32 +529,32 @@ const css = `
 
 // ─── Skill categories ─────────────────────────────────────────────────────────
 const SKILL_CATEGORIES = {
-  "Programming Languages": ["JavaScript","TypeScript","Python","Java","C++","C#","Go","Rust","Swift","Kotlin","PHP","Ruby","Scala","R"],
-  "Frontend":              ["React","Vue.js","Angular","Next.js","Svelte","HTML5","CSS3","Tailwind CSS","SASS","Redux","GraphQL"],
-  "Backend":               ["Node.js","Express.js","Django","FastAPI","Spring Boot","Laravel","Ruby on Rails","REST APIs","Microservices"],
-  "Cloud & DevOps":        ["AWS","Azure","GCP","Docker","Kubernetes","Terraform","CI/CD","Jenkins","GitHub Actions","Linux"],
-  "Databases":             ["PostgreSQL","MySQL","MongoDB","Redis","DynamoDB","Elasticsearch","SQLite","Cassandra"],
-  "Data & AI":             ["Machine Learning","Deep Learning","TensorFlow","PyTorch","Pandas","NumPy","Scikit-learn","Data Analysis","Power BI","Tableau"],
-  "Soft Skills":           ["Leadership","Communication","Problem Solving","Team Collaboration","Agile","Scrum","Project Management","Mentoring"],
+  "Programming Languages": ["JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin", "PHP", "Ruby", "Scala", "R"],
+  "Frontend": ["React", "Vue.js", "Angular", "Next.js", "Svelte", "HTML5", "CSS3", "Tailwind CSS", "SASS", "Redux", "GraphQL"],
+  "Backend": ["Node.js", "Express.js", "Django", "FastAPI", "Spring Boot", "Laravel", "Ruby on Rails", "REST APIs", "Microservices"],
+  "Cloud & DevOps": ["AWS", "Azure", "GCP", "Docker", "Kubernetes", "Terraform", "CI/CD", "Jenkins", "GitHub Actions", "Linux"],
+  "Databases": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "DynamoDB", "Elasticsearch", "SQLite", "Cassandra"],
+  "Data & AI": ["Machine Learning", "Deep Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Scikit-learn", "Data Analysis", "Power BI", "Tableau"],
+  "Soft Skills": ["Leadership", "Communication", "Problem Solving", "Team Collaboration", "Agile", "Scrum", "Project Management", "Mentoring"],
 };
 
 // ─── SVG Nav Icons ────────────────────────────────────────────────────────────
 function NavIcon({ name, size = 16 }) {
   const s = size;
   const icons = {
-    home: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 01-1.5 1.5h-4.75V15a.75.75 0 00-.75-.75h-4a.75.75 0 00-.75.75v6.5H4.5A1.5 1.5 0 013 20V10.5z" fill="currentColor" fillOpacity="0.18"/><path d="M3 10.5L12 3l9 7.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/><path d="M19.5 8.75V4.5h-2.25v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><rect x="9.25" y="14.75" width="5.5" height="6.75" rx="0.75" stroke="currentColor" strokeWidth="1.5"/><path d="M4.5 10.75V20.5h15V10.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>),
-    sparkle: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 2.5c0 0 1.2 4.3 2.8 5.9C16.4 10 20.5 11 20.5 11s-4.1 1.1-5.7 2.7C13.2 15.3 12 19.5 12 19.5s-1.2-4.2-2.8-5.8C7.6 12.1 3.5 11 3.5 11s4.1-.9 5.7-2.6C10.8 6.8 12 2.5 12 2.5z" fill="currentColor" fillOpacity="0.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M19.5 3.5c0 0 .55 1.5 1.1 2.1.6.6 2.1 1.1 2.1 1.1s-1.5.5-2.1 1.1c-.6.6-1.1 2.1-1.1 2.1s-.55-1.5-1.1-2.1c-.6-.6-2.1-1.1-2.1-1.1s1.5-.5 2.1-1.1c.6-.6 1.1-2.1 1.1-2.1z" fill="currentColor" fillOpacity="0.7"/></svg>),
-    file: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" fill="currentColor" fillOpacity="0.15"/><path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M13.5 2v5.5a1 1 0 001 1H20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="8" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
-    user: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7.5" r="3.75" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.6"/><path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" fillOpacity="0.1"/></svg>),
-    info: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth="1.6"/><circle cx="12" cy="8" r="1.1" fill="currentColor"/><line x1="12" y1="11.5" x2="12" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>),
-    copy: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="13" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><line x1="11.5" y1="12.5" x2="16.5" y2="12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="11.5" y1="15.5" x2="16.5" y2="15.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>),
-    download: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M12 3v11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M7.5 10.5L12 15.5l4.5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>),
-    refresh: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4.5 12a7.5 7.5 0 0113.5-4.5H15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M19.5 12a7.5 7.5 0 01-13.5 4.5H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M18 4.5l1.5 3-3 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 19.5l-1.5-3 3-.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>),
-    trash: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M5 7.5h14l-1.2 12a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 7.5z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M3 7.5h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M9.5 4.5h5a1 1 0 011 1V7.5h-7V5.5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5"/><line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>),
-    upload: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M12 15V4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M7.5 8.5L12 3.5l4.5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>),
-    warning: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M10.5 3.75L2 19.5h20L13.5 3.75a1.732 1.732 0 00-3 0z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><line x1="12" y1="10" x2="12" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="17.5" r="1" fill="currentColor"/></svg>),
-    check: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" fill="currentColor" fillOpacity="0.12"/><circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.5"/><path d="M7.5 12.5l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>),
-    edit: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4 20h4l9.5-9.5-4-4L4 16v4z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><path d="M16.5 3.5a2 2 0 012.83 0l1.17 1.17a2 2 0 010 2.83L19 9 15 5l1.5-1.5z" fill="currentColor" fillOpacity="0.3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><line x1="3" y1="21" x2="21" y2="21" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeOpacity="0.3"/></svg>),
+    home: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 01-1.5 1.5h-4.75V15a.75.75 0 00-.75-.75h-4a.75.75 0 00-.75.75v6.5H4.5A1.5 1.5 0 013 20V10.5z" fill="currentColor" fillOpacity="0.18" /><path d="M3 10.5L12 3l9 7.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /><path d="M19.5 8.75V4.5h-2.25v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><rect x="9.25" y="14.75" width="5.5" height="6.75" rx="0.75" stroke="currentColor" strokeWidth="1.5" /><path d="M4.5 10.75V20.5h15V10.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    sparkle: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M12 2.5c0 0 1.2 4.3 2.8 5.9C16.4 10 20.5 11 20.5 11s-4.1 1.1-5.7 2.7C13.2 15.3 12 19.5 12 19.5s-1.2-4.2-2.8-5.8C7.6 12.1 3.5 11 3.5 11s4.1-.9 5.7-2.6C10.8 6.8 12 2.5 12 2.5z" fill="currentColor" fillOpacity="0.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M19.5 3.5c0 0 .55 1.5 1.1 2.1.6.6 2.1 1.1 2.1 1.1s-1.5.5-2.1 1.1c-.6.6-1.1 2.1-1.1 2.1s-.55-1.5-1.1-2.1c-.6-.6-2.1-1.1-2.1-1.1s1.5-.5 2.1-1.1c.6-.6 1.1-2.1 1.1-2.1z" fill="currentColor" fillOpacity="0.7" /></svg>),
+    file: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" fill="currentColor" fillOpacity="0.15" /><path d="M13.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8.5L13.5 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M13.5 2v5.5a1 1 0 001 1H20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><line x1="8" y1="16.5" x2="13.5" y2="16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><line x1="8" y1="10" x2="11" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>),
+    user: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7.5" r="3.75" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="1.6" /><path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M4 20.5c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" fillOpacity="0.1" /></svg>),
+    info: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth="1.6" /><circle cx="12" cy="8" r="1.1" fill="currentColor" /><line x1="12" y1="11.5" x2="12" y2="17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>),
+    copy: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="13" rx="2" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" /><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><line x1="11.5" y1="12.5" x2="16.5" y2="12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><line x1="11.5" y1="15.5" x2="16.5" y2="15.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>),
+    download: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15" /><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /><path d="M12 3v11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /><path d="M7.5 10.5L12 15.5l4.5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    refresh: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4.5 12a7.5 7.5 0 0113.5-4.5H15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /><path d="M19.5 12a7.5 7.5 0 01-13.5 4.5H9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /><path d="M18 4.5l1.5 3-3 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M6 19.5l-1.5-3 3-.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    trash: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M5 7.5h14l-1.2 12a2 2 0 01-2 1.8H8.2a2 2 0 01-2-1.8L5 7.5z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M3 7.5h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /><path d="M9.5 4.5h5a1 1 0 011 1V7.5h-7V5.5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>),
+    upload: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><rect x="3" y="16" width="18" height="5" rx="1.5" fill="currentColor" fillOpacity="0.15" /><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /><path d="M12 15V4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /><path d="M7.5 8.5L12 3.5l4.5 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    warning: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M10.5 3.75L2 19.5h20L13.5 3.75a1.732 1.732 0 00-3 0z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><line x1="12" y1="10" x2="12" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="12" cy="17.5" r="1" fill="currentColor" /></svg>),
+    check: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" fill="currentColor" fillOpacity="0.12" /><circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.5" /><path d="M7.5 12.5l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    edit: (<svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4 20h4l9.5-9.5-4-4L4 16v4z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M13.5 6.5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M16.5 3.5a2 2 0 012.83 0l1.17 1.17a2 2 0 010 2.83L19 9 15 5l1.5-1.5z" fill="currentColor" fillOpacity="0.3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><line x1="3" y1="21" x2="21" y2="21" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeOpacity="0.3" /></svg>),
   };
   return icons[name] || null;
 }
@@ -605,7 +605,7 @@ function LocationAutocomplete({ value, onChange, placeholder = "San Francisco, C
         transition: "border-color 0.2s",
       }}
       onFocus={e => { e.target.style.borderColor = "var(--accent)"; e.target.style.boxShadow = "0 0 0 3px rgba(232,197,71,0.1)"; }}
-      onBlur={e =>  { e.target.style.borderColor = ""; e.target.style.boxShadow = ""; }}
+      onBlur={e => { e.target.style.borderColor = ""; e.target.style.boxShadow = ""; }}
     />
   );
 }
@@ -626,7 +626,7 @@ function AuthBrand() {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
+function LoginPage({ onLogin, onSwitch, onForgotPassword }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -649,7 +649,6 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
         <div className="auth-card">
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-sub">Sign in to continue optimizing your career</p>
-          {verifiedMsg && <Alert type="success">Email verified! You can now log in.</Alert>}
           {error && <Alert>{error}</Alert>}
           <div className="field">
             <label>Email Address</label>
@@ -675,10 +674,9 @@ function LoginPage({ onLogin, onSwitch, verifiedMsg, onForgotPassword }) {
 }
 
 // ─── Signup ───────────────────────────────────────────────────────────────────
-function SignupPage({ onSwitch }) {
+function SignupPage({ onSwitch, onLogin }) {
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirm: "" });
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -688,25 +686,15 @@ function SignupPage({ onSwitch }) {
     const { errors, strong } = validatePassword(form.password);
     if (!strong) { setError("Password must include: " + errors.join(", ")); return; }
     setLoading(true);
-    try { await api.signup(form.fullName, form.email, form.password); setSuccess(true); }
-    catch (e) { setError(e.message); }
+    try {
+      await api.signup(form.fullName, form.email, form.password);
+      // Auto-login immediately after signup — no email verification required
+      const data = await api.login(form.email, form.password);
+      sessionStorage_.save(data.token || data.accessToken, { email: data.email, fullName: data.fullName });
+      onLogin(data);
+    } catch (e) { setError(e.message); }
     setLoading(false);
   };
-
-  if (success) return (
-    <div className="auth-page">
-      <AuthBrand />
-      <div className="auth-form-side">
-        <div className="auth-card">
-          <h1 className="auth-title">Check your inbox</h1>
-          <p className="auth-sub">Verification email sent to <strong>{form.email}</strong></p>
-          <Alert type="success">Account created! Click the link in your email to verify.</Alert>
-          <Alert type="info">Check spam if not received.</Alert>
-          <div style={{ textAlign: "center", marginTop: 20 }}><button className="btn btn-ghost" onClick={onSwitch}>Back to Sign In</button></div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="auth-page">
@@ -734,7 +722,7 @@ function SignupPage({ onSwitch }) {
             )}
           </div>
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading || !form.fullName || !form.email || !form.password}>
-            {loading ? <><Spinner small /> Creating...</> : "Create Account →"}
+            {loading ? <><Spinner small /> Creating account...</> : "Create Account →"}
           </button>
           <div className="auth-switch">Already have an account? <button onClick={onSwitch}>Sign in</button></div>
         </div>
@@ -869,10 +857,10 @@ function ResetPasswordPage({ onBack }) {
 
 // ─── Profile Stepper ──────────────────────────────────────────────────────────
 const STEPS = [
-  { id: "personal",       label: "Personal"       },
-  { id: "experience",     label: "Experience"     },
-  { id: "education",      label: "Education"      },
-  { id: "skills",         label: "Skills"         },
+  { id: "personal", label: "Personal" },
+  { id: "experience", label: "Experience" },
+  { id: "education", label: "Education" },
+  { id: "skills", label: "Skills" },
   { id: "certifications", label: "Certifications" },
 ];
 
@@ -928,8 +916,8 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
   const empty = () => ({ company: "", role: "", location: "", startDate: "", endDate: "", current: false, description: "" });
   const companies = data.companies?.length ? data.companies : [empty()];
   const update = (i, field, val) => onChange({ ...data, companies: companies.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add    = () => onChange({ ...data, companies: [...companies, empty()] });
-  const remove = i  => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
+  const add = () => onChange({ ...data, companies: [...companies, empty()] });
+  const remove = i => onChange({ ...data, companies: companies.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -980,10 +968,10 @@ function ExperienceStep({ data, onChange, onNext, onBack }) {
 // ─── Education Step ───────────────────────────────────────────────────────────
 function EducationStep({ data, onChange, onNext, onBack }) {
   const empty = () => ({ institution: "", degree: "", field: "", location: "", year: "", gpa: "" });
-  const edu    = data.education?.length ? data.education : [empty()];
+  const edu = data.education?.length ? data.education : [empty()];
   const update = (i, field, val) => onChange({ ...data, education: edu.map((e, idx) => idx === i ? { ...e, [field]: val } : e) });
-  const add    = () => onChange({ ...data, education: [...edu, empty()] });
-  const remove = i  => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
+  const add = () => onChange({ ...data, education: [...edu, empty()] });
+  const remove = i => onChange({ ...data, education: edu.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -1033,7 +1021,7 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
   const selected = data.skills || [];
   const [activeTab, setActiveTab] = useState(Object.keys(SKILL_CATEGORIES)[0]);
   const [custom, setCustom] = useState("");
-  const toggle    = skill => onChange({ ...data, skills: selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill] });
+  const toggle = skill => onChange({ ...data, skills: selected.includes(skill) ? selected.filter(s => s !== skill) : [...selected, skill] });
   const addCustom = () => { if (custom.trim() && !selected.includes(custom.trim())) { onChange({ ...data, skills: [...selected, custom.trim()] }); setCustom(""); } };
 
   return (
@@ -1074,8 +1062,8 @@ function SkillsStep({ data, onChange, onNext, onBack }) {
 function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
   const certs = data.certifications || [{ name: "", issuer: "", year: "", url: "" }];
   const update = (i, field, val) => onChange({ ...data, certifications: certs.map((c, idx) => idx === i ? { ...c, [field]: val } : c) });
-  const add    = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
-  const remove = i  => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
+  const add = () => onChange({ ...data, certifications: [...certs, { name: "", issuer: "", year: "", url: "" }] });
+  const remove = i => onChange({ ...data, certifications: certs.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -1106,9 +1094,9 @@ function CertificationsStep({ data, onChange, onSave, onBack, saving }) {
 // ─── Resume Upload Zone ───────────────────────────────────────────────────────
 function ResumeUploadZone({ onParsed }) {
   const [dragging, setDragging] = useState(false);
-  const [parsing, setParsing]   = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [parseStep, setParseStep] = useState(0);
-  const [error, setError]       = useState("");
+  const [error, setError] = useState("");
 
   const PARSE_STEPS = [
     "Reading your resume…",
@@ -1201,7 +1189,7 @@ function ResumeUploadZone({ onParsed }) {
           <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>Drop your resume here or click to browse</div>
           <div style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>AI will extract all your details and auto-fill the form</div>
           <div className="upload-formats">
-            {["PDF","DOCX","DOC","TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
+            {["PDF", "DOCX", "DOC", "TXT"].map(f => <span key={f} className="format-chip">{f}</span>)}
           </div>
         </div>
       )}
@@ -1211,23 +1199,23 @@ function ResumeUploadZone({ onParsed }) {
 
 // ─── Profile Builder ──────────────────────────────────────────────────────────
 function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
-  const [phase, setPhase]               = useState(initialProfile ? "steps" : "upload");
-  const [currentStep, setCurrentStep]   = useState("personal");
+  const [phase, setPhase] = useState(initialProfile ? "steps" : "upload");
+  const [currentStep, setCurrentStep] = useState("personal");
   const [completedSteps, setCompletedSteps] = useState([]);
-  const [profile, setProfile]           = useState({});
-  const [saving, setSaving]             = useState(false);
-  const [error, setError]               = useState("");
-  const [parsedData, setParsedData]     = useState(null);
+  const [profile, setProfile] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [parsedData, setParsedData] = useState(null);
 
   useEffect(() => {
     if (initialProfile) {
       setProfile(initialProfile);
       setPhase("steps");
       const completed = [];
-      if (initialProfile.name)               completed.push("personal");
-      if (initialProfile.companies?.length)  completed.push("experience");
-      if (initialProfile.education?.length)  completed.push("education");
-      if (initialProfile.skills?.length)     completed.push("skills");
+      if (initialProfile.name) completed.push("personal");
+      if (initialProfile.companies?.length) completed.push("experience");
+      if (initialProfile.education?.length) completed.push("education");
+      if (initialProfile.skills?.length) completed.push("skills");
       if (initialProfile.certifications?.length) completed.push("certifications");
       setCompletedSteps(completed);
     }
@@ -1238,15 +1226,15 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
     setParsedData(data);
     setProfile(prev => ({
       ...prev,
-      name:           data.name           || prev.name           || "",
-      headline:       data.headline       || prev.headline       || "",
-      email:          data.email          || prev.email          || "",
-      phone:          data.phone          || prev.phone          || "",
-      location:       data.location       || prev.location       || "",
-      linkedin:       data.linkedin       || prev.linkedin       || "",
-      github:         data.github         || prev.github         || "",
-      website:        data.website        || prev.website        || "",
-      summary:        data.summary        || prev.summary        || "",
+      name: data.name || prev.name || "",
+      headline: data.headline || prev.headline || "",
+      email: data.email || prev.email || "",
+      phone: data.phone || prev.phone || "",
+      location: data.location || prev.location || "",
+      linkedin: data.linkedin || prev.linkedin || "",
+      github: data.github || prev.github || "",
+      website: data.website || prev.website || "",
+      summary: data.summary || prev.summary || "",
       companies: (() => {
         const raw = (data.companies?.length ? data.companies : null) || prev.companies || [];
         return [...raw].sort((a, b) => {
@@ -1257,13 +1245,13 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
           };
           const aEnd = a.current ? null : a.endDate;
           const bEnd = b.current ? null : b.endDate;
-          if (!aEnd && bEnd)  return -1;
-          if (aEnd  && !bEnd) return  1;
+          if (!aEnd && bEnd) return -1;
+          if (aEnd && !bEnd) return 1;
           return toMs(bEnd || b.startDate) - toMs(aEnd || a.startDate);
         });
       })(),
-      education:      (data.education?.length     ? data.education     : null) || prev.education     || [],
-      skills:         (data.skills?.length         ? data.skills         : null) || prev.skills         || [],
+      education: (data.education?.length ? data.education : null) || prev.education || [],
+      skills: (data.skills?.length ? data.skills : null) || prev.skills || [],
       certifications: (data.certifications?.length ? data.certifications : null) || prev.certifications || [],
     }));
     setCurrentStep("personal");
@@ -1294,11 +1282,11 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
   const filledFields = parsedData ? Object.entries(parsedData).filter(([k, v]) => Array.isArray(v) ? v.length > 0 : v && String(v).trim()).map(([k]) => FIELD_LABELS[k] || k) : [];
 
   const SIDEBAR_NAV = [
-    { label: "Dashboard",       icon: "home"    },
+    { label: "Dashboard", icon: "home" },
     { label: "Generate Resume", icon: "sparkle" },
-    { label: "My Resumes",      icon: "file"    },
-    { label: "My Profile",      icon: "user"    },
-    { label: "About",           icon: "info"    },
+    { label: "My Resumes", icon: "file" },
+    { label: "My Profile", icon: "user" },
+    { label: "About", icon: "info" },
   ];
 
   if (phase === "upload") {
@@ -1381,10 +1369,10 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
 
       <StepperBar currentStep={currentStep} completedSteps={completedSteps} onNavigate={setCurrentStep} />
 
-      {currentStep === "personal"       && <PersonalStep       data={profile} onChange={setProfile} onNext={goNext} />}
-      {currentStep === "experience"     && <ExperienceStep     data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "education"      && <EducationStep      data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
-      {currentStep === "skills"         && <SkillsStep         data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "personal" && <PersonalStep data={profile} onChange={setProfile} onNext={goNext} />}
+      {currentStep === "experience" && <ExperienceStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "education" && <EducationStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
+      {currentStep === "skills" && <SkillsStep data={profile} onChange={setProfile} onNext={goNext} onBack={goBack} />}
       {currentStep === "certifications" && <CertificationsStep data={profile} onChange={setProfile} onSave={saveProfile} onBack={goBack} saving={saving} />}
     </div>
   );
@@ -1394,10 +1382,10 @@ function ProfileBuilder({ session, initialProfile, onComplete, onCancel }) {
 function ScoringBreakdown({ breakdown }) {
   if (!breakdown) return null;
   const dims = [
-    { label: "Keyword Match",        key: "keywordMatch",       weight: "40%" },
-    { label: "Candidate Fit",        key: "candidateFit",       weight: "25%" },
-    { label: "Resume Completeness",  key: "resumeCompleteness", weight: "20%" },
-    { label: "Keyword Density",      key: "keywordDensity",     weight: "15%" },
+    { label: "Keyword Match", key: "keywordMatch", weight: "40%" },
+    { label: "Candidate Fit", key: "candidateFit", weight: "25%" },
+    { label: "Resume Completeness", key: "resumeCompleteness", weight: "20%" },
+    { label: "Keyword Density", key: "keywordDensity", weight: "15%" },
   ];
   return (
     <div className="card">
@@ -1435,15 +1423,15 @@ const GEN_STEPS_LIST = [
 ];
 
 function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPosition = "" }) {
-  const [company,  setCompany]  = useState(prefillCompany);
+  const [company, setCompany] = useState(prefillCompany);
   const [position, setPosition] = useState(prefillPosition);
-  const [jd, setJd]             = useState("");
-  const [step, setStep]         = useState("meta");
-  const [genStep, setGenStep]   = useState(0);
+  const [jd, setJd] = useState("");
+  const [step, setStep] = useState("meta");
+  const [genStep, setGenStep] = useState(0);
   const [atsResult, setAtsResult] = useState(null);
-  const [pdfBlob,  setPdfBlob]  = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null);
   const [docxBlob, setDocxBlob] = useState(null); // FIX 4
-  const [error, setError]       = useState("");
+  const [error, setError] = useState("");
 
   const startGenerate = async () => {
     if (!jd.trim()) return;
@@ -1476,10 +1464,10 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
       }
 
       setAtsResult({
-        atsScore:        result.atsScore,
-        scoreLabel:      result.scoreLabel,
-        matchedSkills:   result.matchedSkills,
-        totalSkills:     result.totalSkills,
+        atsScore: result.atsScore,
+        scoreLabel: result.scoreLabel,
+        matchedSkills: result.matchedSkills,
+        totalSkills: result.totalSkills,
         matchedKeywords: result.matchedKeywords || [],
         missingKeywords: result.missingKeywords || [],
         scoringBreakdown: result.scoringBreakdown || null,
@@ -1491,14 +1479,14 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
       onSaveResume({
         id: Date.now().toString(),
         company, position,
-        generatedAt:     new Date().toISOString(),
-        atsScore:        result.atsScore,
-        scoreLabel:      result.scoreLabel,
+        generatedAt: new Date().toISOString(),
+        atsScore: result.atsScore,
+        scoreLabel: result.scoreLabel,
         matchedKeywords: result.matchedKeywords || [],
         missingKeywords: result.missingKeywords || [],
         scoringBreakdown: result.scoringBreakdown || null,
-        pdfBase64:       result.pdfBase64,
-        docxBase64:      result.docxBase64 || null, // FIX 4
+        pdfBase64: result.pdfBase64,
+        docxBase64: result.docxBase64 || null, // FIX 4
       });
     } catch (e) { setError(e.message); setStep("meta"); }
   };
@@ -1546,7 +1534,7 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
   if (step === "done" && atsResult) {
     const sc = atsResult.atsScore;
     const col = scoreColor(sc);
-    const bg  = scoreBg(sc);
+    const bg = scoreBg(sc);
     const contextMsg = sc >= 90 ? "Outstanding — your resume is highly competitive for this role." :
       sc >= 75 ? "Strong match. Weaving in the missing keywords could push you to Excellent." :
         sc >= 55 ? "Reasonable fit. Adding the missing skills and regenerating will improve your score." :
@@ -1580,9 +1568,9 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
           <div className="card-title">Keyword Match Analysis</div>
           <div style={{ display: "flex", gap: 28, marginBottom: 20, flexWrap: "wrap" }}>
             {[
-              { label: "Matched",    val: atsResult.matchedKeywords.length, col: "var(--success)" },
-              { label: "Missing",    val: atsResult.missingKeywords.length, col: "var(--danger)"  },
-              { label: "Total in JD",val: atsResult.totalSkills,            col: "var(--accent)"  },
+              { label: "Matched", val: atsResult.matchedKeywords.length, col: "var(--success)" },
+              { label: "Missing", val: atsResult.missingKeywords.length, col: "var(--danger)" },
+              { label: "Total in JD", val: atsResult.totalSkills, col: "var(--accent)" },
             ].map(({ label, val, col: c }) => (
               <div key={label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: c }}>{val}</div>
@@ -1636,9 +1624,9 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
         <div className="card-title">Profile Summary</div>
         <div className="profile-grid">
           {[["Name", profile.name], ["Headline", profile.headline || "—"], ["Location", profile.location],
-            ["Skills", `${(profile.skills || []).length} selected`],
-            ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
-            ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
+          ["Skills", `${(profile.skills || []).length} selected`],
+          ["Experience", `${(profile.companies || []).filter(c => c.company).length} positions`],
+          ["Certifications", `${(profile.certifications || []).filter(c => c.name).length}`]
           ].map(([k, v]) => (
             <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
           ))}
@@ -1661,9 +1649,9 @@ function ResumeGenerator({ profile, onSaveResume, prefillCompany = "", prefillPo
 
 // ─── Resume Detail Modal ──────────────────────────────────────────────────────
 function ResumeDetailModal({ resume, onClose }) {
-  const sc  = resume.atsScore;
+  const sc = resume.atsScore;
   const col = scoreColor(sc);
-  const bg  = scoreBg(sc);
+  const bg = scoreBg(sc);
 
   const downloadPdf = () => {
     const base64 = resume.pdfBase64.replace(/-/g, "+").replace(/_/g, "/");
@@ -1725,7 +1713,7 @@ function ResumeDetailModal({ resume, onClose }) {
           </div>
         )}
         <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-          {resume.pdfBase64  && <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={16} /> Download PDF</button>}
+          {resume.pdfBase64 && <button className="download-btn" onClick={downloadPdf}><NavIcon name="download" size={16} /> Download PDF</button>}
           {resume.docxBase64 && <button className="download-btn docx" onClick={downloadDocx}><NavIcon name="download" size={16} /> Download Word (.docx)</button>}
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
         </div>
@@ -1792,7 +1780,7 @@ function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
           </span>
         </div>
         <div className="resume-card-actions" onClick={e => e.stopPropagation()}>
-          {resume.pdfBase64  && <button className="btn btn-ghost btn-sm" onClick={downloadPdf}  style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="download" size={13} /> PDF</button>}
+          {resume.pdfBase64 && <button className="btn btn-ghost btn-sm" onClick={downloadPdf} style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="download" size={13} /> PDF</button>}
           {resume.docxBase64 && <button className="btn btn-ghost btn-sm" onClick={downloadDocx} style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="download" size={13} /> DOCX</button>}
           <button className="btn btn-ghost btn-sm" onClick={() => onNavigate("generate", { company: resume.company, position: resume.position })} style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="refresh" size={13} /> Redo</button>
           <button className="btn btn-danger btn-sm" onClick={() => onDelete(resume.id)} style={{ display: "flex", alignItems: "center", gap: 6 }}><NavIcon name="trash" size={13} /> Delete</button>
@@ -1804,9 +1792,9 @@ function ResumeCard({ resume, onNavigate, onDelete, showDate = "short" }) {
 
 // ─── Home Dashboard ───────────────────────────────────────────────────────────
 function HomeDashboard({ profile, generatedResumes, onNavigate, onDeleteResume }) {
-  const avgScore  = generatedResumes.length > 0 ? Math.round(generatedResumes.reduce((s, r) => s + r.atsScore, 0) / generatedResumes.length) : null;
+  const avgScore = generatedResumes.length > 0 ? Math.round(generatedResumes.reduce((s, r) => s + r.atsScore, 0) / generatedResumes.length) : null;
   const bestScore = generatedResumes.length > 0 ? Math.max(...generatedResumes.map(r => r.atsScore)) : null;
-  const sorted    = [...generatedResumes].sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
+  const sorted = [...generatedResumes].sort((a, b) => new Date(b.generatedAt) - new Date(a.generatedAt));
 
   return (
     <div>
@@ -1898,7 +1886,7 @@ function ProfileOverview({ profile, onEdit }) {
             <div className="card-title"><NavIcon name="user" size={18} /> Personal</div>
             <div className="profile-grid">
               {[["Name", profile.name], ["Email", profile.email], ["Phone", profile.phone],
-                ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
+              ["Location", profile.location], ["LinkedIn", profile.linkedin || "—"], ["GitHub", profile.github || "—"]
               ].map(([k, v]) => (
                 <div key={k} className="info-row"><span className="info-label">{k}</span><span className="info-val">{v}</span></div>
               ))}
@@ -1970,9 +1958,11 @@ function AboutPage() {
       <div className="card" style={{ display: "flex", gap: 28, alignItems: "flex-start", flexWrap: "wrap" }}>
         <img
           src="/avinash.jpeg" alt="Avinash Narni" width="240" height="240"
-          style={{ width: 120, height: 120, borderRadius: "50%", objectFit: "cover", objectPosition: "center top",
+          style={{
+            width: 120, height: 120, borderRadius: "50%", objectFit: "cover", objectPosition: "center top",
             display: "block", imageRendering: "auto", border: "3px solid var(--accent)",
-            boxShadow: "0 0 0 4px rgba(232,197,71,0.15)", flexShrink: 0 }}
+            boxShadow: "0 0 0 4px rgba(232,197,71,0.15)", flexShrink: 0
+          }}
         />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Avinash Narni</div>
@@ -1989,14 +1979,14 @@ function AboutPage() {
       <div className="card">
         <div className="card-title" style={{ marginBottom: 4 }}>Contact</div>
         {[
-          { label: "Email",    value: "narniavinash05@gmail.com", href: "mailto:narniavinash05@gmail.com", key: "email" },
+          { label: "Email", value: "narniavinash05@gmail.com", href: "mailto:narniavinash05@gmail.com", key: "email" },
           { label: "Location", value: "Dallas, TX", href: null, key: "loc" },
         ].map(({ label, value, href, key }) => (
           <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
             <div>
               <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--muted)", marginBottom: 5 }}>{label}</div>
               {href ? <a href={href} style={{ color: "var(--accent)", textDecoration: "none", fontSize: 15, fontWeight: 500 }}>{value}</a>
-                    : <span style={{ fontSize: 15, fontWeight: 500 }}>{value}</span>}
+                : <span style={{ fontSize: 15, fontWeight: 500 }}>{value}</span>}
             </div>
             {href && (
               <button className="btn btn-ghost btn-sm" onClick={() => copy(value, key)} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2012,14 +2002,14 @@ function AboutPage() {
         <div className="card-title" style={{ marginBottom: 16 }}>Tech Stack</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
           {[
-            ["Backend",    "Java 17 · Spring Boot 3.2"],
-            ["AI / LLM",   "OpenAI GPT-4o-mini"],
-            ["Database",   "PostgreSQL · Flyway"],
-            ["Auth",       "Spring Security · JWT"],
-            ["Email",      "SendGrid"],
-            ["PDF",        "OpenPDF (LibrePDF)"],
-            ["DOCX",       "Apache POI"],
-            ["Frontend",   "React 18"],
+            ["Backend", "Java 17 · Spring Boot 3.2"],
+            ["AI / LLM", "OpenAI GPT-4o-mini"],
+            ["Database", "PostgreSQL · Flyway"],
+            ["Auth", "Spring Security · JWT"],
+            ["Email", "SendGrid"],
+            ["PDF", "OpenPDF (LibrePDF)"],
+            ["DOCX", "Apache POI"],
+            ["Frontend", "React 18"],
             ["Deployment", "AWS EC2"],
           ].map(([k, v]) => (
             <div key={k} style={{ background: "var(--surface2)", borderRadius: 10, padding: "14px 16px" }}>
@@ -2039,7 +2029,7 @@ function AboutPage() {
 
 // ─── Main Dashboard Shell ─────────────────────────────────────────────────────
 function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile, onSaveResume, onDeleteResume }) {
-  const [activePage,      setActivePage]      = useState("home");
+  const [activePage, setActivePage] = useState("home");
   const [generatePrefill, setGeneratePrefill] = useState(null);
 
   const navigate = (page, prefill = null) => {
@@ -2048,11 +2038,11 @@ function Dashboard({ session, profile, generatedResumes, onLogout, onEditProfile
   };
 
   const NAV = [
-    { id: "home",     label: "Dashboard",      icon: "home"    },
+    { id: "home", label: "Dashboard", icon: "home" },
     { id: "generate", label: "Generate Resume", icon: "sparkle" },
-    { id: "resumes",  label: "My Resumes",      icon: "file",   badge: generatedResumes.length || null },
-    { id: "profile",  label: "My Profile",      icon: "user"    },
-    { id: "about",    label: "About",           icon: "info"    },
+    { id: "resumes", label: "My Resumes", icon: "file", badge: generatedResumes.length || null },
+    { id: "profile", label: "My Profile", icon: "user" },
+    { id: "about", label: "About", icon: "info" },
   ];
 
   return (
@@ -2190,19 +2180,18 @@ function InactivityWarningBanner({ secondsLeft, onStayLoggedIn }) {
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [authView,    setAuthView]    = useState("login");
-  const [showForgot,  setShowForgot]  = useState(false);
-  const [session,     setSession]     = useState(() => sessionStorage_.readSession());
-  const [profile,     setProfile]     = useState(null);
+  const [authView, setAuthView] = useState("login");
+  const [showForgot, setShowForgot] = useState(false);
+  const [session, setSession] = useState(() => sessionStorage_.readSession());
+  const [profile, setProfile] = useState(null);
   const [buildingProfile, setBuildingProfile] = useState(false);
-  const [loadingProfile,  setLoadingProfile]  = useState(false);
-  const [verifiedMsg, setVerifiedMsg] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [generatedResumes, setGeneratedResumes] = useState([]);
 
-  const [showWarning,       setShowWarning]       = useState(false);
-  const [warningSecondsLeft,setWarningSecondsLeft] = useState(60);
-  const inactivityTimerRef   = useRef(null);
-  const warningTimerRef      = useRef(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningSecondsLeft, setWarningSecondsLeft] = useState(60);
+  const inactivityTimerRef = useRef(null);
+  const warningTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
 
   const handleLogout = useCallback(() => {
@@ -2235,7 +2224,7 @@ export default function App() {
         warningTimerRef.current = setTimeout(() => { handleLogout(); }, WARNING_BEFORE_MS);
       }, INACTIVITY_LIMIT_MS - WARNING_BEFORE_MS);
     };
-    const EVENTS = ["mousemove","keydown","mousedown","touchstart","scroll","click"];
+    const EVENTS = ["mousemove", "keydown", "mousedown", "touchstart", "scroll", "click"];
     EVENTS.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }));
     resetInactivityTimer();
     return () => {
@@ -2259,14 +2248,6 @@ export default function App() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [session, handleLogout]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("verified") === "true") {
-      setVerifiedMsg(true);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
 
   useEffect(() => {
     if (session) {
@@ -2296,7 +2277,7 @@ export default function App() {
     setGeneratedResumes(updated);
     if (profile) {
       const profileWithHistory = { ...profile, _generatedResumes: updated };
-      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch { }
     }
   };
 
@@ -2305,7 +2286,7 @@ export default function App() {
     setGeneratedResumes(updated);
     if (profile) {
       const profileWithHistory = { ...profile, _generatedResumes: updated };
-      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch {}
+      try { await api.saveProfile(JSON.stringify(profileWithHistory)); } catch { }
     }
   };
 
@@ -2315,7 +2296,7 @@ export default function App() {
     setBuildingProfile(false);
   };
 
-  const urlParams   = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(window.location.search);
   const isResetPage = urlParams.get("page") === "reset-password";
 
   return (
@@ -2334,8 +2315,8 @@ export default function App() {
           <>
             {!session && !showForgot && (
               authView === "login"
-                ? <LoginPage onLogin={handleLogin} onSwitch={() => setAuthView("signup")} verifiedMsg={verifiedMsg} onForgotPassword={() => setShowForgot(true)} />
-                : <SignupPage onSwitch={() => setAuthView("login")} />
+                ? <LoginPage onLogin={handleLogin} onSwitch={() => setAuthView("signup")} onForgotPassword={() => setShowForgot(true)} />
+                : <SignupPage onSwitch={() => setAuthView("login")} onLogin={handleLogin} />
             )}
 
             {!session && showForgot && (
