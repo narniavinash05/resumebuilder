@@ -51,8 +51,8 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setFullName(request.getFullName());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmailVerified(false);
-        user.setVerificationToken(UUID.randomUUID().toString());
+        user.setEmailVerified(true);
+        user.setVerificationToken(null));
 
         userRepository.save(user);
 
@@ -90,9 +90,9 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("No account found with this email"));
 
-        if (!user.isEmailVerified()) {
-            throw new RuntimeException("Please verify your email before logging in");
-        }
+//        if (!user.isEmailVerified()) {
+//            throw new RuntimeException("Please verify your email before logging in");
+//        }
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
