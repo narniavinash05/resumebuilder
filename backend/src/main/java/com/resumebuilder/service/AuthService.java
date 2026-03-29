@@ -52,7 +52,7 @@ public class AuthService {
         user.setFullName(request.getFullName());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmailVerified(true);
-        user.setVerificationToken(null));
+        user.setVerificationToken(null);
 
         userRepository.save(user);
 
